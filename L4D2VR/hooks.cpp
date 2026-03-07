@@ -117,7 +117,8 @@ Hooks::Hooks(Game *game)
 {
 	PortalVrLog("Hooks::Hooks start");
 
-	if (MH_Initialize() != MH_OK)
+	const MH_STATUS initStatus = MH_Initialize();
+	if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED)
 	{
 		Game::errorMsg("Failed to init MinHook");
 	}
