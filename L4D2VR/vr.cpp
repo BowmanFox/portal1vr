@@ -18,6 +18,9 @@
 
 namespace
 {
+    constexpr bool kEnableVrMenuSubmission = false;
+    constexpr bool kEnableVrMenuInput = false;
+
     void GetOverlayWindowSize(const VR &vr, int &width, int &height)
     {
         width = static_cast<int>(vr.m_VKBackBuffer.m_VulkanData.m_nWidth);
@@ -212,7 +215,7 @@ void VR::Update()
     if (!m_IsInitialized || !m_Game->m_Initialized)
         return;
 
-    
+    const bool cursorVisible = m_Game->m_VguiSurface->IsCursorVisible();
 
     if (m_IsVREnabled && g_D3DVR9)
     {
@@ -232,7 +235,10 @@ void VR::Update()
     UpdatePosesAndActions();
     UpdateTracking();
 
-    if (m_Game->m_VguiSurface->IsCursorVisible()) {
+    if (cursorVisible) {
+        if (!kEnableVrMenuInput)
+            return;
+
         ProcessMenuInput();
     } else {
         ProcessInput();
@@ -268,6 +274,9 @@ void VR::SubmitVRTextures()
 {
     if (!m_RenderedNewFrame)
     {
+        if (!kEnableVrMenuSubmission)
+            return;
+
         if (!vr::VROverlay()->IsOverlayVisible(m_MainMenuHandle))
             RepositionOverlays();
 
