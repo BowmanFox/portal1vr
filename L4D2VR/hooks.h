@@ -25,11 +25,16 @@ class bf_read;
 template <typename T>
 struct Hook {
 	T fOriginal;
-	LPVOID pTarget;
-	bool isEnabled;
+	LPVOID pTarget = nullptr;
+	bool isEnabled = false;
 
 	int createHook(LPVOID targetFunc, LPVOID detourFunc)
 	{
+		if (!targetFunc)
+		{
+			return 1;
+		}
+
 		if (MH_CreateHook(targetFunc, detourFunc, reinterpret_cast<LPVOID *>(&fOriginal)) != MH_OK)
 		{
 			char errorString[512];
@@ -68,12 +73,17 @@ struct Hook {
 		isEnabled = false;
 		return 0;
 	}
+
+	bool isCreated() const
+	{
+		return pTarget != nullptr;
+	}
 };
 
 
 // Source Engine functions
 typedef ITexture *(__thiscall *tGetRenderTarget)(void *thisptr);
-typedef void(__thiscall *tRenderView)(void *thisptr, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
+typedef void(__thiscall *tRenderView)(void *thisptr, CViewSetup &setup, int nClearFlags, int whatToDraw);
 typedef bool(__thiscall *tCreateMove)(void *thisptr, float flInputSampleTime, CUserCmd *cmd);
 typedef void(__thiscall *tEndFrame)(PVOID);
 typedef void(__thiscall *tCalcViewModelView)(void *thisptr, const Vector &eyePosition, const QAngle &eyeAngles);
@@ -128,7 +138,7 @@ typedef void(__cdecl* tMatrixBuildPerspectiveX)(void*& dst, double flFovX, doubl
 
 typedef int(__cdecl* tGetDefaultFOV)(void*& thisptr);
 typedef double(__cdecl* tGetFOV)(void*& thisptr);
-typedef double(__cdecl* tGetViewModelFOV)(void*& thisptr);
+typedef float(__thiscall* tGetViewModelFOV)(void* thisptr);
 
 typedef void(__thiscall* tCreatePingPointer)(void* thisptr, Vector vecDestintaion);
 typedef void(__thiscall* tSetDrawOnlyForSplitScreenUser)(void* thisptr, int nSlot);
@@ -222,7 +232,7 @@ public:
 
 	// Detour functions
 	static ITexture *__fastcall dGetRenderTarget(void *ecx, void *edx);
-	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
+	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw);
 	static bool __fastcall dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd);
 	static void __fastcall dEndFrame(void *ecx, void *edx);
 	static void __fastcall dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles);
@@ -285,7 +295,7 @@ public:
 
 	static int __fastcall dGetDefaultFOV(void* ecx, void* edx);
 	static double __fastcall dGetFOV(void* ecx, void* edx);
-	static double __fastcall dGetViewModelFOV(void* ecx, void* edx);
+	static float __fastcall dGetViewModelFOV(void* ecx, void* edx);
 
 	static void __fastcall dSetDrawOnlyForSplitScreenUser(void* ecx, void* edx, int nSlot);
 	static void __fastcall dClientThink(void* ecx, void* edx);

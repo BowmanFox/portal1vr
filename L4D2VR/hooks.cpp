@@ -81,6 +81,33 @@ tEntindex Hooks::EntityIndex = nullptr;
 tGetOwner Hooks::GetOwner = nullptr;
 tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
+namespace
+{
+	template <typename T>
+	bool CreateHookAt(Hook<T> &hook, uintptr_t address, LPVOID detour, const char *name, bool required)
+	{
+		if (!address)
+		{
+			if (required)
+			{
+				std::string error = "Required hook target not found: ";
+				error += name;
+				Game::errorMsg(error.c_str());
+			}
+			return false;
+		}
+
+		return hook.createHook(reinterpret_cast<LPVOID>(address), detour) == 0;
+	}
+
+	template <typename T>
+	void EnableIfCreated(Hook<T> &hook)
+	{
+		if (hook.isCreated())
+			hook.enableHook();
+	}
+}
+
 Hooks::Hooks(Game *game)
 {
 	if (MH_Initialize() != MH_OK)
@@ -96,41 +123,12 @@ Hooks::Hooks(Game *game)
 
 	initSourceHooks();
 
-	//hkGetRenderTarget.enableHook();
-	hkCalcViewModelView.enableHook();
-
-	hkProcessUsercmds.enableHook();
-	hkReadUsercmd.enableHook();
-
-	//hkWriteUsercmdDeltaToBuffer.enableHook();
-	hkWriteUsercmd.enableHook();
-
-	hkCreateMove.enableHook();
-	hkEyePosition.enableHook();
-	hkRenderView.enableHook();
-
-
-	hkWeapon_ShootPosition.enableHook();
-	hkTraceFirePortal.enableHook();
-	hkCWeaponPortalgun_FirePortal.enableHook();
-
-	hkDrawSelf.enableHook();
-	hkPlayerPortalled.enableHook();
-
-	//hkComputeError.enableHook();
-	hkUpdateObject.enableHook();
-	hkUpdateObjectVM.enableHook();
-	//hkRotateObject.enableHook();
-	hkEyeAngles.enableHook();
-
-	hkGetDefaultFOV.enableHook();
-	hkGetFOV.enableHook();
-	hkGetViewModelFOV.enableHook();
-
-	hkSetDrawOnlyForSplitScreenUser.enableHook();
-	//kClientThink.enableHook();
-	hkPrecache.enableHook();
-	hkCHudCrosshair_ShouldDraw.enableHook();
+	EnableIfCreated(hkCalcViewModelView);
+	EnableIfCreated(hkCreateMove);
+	EnableIfCreated(hkRenderView);
+	EnableIfCreated(hkTraceFirePortal);
+	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
+	EnableIfCreated(hkGetViewModelFOV);
 }
 
 Hooks::~Hooks()
@@ -144,109 +142,26 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
-	/*LPVOID pGetRenderTargetVFunc = (LPVOID)(m_Game->m_Offsets->GetRenderTarget.address);
-	hkGetRenderTarget.createHook(pGetRenderTargetVFunc, &dGetRenderTarget);*/
+	CreateHookAt(hkRenderView, SigScanner::GetVirtualFunction(m_Game->m_ClientViewRender, 6), reinterpret_cast<LPVOID>(&dRenderView), "IViewRender::RenderView", true);
 
-	LPVOID pRenderViewVFunc = (LPVOID)(m_Game->m_Offsets->RenderView.address);
-	hkRenderView.createHook(pRenderViewVFunc, &dRenderView);
+	if (m_Game->m_Offsets->CalcViewModelView.valid)
+		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);
 
-	LPVOID calcViewModelViewAddr = (LPVOID)(m_Game->m_Offsets->CalcViewModelView.address);
-	hkCalcViewModelView.createHook(calcViewModelViewAddr, &dCalcViewModelView);
+	CreateHookAt(hkCreateMove, SigScanner::FindRttiVtableFunction("client.dll", ".?AVClientModeShared@@", 22), reinterpret_cast<LPVOID>(&dCreateMove), "ClientModeShared::CreateMove", true);
+	CreateHookAt(hkGetViewModelFOV, SigScanner::FindRttiVtableFunction("client.dll", ".?AVClientModeShared@@", 33), reinterpret_cast<LPVOID>(&dGetViewModelFOV), "ClientModeShared::GetViewModelFOV", false);
 
-	LPVOID ProcessUsercmdsAddr = (LPVOID)(m_Game->m_Offsets->ProcessUsercmds.address);
-	hkProcessUsercmds.createHook(ProcessUsercmdsAddr, &dProcessUsercmds);
+	if (m_Game->m_Offsets->TraceFirePortalServer.valid)
+		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 
-	LPVOID ReadUserCmdAddr = (LPVOID)(m_Game->m_Offsets->ReadUserCmd.address);
-	hkReadUsercmd.createHook(ReadUserCmdAddr, &dReadUsercmd);
+	if (m_Game->m_Offsets->CWeaponPortalgun_FirePortal.valid)
+		CreateHookAt(hkCWeaponPortalgun_FirePortal, m_Game->m_Offsets->CWeaponPortalgun_FirePortal.address, reinterpret_cast<LPVOID>(&dCWeaponPortalgun_FirePortal), "CWeaponPortalgun_FirePortal", false);
 
-	/*LPVOID WriteUsercmdDeltaToBufferAddr = (LPVOID)(m_Game->m_Offsets->WriteUsercmdDeltaToBuffer.address);
-	hkWriteUsercmdDeltaToBuffer.createHook(WriteUsercmdDeltaToBufferAddr, &dWriteUsercmdDeltaToBuffer);*/
-
-	LPVOID WriteUsercmdAddr = (LPVOID)(m_Game->m_Offsets->WriteUsercmd.address);
-	hkWriteUsercmd.createHook(WriteUsercmdAddr, &dWriteUsercmd);
-
-	/*LPVOID AdjustEngineViewportAddr = (LPVOID)(m_Game->m_Offsets->AdjustEngineViewport.address);
-	hkAdjustEngineViewport.createHook(AdjustEngineViewportAddr, &dAdjustEngineViewport);
-
-	LPVOID ViewportAddr = (LPVOID)(m_Game->m_Offsets->Viewport.address);
-	hkViewport.createHook(ViewportAddr, &dViewport);
-
-	LPVOID GetViewportAddr = (LPVOID)(m_Game->m_Offsets->GetViewport.address);
-	hkGetViewport.createHook(GetViewportAddr, &dGetViewport);*/
-
-	LPVOID EyePositionAddr = (LPVOID)(m_Game->m_Offsets->EyePosition.address);
-	hkEyePosition.createHook(EyePositionAddr, &dEyePosition);
-
-	/*LPVOID DrawModelExecuteAddr = (LPVOID)(m_Game->m_Offsets->DrawModelExecute.address);
-	hkDrawModelExecute.createHook(DrawModelExecuteAddr, &dDrawModelExecute);*/
-
-	LPVOID PushRenderTargetAddr = (LPVOID)(m_Game->m_Offsets->PushRenderTargetAndViewport.address);
-	hkPushRenderTargetAndViewport.createHook(PushRenderTargetAddr, &dPushRenderTargetAndViewport);
-
-	LPVOID PopRenderTargetAddr = (LPVOID)(m_Game->m_Offsets->PopRenderTargetAndViewport.address);
-	hkPopRenderTargetAndViewport.createHook(PopRenderTargetAddr, &dPopRenderTargetAndViewport);
-
-	LPVOID VGui_PaintAddr = (LPVOID)(m_Game->m_Offsets->VGui_Paint.address);
-	hkVgui_Paint.createHook(VGui_PaintAddr, &dVGui_Paint);
-
-	/*LPVOID IsSplitScreenAddr = (LPVOID)(m_Game->m_Offsets->IsSplitScreen.address);
-	hkIsSplitScreen.createHook(IsSplitScreenAddr, &dIsSplitScreen);*/
-
-	LPVOID PrePushRenderTargetAddr = (LPVOID)(m_Game->m_Offsets->PrePushRenderTarget.address);
-	hkPrePushRenderTarget.createHook(PrePushRenderTargetAddr, &dPrePushRenderTarget);
-
-	/*LPVOID GetFullScreenTextureAddr = (LPVOID)(m_Game->m_Offsets->GetFullScreenTexture.address);
-	hkGetFullScreenTexture.createHook(GetFullScreenTextureAddr, &dGetFullScreenTexture);*/
-
-	LPVOID Weapon_ShootPositionAddr = (LPVOID)(m_Game->m_Offsets->Weapon_ShootPosition.address);
-	hkWeapon_ShootPosition.createHook(Weapon_ShootPositionAddr, &dWeapon_ShootPosition);
-	
-	LPVOID TraceFirePortalAddr = (LPVOID)(m_Game->m_Offsets->TraceFirePortalServer.address);
-	hkTraceFirePortal.createHook(TraceFirePortalAddr, &dTraceFirePortal);
-
-	hkCWeaponPortalgun_FirePortal.createHook((LPVOID)m_Game->m_Offsets->CWeaponPortalgun_FirePortal.address, &dCWeaponPortalgun_FirePortal);
-
-	LPVOID DrawSelfAddr = (LPVOID)(m_Game->m_Offsets->DrawSelf.address);
-	hkDrawSelf.createHook(DrawSelfAddr, &dDrawSelf);
-	
-	LPVOID ClipTransformAddr = (LPVOID)(m_Game->m_Offsets->ClipTransform.address);
-	hkClipTransform.createHook(ClipTransformAddr, &dClipTransform);
-
-	// Portalling
-	LPVOID PlayerPortalledAddr = (LPVOID)(m_Game->m_Offsets->PlayerPortalled.address);
-	hkPlayerPortalled.createHook(PlayerPortalledAddr, &dPlayerPortalled);
-
-	UTIL_Portal_FirstAlongRay = (tUTIL_Portal_FirstAlongRay)m_Game->m_Offsets->UTIL_Portal_FirstAlongRay.address;
-	UTIL_IntersectRayWithPortal = (tUTIL_IntersectRayWithPortal)m_Game->m_Offsets->UTIL_IntersectRayWithPortal.address;
-	UTIL_Portal_AngleTransform = (tUTIL_Portal_AngleTransform)m_Game->m_Offsets->UTIL_Portal_AngleTransform.address;
-
-	LPVOID CreateMoveAddr = (LPVOID)(m_Game->m_Offsets->CreateMove.address);
-	hkCreateMove.createHook(CreateMoveAddr, &dCreateMove);
-
-	// Grababbles
-	hkComputeError.createHook((LPVOID)(m_Game->m_Offsets->ComputeError.address), &dComputeError);
-	hkUpdateObject.createHook((LPVOID)(m_Game->m_Offsets->UpdateObject.address), &dUpdateObject);
-	hkUpdateObjectVM.createHook((LPVOID)(m_Game->m_Offsets->UpdateObjectVM.address), &dUpdateObjectVM);
-	hkRotateObject.createHook((LPVOID)(m_Game->m_Offsets->RotateObject.address), &dRotateObject);
-	hkEyeAngles.createHook((LPVOID)(m_Game->m_Offsets->EyeAngles.address), &dEyeAngles);
-
-	// Portal Gun VFX
-	hkGetDefaultFOV.createHook((LPVOID)(m_Game->m_Offsets->GetDefaultFOV.address), &dGetDefaultFOV);
-	hkGetFOV.createHook((LPVOID)(m_Game->m_Offsets->GetFOV.address), &dGetFOV);
-	hkGetViewModelFOV.createHook((LPVOID)(m_Game->m_Offsets->GetViewModelFOV.address), &dGetViewModelFOV);
-	
-	// Laser Pointer
-	GetPortalPlayer = (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address;
-	CreatePingPointer = (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address;
-	PrecacheParticleSystem = (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address;
-	hkPrecache.createHook((LPVOID)(m_Game->m_Offsets->Precache.address), &dPrecache);
-	hkSetDrawOnlyForSplitScreenUser.createHook((LPVOID)m_Game->m_Offsets->SetDrawOnlyForSplitScreenUser.address, &dSetDrawOnlyForSplitScreenUser);
-	hkCHudCrosshair_ShouldDraw.createHook((LPVOID)m_Game->m_Offsets->CHudCrosshair_ShouldDraw.address, &dCHudCrosshair_ShouldDraw);
-
-	//
-	EntityIndex = (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address;
-	GetOwner = (tGetOwner)m_Game->m_Offsets->GetOwner.address;
-	GetFullScreenTexture = (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address;
+	GetPortalPlayer = m_Game->m_Offsets->GetPortalPlayer.valid ? (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address : nullptr;
+	CreatePingPointer = m_Game->m_Offsets->CreatePingPointer.valid ? (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address : nullptr;
+	PrecacheParticleSystem = m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
+	EntityIndex = m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
+	GetOwner = m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
+	GetFullScreenTexture = m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
 	return 1;
 } 
 
@@ -283,27 +198,18 @@ ITexture* __fastcall Hooks::dGetRenderTarget(void* ecx, void* edx)
 	return result;
 }
 
-void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw)
+void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw)
 {
 	if (!m_VR->m_CreatedVRTextures) {
 		m_VR->CreateVRTextures();
 	}
 
 	if (m_Game->m_VguiSurface->IsCursorVisible())
-		return hkRenderView.fOriginal(ecx, setup, hudViewSetup, nClearFlags, whatToDraw);
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	//VPanel* g_pFullscreenRootPanel = *(VPanel**)(m_Game->m_Offsets->g_pFullscreenRootPanel.address);
 
 	IMaterialSystem* matSystem = m_Game->m_MaterialSystem;
-
-	hudViewSetup.width = m_VR->m_RenderWidth;
-	hudViewSetup.height = m_VR->m_RenderHeight;
-	hudViewSetup.fov = m_VR->m_Fov;
-	//hudViewSetup.fovViewmodel = m_VR->m_Fov;
-	hudViewSetup.m_flAspectRatio = m_VR->m_Aspect;
-
-	hudViewSetup.m_nUnscaledWidth = m_VR->m_RenderWidth;
-	hudViewSetup.m_nUnscaledHeight = m_VR->m_RenderHeight;
 
 	Vector position = setup.origin;
 
@@ -359,7 +265,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	IMatRenderContext* rndrContext = matSystem->GetRenderContext();
 	rndrContext->SetRenderTarget(m_VR->m_LeftEyeTexture);
 	rndrContext->Release();
-	hkRenderView.fOriginal(ecx, leftEyeView, hudViewSetup, nClearFlags, whatToDraw);
+	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw);
 	
 	// Right eye CViewSetup
 	tempAngle = QAngle(setup.angles.x, setup.angles.y, setup.angles.z);
@@ -370,7 +276,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	rndrContext = matSystem->GetRenderContext();
 	rndrContext->SetRenderTarget(m_VR->m_RightEyeTexture);
 	rndrContext->Release();
-	hkRenderView.fOriginal(ecx, rightEyeView, hudViewSetup, nClearFlags, whatToDraw);
+	hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw);
 
 	m_PushedHud = false;
 
@@ -400,7 +306,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		setup.m_flAspectRatio = aspect;
 
 		//setup.width, setup.height
-		hkRenderView.fOriginal(ecx, setup, hudViewSetup, nClearFlags, whatToDraw);
+		hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 	}
 
 
@@ -409,6 +315,9 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 
 bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd)
 {
+	if (!cmd)
+		return hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
+
 	if (!cmd->command_number)
 		return hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
 
@@ -713,14 +622,7 @@ Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
 }
 
 void* Hooks::dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool bPortal2, Vector* pVector) {
-	bool wasTrue = m_VR->m_OverrideEyeAngles;
-
-	m_VR->m_OverrideEyeAngles = true;
-
 	auto result = hkCWeaponPortalgun_FirePortal.fOriginal(ecx, bPortal2, pVector);
-
-	if (!wasTrue)
-		m_VR->m_OverrideEyeAngles = false;
 
 	return result;
 }
@@ -730,7 +632,11 @@ bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTra
 	Vector vNewTraceStart = vTraceStart;
 	Vector vNewDirection = vDirection;
 
-	if (iPlacedBy == 2) {
+	if (iPlacedBy == 2 && m_VR->m_IsVREnabled) {
+		vNewTraceStart = m_VR->GetRightControllerAbsPos();
+		vNewDirection = m_VR->m_RightControllerForward;
+	}
+	else if (iPlacedBy == 2 && GetOwner && EntityIndex) {
 		int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
 
 		auto owner = GetOwner(ecx);
@@ -987,6 +893,6 @@ double __fastcall Hooks::dGetFOV(void* ecx, void* edx) {
 	return m_VR->m_Fov;
 }
 
-double __fastcall Hooks::dGetViewModelFOV(void* ecx, void* edx) {
+float __fastcall Hooks::dGetViewModelFOV(void* ecx, void* edx) {
 	return m_VR->m_Fov;
 }

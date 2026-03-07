@@ -7,16 +7,32 @@ struct Offset
 {
     std::string moduleName;
     int offset;
-    int address;
+    uintptr_t address;
     std::string signature;
     int sigOffset;
+    bool valid;
 
-    Offset(std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0)
+    Offset()
+    {
+        this->offset = 0;
+        this->address = 0;
+        this->sigOffset = 0;
+        this->valid = false;
+    }
+
+    Offset(std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0, bool required = false)
     {
         this->moduleName = moduleName;
         this->offset = currentOffset;
+        this->address = 0;
         this->signature = signature;
         this->sigOffset = sigOffset;
+        this->valid = false;
+
+        if (moduleName.empty() || signature.empty())
+        {
+            return;
+        }
 
         int newOffset = SigScanner::VerifyOffset(moduleName, currentOffset, signature, sigOffset);
         if (newOffset > 0)
@@ -26,11 +42,13 @@ struct Offset
             
         if (newOffset == -1)
         {
-            Game::errorMsg(("Signature not found: " + signature).c_str());
+            if (required)
+                Game::errorMsg(("Signature not found: " + signature).c_str());
             return;
         }
 
         this->address = (uintptr_t)GetModuleHandle(moduleName.c_str()) + this->offset;
+        this->valid = true;
     }
 };
 

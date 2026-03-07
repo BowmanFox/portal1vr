@@ -23,19 +23,17 @@ Game::Game()
         Sleep(50);
 
     m_ClientEntityList = (IClientEntityList *)GetInterface("client.dll", "VClientEntityList003");
-    m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", "EngineTraceClient004");
-    m_EngineClient = (IEngineClient *)GetInterface("engine.dll", "VEngineClient015");
+    m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", "EngineTraceClient003");
+    m_EngineClient = (IEngineClient *)GetInterface("engine.dll", "VEngineClient014");
     m_MaterialSystem = (IMaterialSystem *)GetInterface("MaterialSystem.dll", "VMaterialSystem080");
-    m_ClientViewRender = (IViewRender *)GetInterface("client.dll", "VEngineRenderView013");
-    m_EngineViewRender = (IViewRender *)GetInterface("engine.dll", "VEngineRenderView013");
-    m_ModelInfo = (IModelInfo *)GetInterface("engine.dll", "VModelInfoClient004");
+    m_ClientViewRender = (IViewRender *)GetInterface("client.dll", "VEngineRenderView014");
+    m_EngineViewRender = (IViewRender *)GetInterface("engine.dll", "VEngineRenderView014");
+    m_ModelInfo = (IModelInfo *)GetInterface("engine.dll", "VModelInfoClient006");
     m_ModelRender = (IModelRender *)GetInterface("engine.dll", "VEngineModel016");
     m_VguiInput = (IInput *)GetInterface("vgui2.dll", "VGUI_InputInternal001");
-    m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", "VGUI_Surface031");
+    m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", "VGUI_Surface030");
 
     m_Offsets = new Offsets();
-
-    m_ClientMode = **(IClientMode***)(m_Offsets->g_pClientMode.address);
 
     m_VR = new VR(this);
     m_Hooks = new Hooks(this);
@@ -46,9 +44,24 @@ Game::Game()
 void *Game::GetInterface(const char *dllname, const char *interfacename)
 {
     tCreateInterface CreateInterface = (tCreateInterface)GetProcAddress(GetModuleHandle(dllname), "CreateInterface");
+    if (!CreateInterface)
+    {
+        std::string error = "Missing CreateInterface in ";
+        error += dllname;
+        Game::errorMsg(error.c_str());
+        return nullptr;
+    }
 
     int returnCode = 0;
     void *createdInterface = CreateInterface(interfacename, &returnCode);
+    if (!createdInterface)
+    {
+        std::string error = "Failed to get interface ";
+        error += interfacename;
+        error += " from ";
+        error += dllname;
+        Game::errorMsg(error.c_str());
+    }
 
     return createdInterface;
 }
