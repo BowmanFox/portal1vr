@@ -5,6 +5,7 @@
 #include "sdk_server.h"
 #include "vr.h"
 #include "offsets.h"
+#include "portal1.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -142,14 +143,28 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
-	IViewRender *renderView = m_Game->m_ClientViewRender ? m_Game->m_ClientViewRender : m_Game->m_EngineViewRender;
-	CreateHookAt(hkRenderView, SigScanner::GetVirtualFunction(renderView, 6), reinterpret_cast<LPVOID>(&dRenderView), "IViewRender::RenderView", true);
+	CreateHookAt(
+		hkRenderView,
+		SigScanner::GetVirtualFunction(m_Game->m_ClientViewRender, Portal1::VTableIndex::kViewRender_RenderView),
+		reinterpret_cast<LPVOID>(&dRenderView),
+		"Portal1::CViewRender::RenderView",
+		true);
 
 	if (m_Game->m_Offsets->CalcViewModelView.valid)
 		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);
 
-	CreateHookAt(hkCreateMove, SigScanner::FindRttiVtableFunction("client.dll", ".?AVClientModeShared@@", 22), reinterpret_cast<LPVOID>(&dCreateMove), "ClientModeShared::CreateMove", true);
-	CreateHookAt(hkGetViewModelFOV, SigScanner::FindRttiVtableFunction("client.dll", ".?AVClientModeShared@@", 33), reinterpret_cast<LPVOID>(&dGetViewModelFOV), "ClientModeShared::GetViewModelFOV", false);
+	CreateHookAt(
+		hkCreateMove,
+		SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_CreateMove),
+		reinterpret_cast<LPVOID>(&dCreateMove),
+		"Portal1::ClientModePortalNormal::CreateMove",
+		true);
+	CreateHookAt(
+		hkGetViewModelFOV,
+		SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_GetViewModelFOV),
+		reinterpret_cast<LPVOID>(&dGetViewModelFOV),
+		"Portal1::ClientModePortalNormal::GetViewModelFOV",
+		false);
 
 	if (m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
@@ -176,7 +191,8 @@ bool __fastcall Hooks::dCHudCrosshair_ShouldDraw(void* ecx, void* edx) {
 
 void __fastcall Hooks::dPrecache(void* ecx, void* edx) {
 	hkPrecache.fOriginal(ecx);
-	PrecacheParticleSystem("robot_point_beam");
+	if (PrecacheParticleSystem)
+		PrecacheParticleSystem("robot_point_beam");
 }
 
 void __fastcall Hooks::dClientThink(void* ecx, void* edx) {
@@ -413,8 +429,11 @@ float __fastcall Hooks::dProcessUsercmds(void *ecx, void *edx, edict_t *player, 
 {
 	Server_BaseEntity *pPlayer = (Server_BaseEntity*)player->m_pUnk->GetBaseEntity();
 
-	int index = EntityIndex(pPlayer);
-	m_Game->m_CurrentUsercmdID = index;
+	if (EntityIndex)
+	{
+		int index = EntityIndex(pPlayer);
+		m_Game->m_CurrentUsercmdID = index;
+	}
 
 	return hkProcessUsercmds.fOriginal(ecx, player, buf, numcmds, totalcmds, dropped_packets, ignore, paused);
 }
@@ -605,6 +624,9 @@ DWORD *Hooks::dPrePushRenderTarget(void *ecx, void *edx, int a2)
 Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
 {
 	Vector* result = hkWeapon_ShootPosition.fOriginal(ecx, eyePos);
+
+	if (!EntityIndex)
+		return result;
 
 	int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
 	int index = EntityIndex(ecx);
@@ -868,7 +890,7 @@ void __fastcall Hooks::dRotateObject(void* ecx, void* edx, void* pPlayer, float 
 // This is CPlayerBase, do we also need to hook CPortalPlayer? can the same function be used by both?
 // This works for release, but why was it crashing before??? TODO: buy a c++ book...
 QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
-	if (m_VR->m_OverrideEyeAngles) {
+	if (m_VR->m_OverrideEyeAngles && EntityIndex) {
 		int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
 		int index = EntityIndex(ecx);
 

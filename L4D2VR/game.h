@@ -83,6 +83,7 @@ public:
     Game();
 
     void *GetInterface(const char *dllname, const char *interfacename, bool required = true);
+    void *GetModuleOffset(const char *dllname, uintptr_t offset, bool required = true);
 
     static void errorMsg(const char *msg);
 

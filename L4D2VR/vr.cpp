@@ -985,7 +985,7 @@ void VR::UpdateTracking()
                 portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
                 portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
             }
-            else {
+            else if (m_Game->m_Hooks->CreatePingPointer) {
                 std::cout << "Creating Point Laser Beam Sight Thingy" << "\n";
                 m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
             }

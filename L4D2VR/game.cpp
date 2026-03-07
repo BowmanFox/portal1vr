@@ -5,7 +5,21 @@
 #include "vr.h"
 #include "hooks.h"
 #include "offsets.h"
+#include "portal1.h"
 #include "sigscanner.h"
+#include <Psapi.h>
+
+namespace
+{
+    bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
+    {
+        HMODULE hModule = GetModuleHandleA(dllname);
+        if (!hModule)
+            return false;
+
+        return GetModuleInformation(GetCurrentProcess(), hModule, &moduleInfo, sizeof(moduleInfo)) != FALSE;
+    }
+}
 
 Game* g_Game = nullptr;
 
@@ -22,18 +36,17 @@ Game::Game()
     while (!(m_BaseVgui2 = (uintptr_t)GetModuleHandle("vgui2.dll")))
         Sleep(50);
 
-    m_ClientEntityList = (IClientEntityList *)GetInterface("client.dll", "VClientEntityList003");
-    m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", "EngineTraceClient003");
-    m_EngineClient = (IEngineClient *)GetInterface("engine.dll", "VEngineClient014");
-    m_MaterialSystem = (IMaterialSystem *)GetInterface("MaterialSystem.dll", "VMaterialSystem080");
-    m_ClientViewRender = (IViewRender *)GetInterface("client.dll", "VEngineRenderView014", false);
-    m_EngineViewRender = (IViewRender *)GetInterface("engine.dll", "VEngineRenderView014");
-    if (!m_ClientViewRender)
-        m_ClientViewRender = m_EngineViewRender;
-    m_ModelInfo = (IModelInfo *)GetInterface("engine.dll", "VModelInfoClient006");
-    m_ModelRender = (IModelRender *)GetInterface("engine.dll", "VEngineModel016");
-    m_VguiInput = (IInput *)GetInterface("vgui2.dll", "VGUI_InputInternal001");
-    m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", "VGUI_Surface030");
+    m_ClientEntityList = (IClientEntityList *)GetInterface("client.dll", Portal1::Interfaces::kClientEntityList);
+    m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", Portal1::Interfaces::kEngineTrace);
+    m_EngineClient = (IEngineClient *)GetInterface("engine.dll", Portal1::Interfaces::kEngineClient);
+    m_MaterialSystem = (IMaterialSystem *)GetInterface("MaterialSystem.dll", Portal1::Interfaces::kMaterialSystem);
+    m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal);
+    m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender);
+    m_EngineViewRender = (IViewRender *)GetInterface("engine.dll", Portal1::Interfaces::kEngineRenderView, false);
+    m_ModelInfo = (IModelInfo *)GetInterface("engine.dll", Portal1::Interfaces::kModelInfo);
+    m_ModelRender = (IModelRender *)GetInterface("engine.dll", Portal1::Interfaces::kModelRender);
+    m_VguiInput = (IInput *)GetInterface("vgui2.dll", Portal1::Interfaces::kVguiInput);
+    m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", Portal1::Interfaces::kVguiSurface);
 
     m_Offsets = new Offsets();
 
@@ -69,6 +82,34 @@ void *Game::GetInterface(const char *dllname, const char *interfacename, bool re
     }
 
     return createdInterface;
+}
+
+void *Game::GetModuleOffset(const char *dllname, uintptr_t offset, bool required)
+{
+    MODULEINFO moduleInfo = {};
+    if (!TryGetModuleInfo(dllname, moduleInfo))
+    {
+        if (required)
+        {
+            std::string error = "Failed to query module info for ";
+            error += dllname;
+            Game::errorMsg(error.c_str());
+        }
+        return nullptr;
+    }
+
+    if (offset >= moduleInfo.SizeOfImage)
+    {
+        if (required)
+        {
+            char error[256];
+            sprintf_s(error, "Offset 0x%zX is outside %s", static_cast<size_t>(offset), dllname);
+            Game::errorMsg(error);
+        }
+        return nullptr;
+    }
+
+    return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(moduleInfo.lpBaseOfDll) + offset);
 }
 
 void Game::errorMsg(const char *msg)
