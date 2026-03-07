@@ -142,7 +142,8 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
-	CreateHookAt(hkRenderView, SigScanner::GetVirtualFunction(m_Game->m_ClientViewRender, 6), reinterpret_cast<LPVOID>(&dRenderView), "IViewRender::RenderView", true);
+	IViewRender *renderView = m_Game->m_ClientViewRender ? m_Game->m_ClientViewRender : m_Game->m_EngineViewRender;
+	CreateHookAt(hkRenderView, SigScanner::GetVirtualFunction(renderView, 6), reinterpret_cast<LPVOID>(&dRenderView), "IViewRender::RenderView", true);
 
 	if (m_Game->m_Offsets->CalcViewModelView.valid)
 		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);

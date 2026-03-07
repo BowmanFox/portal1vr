@@ -82,7 +82,7 @@ public:
 
     Game();
 
-    void *GetInterface(const char *dllname, const char *interfacename);
+    void *GetInterface(const char *dllname, const char *interfacename, bool required = true);
 
     static void errorMsg(const char *msg);
 
