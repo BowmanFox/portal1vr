@@ -67,16 +67,36 @@ if (-not (Test-Path -LiteralPath $binDir)) {
     New-Item -ItemType Directory -Path $binDir | Out-Null
 }
 
-$destination = Join-Path $binDir "d3d9.dll"
-try {
-    Copy-Item -LiteralPath $SourceDll -Destination $destination -Force
-    Write-Host "Copied d3d9.dll to $destination"
-}
-catch {
-    if ($_.Exception.Message -like "*being used by another process*") {
-        Write-Warning "Skipped DLL copy because '$destination' is in use. Close Portal to deploy the new build."
-        exit 0
+$openVrSource = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\thirdparty\openvr\bin\win32\openvr_api.dll"))
+$runtimeFiles = @(
+    @{
+        Source = $SourceDll
+        Destination = Join-Path $binDir "d3d9.dll"
+        Label = "d3d9.dll"
+    },
+    @{
+        Source = $openVrSource
+        Destination = Join-Path $binDir "openvr_api.dll"
+        Label = "openvr_api.dll"
+    }
+)
+
+foreach ($file in $runtimeFiles) {
+    if (-not (Test-Path -LiteralPath $file.Source)) {
+        Write-Warning "Skipped $($file.Label) copy because the source file was not found: $($file.Source)"
+        continue
     }
 
-    throw
+    try {
+        Copy-Item -LiteralPath $file.Source -Destination $file.Destination -Force
+        Write-Host "Copied $($file.Label) to $($file.Destination)"
+    }
+    catch {
+        if ($_.Exception.Message -like "*being used by another process*") {
+            Write-Warning "Skipped $($file.Label) copy because '$($file.Destination)' is in use. Close Portal to deploy the new build."
+            continue
+        }
+
+        throw
+    }
 }
