@@ -12,6 +12,12 @@
 
 namespace
 {
+    constexpr bool kEnableVectoredExceptionLogger = true;
+    constexpr bool kEnableProcessExitHooks = false;
+    constexpr bool kEnableLoadLibraryHooks = false;
+    constexpr bool kEnableComHooks = false;
+    constexpr bool kEnableTier0SpewHooks = false;
+
     using ExitProcessFn = VOID (WINAPI *)(UINT);
     using TerminateProcessFn = BOOL (WINAPI *)(HANDLE, UINT);
     using Tier0SpewFn = void (__cdecl *)(const char *, ...);
@@ -549,10 +555,14 @@ DWORD WINAPI InitL4D2VR(LPVOID)
 {
     PortalVrResetLog();
     PortalVrLog("Init thread start");
-    InstallVectoredExceptionLogger();
-    InstallProcessExitHooks();
-    InstallLoadLibraryHooks();
-    InstallComHooks();
+    if (kEnableVectoredExceptionLogger)
+        InstallVectoredExceptionLogger();
+    if (kEnableProcessExitHooks)
+        InstallProcessExitHooks();
+    if (kEnableLoadLibraryHooks)
+        InstallLoadLibraryHooks();
+    if (kEnableComHooks)
+        InstallComHooks();
 
 // Release if buggy, so we'll be releasing the debug binary
 #ifdef _DEBUG
@@ -598,7 +608,8 @@ DWORD WINAPI InitL4D2VR(LPVOID)
     PortalVrLog("Launch arguments validated, constructing Game");
     g_Game = new Game();
     PortalVrLog("Game constructed successfully");
-    InstallTier0SpewHooks();
+    if (kEnableTier0SpewHooks)
+        InstallTier0SpewHooks();
 
     return 0;
 }
