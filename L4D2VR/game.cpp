@@ -7,6 +7,7 @@
 #include "offsets.h"
 #include "portal1.h"
 #include "sigscanner.h"
+#include "debuglog.h"
 #include <Psapi.h>
 
 namespace
@@ -25,6 +26,8 @@ Game* g_Game = nullptr;
 
 Game::Game()
 {
+    PortalVrLog("Game::Game start");
+
     while (!(m_BaseClient = (uintptr_t)GetModuleHandle("client.dll")))
         Sleep(50);
     while (!(m_BaseEngine = (uintptr_t)GetModuleHandle("engine.dll")))
@@ -35,6 +38,14 @@ Game::Game()
         Sleep(50);
     while (!(m_BaseVgui2 = (uintptr_t)GetModuleHandle("vgui2.dll")))
         Sleep(50);
+
+    PortalVrLog(
+        "Modules ready client=%p engine=%p materialsystem=%p server=%p vgui2=%p",
+        reinterpret_cast<void *>(m_BaseClient),
+        reinterpret_cast<void *>(m_BaseEngine),
+        reinterpret_cast<void *>(m_BaseMaterialSystem),
+        reinterpret_cast<void *>(m_BaseServer),
+        reinterpret_cast<void *>(m_BaseVgui2));
 
     m_ClientEntityList = (IClientEntityList *)GetInterface("client.dll", Portal1::Interfaces::kClientEntityList);
     m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", Portal1::Interfaces::kEngineTrace);
@@ -48,12 +59,23 @@ Game::Game()
     m_VguiInput = (IInput *)GetInterface("vgui2.dll", Portal1::Interfaces::kVguiInput);
     m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", Portal1::Interfaces::kVguiSurface);
 
+    PortalVrLog(
+        "Interfaces ready clientMode=%p clientViewRender=%p engineViewRender=%p materialSystem=%p",
+        m_ClientMode,
+        m_ClientViewRender,
+        m_EngineViewRender,
+        m_MaterialSystem);
+
     m_Offsets = new Offsets();
+    PortalVrLog("Offsets constructed");
 
     m_VR = new VR(this);
+    PortalVrLog("VR constructed");
     m_Hooks = new Hooks(this);
+    PortalVrLog("Hooks constructed");
 
     m_Initialized = true;
+    PortalVrLog("Game::Game complete");
 }
 
 void *Game::GetInterface(const char *dllname, const char *interfacename, bool required)

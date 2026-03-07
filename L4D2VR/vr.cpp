@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <algorithm>
 #include "../dxvk/src/d3d9/d3d9_vr.h"
+#include "debuglog.h"
 
 namespace
 {
@@ -32,6 +33,7 @@ namespace
 VR::VR(Game *game) 
 {
     m_Game = game;
+    PortalVrLog("VR::VR start");
 
     char errorString[MAX_STR_LEN];
 
@@ -40,24 +42,29 @@ VR::VR(Game *game)
 
     if (error != vr::VRInitError_None) 
     {
+        PortalVrLog("VR_Init failed error=%d", error);
         snprintf(errorString, MAX_STR_LEN, "VR_Init failed: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
         Game::errorMsg(errorString);
         return;
     }
+    PortalVrLog("VR_Init succeeded");
 
     vr::EVRInitError peError = vr::VRInitError_None;
 
     if (!vr::VRCompositor())
     {
+        PortalVrLog("VRCompositor init failed");
         Game::errorMsg("Compositor initialization failed.");
         return;
     }
+    PortalVrLog("VRCompositor ready");
 
     m_Input = vr::VRInput();
     m_System = vr::OpenVRInternal_ModuleContext().VRSystem();
 
     m_System->GetRecommendedRenderTargetSize(&m_RenderWidth, &m_RenderHeight);
     m_AntiAliasing = 0;
+    PortalVrLog("Recommended render target %u x %u", m_RenderWidth, m_RenderHeight);
 
     float l_left = 0.0f, l_right = 0.0f, l_top = 0.0f, l_bottom = 0.0f;
     m_System->GetProjectionRaw(vr::EVREye::Eye_Left, &l_left, &l_right, &l_top, &l_bottom);
@@ -88,11 +95,17 @@ VR::VR(Game *game)
 
     std::thread configParser(&VR::WaitForConfigUpdate, this);
     configParser.detach();
+    PortalVrLog("Config watcher started");
 
     while (!g_D3DVR9) 
         Sleep(10);
+    PortalVrLog("g_D3DVR9 ready");
 
     g_D3DVR9->GetBackBufferData(&m_VKBackBuffer);
+    PortalVrLog(
+        "Backbuffer ready width=%u height=%u",
+        m_VKBackBuffer.m_VulkanData.m_nWidth,
+        m_VKBackBuffer.m_VulkanData.m_nHeight);
     m_Overlay = vr::VROverlay();
     m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
     //m_Overlay->CreateOverlay("HUDOverlayKey", "HUDOverlay", &m_HUDHandle);
@@ -112,9 +125,11 @@ VR::VR(Game *game)
     m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScaleMenu);
 
     UpdatePosesAndActions();
+    PortalVrLog("UpdatePosesAndActions complete");
 
     m_IsInitialized = true;
     m_IsVREnabled = true;
+    PortalVrLog("VR::VR complete");
 }
 
 int VR::SetActionManifest(const char *fileName) 

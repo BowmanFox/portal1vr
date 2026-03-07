@@ -6,6 +6,7 @@
 #include "vr.h"
 #include "offsets.h"
 #include "portal1.h"
+#include "debuglog.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -111,10 +112,13 @@ namespace
 
 Hooks::Hooks(Game *game)
 {
+	PortalVrLog("Hooks::Hooks start");
+
 	if (MH_Initialize() != MH_OK)
 	{
 		Game::errorMsg("Failed to init MinHook");
 	}
+	PortalVrLog("MinHook initialized");
 
 	m_Game = game;
 	m_VR = m_Game->m_VR;
@@ -123,6 +127,7 @@ Hooks::Hooks(Game *game)
 	m_PushedHud = true;
 
 	initSourceHooks();
+	PortalVrLog("initSourceHooks complete render=%d createMove=%d getViewModelFov=%d", hkRenderView.isCreated(), hkCreateMove.isCreated(), hkGetViewModelFOV.isCreated());
 
 	EnableIfCreated(hkCalcViewModelView);
 	EnableIfCreated(hkCreateMove);
@@ -130,6 +135,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
 	EnableIfCreated(hkGetViewModelFOV);
+	PortalVrLog("Hooks enabled");
 }
 
 Hooks::~Hooks()
@@ -143,6 +149,11 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
+	PortalVrLog(
+		"initSourceHooks objects clientMode=%p clientViewRender=%p",
+		m_Game->m_ClientMode,
+		m_Game->m_ClientViewRender);
+
 	CreateHookAt(
 		hkRenderView,
 		SigScanner::GetVirtualFunction(m_Game->m_ClientViewRender, Portal1::VTableIndex::kViewRender_RenderView),
@@ -178,6 +189,13 @@ int Hooks::initSourceHooks()
 	EntityIndex = m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
 	GetOwner = m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
 	GetFullScreenTexture = m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
+	PortalVrLog(
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p",
+		hkRenderView.pTarget,
+		hkCreateMove.pTarget,
+		hkGetViewModelFOV.pTarget,
+		hkCalcViewModelView.pTarget,
+		hkTraceFirePortal.pTarget);
 	return 1;
 } 
 
@@ -217,6 +235,13 @@ ITexture* __fastcall Hooks::dGetRenderTarget(void* ecx, void* edx)
 
 void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw)
 {
+	static bool loggedRenderViewEntry = false;
+	if (!loggedRenderViewEntry)
+	{
+		PortalVrLog("dRenderView first entry ecx=%p cursorVisible=%d", ecx, m_Game->m_VguiSurface->IsCursorVisible());
+		loggedRenderViewEntry = true;
+	}
+
 	if (m_Game->m_VguiSurface->IsCursorVisible())
 		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 

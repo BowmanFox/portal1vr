@@ -5,9 +5,13 @@
 #include "hooks.h"
 #include "vr.h"
 #include "sdk.h"
+#include "debuglog.h"
 
 DWORD WINAPI InitL4D2VR(LPVOID)
 {
+    PortalVrResetLog();
+    PortalVrLog("Init thread start");
+
 // Release if buggy, so we'll be releasing the debug binary
 #ifdef _DEBUG
     if (AllocConsole())
@@ -23,6 +27,7 @@ DWORD WINAPI InitL4D2VR(LPVOID)
     LPWSTR *szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
     if (!szArglist)
     {
+        PortalVrLog("CommandLineToArgvW failed");
         MessageBoxA(nullptr,
             "Portal VR failed to read the launch arguments. Initialization was skipped.",
             "Portal VR",
@@ -40,6 +45,7 @@ DWORD WINAPI InitL4D2VR(LPVOID)
 
     if (!insecureEnabled)
     {
+        PortalVrLog("Missing -insecure, init skipped");
         MessageBoxA(nullptr,
             "Portal VR requires the -insecure launch option. Initialization was skipped.",
             "Portal VR",
@@ -47,7 +53,9 @@ DWORD WINAPI InitL4D2VR(LPVOID)
         return 0;
     }
 
+    PortalVrLog("Launch arguments validated, constructing Game");
     g_Game = new Game();
+    PortalVrLog("Game constructed successfully");
 
     return 0;
 }
