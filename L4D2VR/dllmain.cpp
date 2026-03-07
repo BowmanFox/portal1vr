@@ -6,19 +6,30 @@
 #include "vr.h"
 #include "sdk.h"
 
-DWORD WINAPI InitL4D2VR(HMODULE hModule)
+DWORD WINAPI InitL4D2VR(LPVOID)
 {
 // Release if buggy, so we'll be releasing the debug binary
 #ifdef _DEBUG
-    AllocConsole();
-    FILE *fp;
-    freopen_s(&fp, "CONOUT$", "w", stdout);
+    if (AllocConsole())
+    {
+        FILE *fp = nullptr;
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+    }
 #endif
 
     // Make sure -insecure is used
-    LPWSTR *szArglist;
-    int nArgs;
-    szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+    int nArgs = 0;
+    LPWSTR *szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+    if (!szArglist)
+    {
+        MessageBoxA(nullptr,
+            "Portal VR failed to read the launch arguments. Initialization was skipped.",
+            "Portal VR",
+            MB_ICONWARNING | MB_OK);
+        return 0;
+    }
+
     bool insecureEnabled = false;
     for (int i = 0; i < nArgs; ++i)
     {
@@ -28,7 +39,13 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
     LocalFree(szArglist);
 
     if (!insecureEnabled)
-        ExitProcess(0);
+    {
+        MessageBoxA(nullptr,
+            "Portal VR requires the -insecure launch option. Initialization was skipped.",
+            "Portal VR",
+            MB_ICONWARNING | MB_OK);
+        return 0;
+    }
 
     g_Game = new Game();
 
@@ -45,7 +62,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-            CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)InitL4D2VR, hModule, 0, NULL);
+        {
+            HANDLE initThread = CreateThread(NULL, 0, InitL4D2VR, hModule, 0, NULL);
+            if (initThread)
+                CloseHandle(initThread);
+            break;
+        }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:

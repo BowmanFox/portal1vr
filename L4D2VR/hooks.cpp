@@ -7,6 +7,80 @@
 #include "offsets.h"
 #include <iostream>
 
+Game *Hooks::m_Game = nullptr;
+VR *Hooks::m_VR = nullptr;
+
+Hook<tGetRenderTarget> Hooks::hkGetRenderTarget = {};
+Hook<tRenderView> Hooks::hkRenderView = {};
+Hook<tCreateMove> Hooks::hkCreateMove = {};
+Hook<tEndFrame> Hooks::hkEndFrame = {};
+Hook<tCalcViewModelView> Hooks::hkCalcViewModelView = {};
+Hook<tProcessUsercmds> Hooks::hkProcessUsercmds = {};
+Hook<tReadUsercmd> Hooks::hkReadUsercmd = {};
+Hook<tWriteUsercmdDeltaToBuffer> Hooks::hkWriteUsercmdDeltaToBuffer = {};
+Hook<tWriteUsercmd> Hooks::hkWriteUsercmd = {};
+Hook<tAdjustEngineViewport> Hooks::hkAdjustEngineViewport = {};
+Hook<tViewport> Hooks::hkViewport = {};
+Hook<tGetViewport> Hooks::hkGetViewport = {};
+Hook<tGetPrimaryAttackActivity> Hooks::hkGetPrimaryAttackActivity = {};
+Hook<tEyePosition> Hooks::hkEyePosition = {};
+Hook<tDrawModelExecute> Hooks::hkDrawModelExecute = {};
+Hook<tPushRenderTargetAndViewport> Hooks::hkPushRenderTargetAndViewport = {};
+Hook<tPopRenderTargetAndViewport> Hooks::hkPopRenderTargetAndViewport = {};
+Hook<tVgui_Paint> Hooks::hkVgui_Paint = {};
+Hook<tIsSplitScreen> Hooks::hkIsSplitScreen = {};
+Hook<tPrePushRenderTarget> Hooks::hkPrePushRenderTarget = {};
+Hook<tGetFullScreenTexture> Hooks::hkGetFullScreenTexture = {};
+Hook<tWeapon_ShootPosition> Hooks::hkWeapon_ShootPosition = {};
+Hook<tTraceFirePortal> Hooks::hkTraceFirePortal = {};
+
+Hook<tGetModeHeight> Hooks::hkGetModeHeight = {};
+Hook<tDrawSelf> Hooks::hkDrawSelf = {};
+Hook<tClipTransform> Hooks::hkClipTransform = {};
+Hook<tPlayerPortalled> Hooks::hkPlayerPortalled = {};
+Hook<tVGui_GetHudBounds> Hooks::hkVGui_GetHudBounds = {};
+Hook<tVGui_GetPanelBounds> Hooks::hkVGui_GetPanelBounds = {};
+Hook<tVGUI_UpdateScreenSpaceBounds> Hooks::hkVGUI_UpdateScreenSpaceBounds = {};
+Hook<tVGui_GetTrueScreenSize> Hooks::hkVGui_GetTrueScreenSize = {};
+Hook<tSetBounds> Hooks::hkSetBounds = {};
+Hook<tGetScreenSize> Hooks::hkGetScreenSize = {};
+Hook<tPush2DView> Hooks::hkPush2DView = {};
+Hook<tRender> Hooks::hkRender = {};
+Hook<tGetClipRect> Hooks::hkGetClipRect = {};
+Hook<tGetHudSize> Hooks::hkGetHudSize = {};
+Hook<tSetSize> Hooks::hkSetSize = {};
+
+Hook<tComputeError> Hooks::hkComputeError = {};
+Hook<tUpdateObject> Hooks::hkUpdateObject = {};
+Hook<tUpdateObjectVM> Hooks::hkUpdateObjectVM = {};
+Hook<tRotateObject> Hooks::hkRotateObject = {};
+Hook<tEyeAngles> Hooks::hkEyeAngles = {};
+
+Hook<tMatrixBuildPerspectiveX> Hooks::hkMatrixBuildPerspectiveX = {};
+Hook<tGetDefaultFOV> Hooks::hkGetDefaultFOV = {};
+Hook<tGetFOV> Hooks::hkGetFOV = {};
+Hook<tGetViewModelFOV> Hooks::hkGetViewModelFOV = {};
+
+Hook<tSetDrawOnlyForSplitScreenUser> Hooks::hkSetDrawOnlyForSplitScreenUser = {};
+Hook<tClientThink> Hooks::hkClientThink = {};
+Hook<tPrecache> Hooks::hkPrecache = {};
+Hook<tCHudCrosshair_ShouldDraw> Hooks::hkCHudCrosshair_ShouldDraw = {};
+Hook<tCWeaponPortalgun_FirePortal> Hooks::hkCWeaponPortalgun_FirePortal = {};
+
+int Hooks::m_PushHUDStep = 0;
+bool Hooks::m_PushedHud = false;
+
+tCreatePingPointer Hooks::CreatePingPointer = nullptr;
+tGetPortalPlayer Hooks::GetPortalPlayer = nullptr;
+tPrecacheParticleSystem Hooks::PrecacheParticleSystem = nullptr;
+
+tUTIL_Portal_FirstAlongRay Hooks::UTIL_Portal_FirstAlongRay = nullptr;
+tUTIL_IntersectRayWithPortal Hooks::UTIL_IntersectRayWithPortal = nullptr;
+tUTIL_Portal_AngleTransform Hooks::UTIL_Portal_AngleTransform = nullptr;
+tEntindex Hooks::EntityIndex = nullptr;
+tGetOwner Hooks::GetOwner = nullptr;
+tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
+
 Hooks::Hooks(Game *game)
 {
 	if (MH_Initialize() != MH_OK)

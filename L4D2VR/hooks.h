@@ -10,13 +10,13 @@ class CViewSetup;
 class CUserCmd;
 class QAngle;
 class Vector;
-class edict_t;
-class ModelRenderInfo_t;
+struct edict_t;
+struct ModelRenderInfo_t;
 struct trace_tx;
 class IMatRenderContext;
 struct vrect_t;
 struct Ray_t;
-struct VMatrix;
+class VMatrix;
 struct Rect_t;
 class bf_write;
 class bf_read;
@@ -38,6 +38,7 @@ struct Hook {
 			return 1;
 		}
 		pTarget = targetFunc;
+		return 0;
 	}
 
 	int enableHook()
@@ -54,6 +55,7 @@ struct Hook {
 			return 1;
 		}
 		isEnabled = true;
+		return 0;
 	}
 
 	int disableHook()
@@ -64,6 +66,7 @@ struct Hook {
 			return 1;
 		}
 		isEnabled = false;
+		return 0;
 	}
 };
 
@@ -91,7 +94,7 @@ typedef int(__cdecl *tIsSplitScreen)();
 typedef DWORD *(__thiscall *tPrePushRenderTarget)(void *thisptr, int a2);
 typedef ITexture* (__thiscall* tGetFullScreenTexture)();
 
-typedef bool(__thiscall* tTraceFirePortal)(void* thisptr, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
+typedef bool(__thiscall* tTraceFirePortal)(void* thisptr, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr);
 
 typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* a2, __int64 a3);
 
@@ -140,73 +143,73 @@ typedef float(__cdecl* tUTIL_IntersectRayWithPortal)(const Ray_t& ray, const voi
 typedef void(__cdecl* tUTIL_Portal_AngleTransform)(const VMatrix& matThisToLinked, const QAngle& qSource, QAngle& qTransformed);
 typedef int(__thiscall* tEntindex)(void* thisptr);
 typedef void*(__thiscall* tGetOwner)(void* thisptr);
-typedef void* (__thiscall* tCWeaponPortalgun_FirePortal)(void* thisptr, bool bPortal2, Vector* pVector);
+typedef void* (__thiscall* tCWeaponPortalgun_FirePortal)(void* thisptr, bool isSecondaryPortal, Vector* pVector);
 
 class Hooks
 {
 public:
-	static inline Game *m_Game;
-	static inline VR *m_VR;
+	static Game *m_Game;
+	static VR *m_VR;
 
-	static inline Hook<tGetRenderTarget> hkGetRenderTarget;
-	static inline Hook<tRenderView> hkRenderView;
-	static inline Hook<tCreateMove> hkCreateMove;
-	static inline Hook<tEndFrame> hkEndFrame;
-	static inline Hook<tCalcViewModelView> hkCalcViewModelView;
-	static inline Hook<tProcessUsercmds> hkProcessUsercmds;
-	static inline Hook<tReadUsercmd> hkReadUsercmd;
-	static inline Hook<tWriteUsercmdDeltaToBuffer> hkWriteUsercmdDeltaToBuffer;
-	static inline Hook<tWriteUsercmd> hkWriteUsercmd;
-	static inline Hook<tAdjustEngineViewport> hkAdjustEngineViewport;
-	static inline Hook<tViewport> hkViewport;
-	static inline Hook<tGetViewport> hkGetViewport;
-	static inline Hook<tGetPrimaryAttackActivity> hkGetPrimaryAttackActivity;
-	static inline Hook<tEyePosition> hkEyePosition;
-	static inline Hook<tDrawModelExecute> hkDrawModelExecute;
-	static inline Hook<tPushRenderTargetAndViewport> hkPushRenderTargetAndViewport;
-	static inline Hook<tPopRenderTargetAndViewport> hkPopRenderTargetAndViewport;
-	static inline Hook<tVgui_Paint> hkVgui_Paint;
-	static inline Hook<tIsSplitScreen> hkIsSplitScreen;
-	static inline Hook<tPrePushRenderTarget> hkPrePushRenderTarget;
-	static inline Hook<tGetFullScreenTexture> hkGetFullScreenTexture;
-	static inline Hook<tWeapon_ShootPosition> hkWeapon_ShootPosition;
-	static inline Hook<tTraceFirePortal> hkTraceFirePortal;
+	static Hook<tGetRenderTarget> hkGetRenderTarget;
+	static Hook<tRenderView> hkRenderView;
+	static Hook<tCreateMove> hkCreateMove;
+	static Hook<tEndFrame> hkEndFrame;
+	static Hook<tCalcViewModelView> hkCalcViewModelView;
+	static Hook<tProcessUsercmds> hkProcessUsercmds;
+	static Hook<tReadUsercmd> hkReadUsercmd;
+	static Hook<tWriteUsercmdDeltaToBuffer> hkWriteUsercmdDeltaToBuffer;
+	static Hook<tWriteUsercmd> hkWriteUsercmd;
+	static Hook<tAdjustEngineViewport> hkAdjustEngineViewport;
+	static Hook<tViewport> hkViewport;
+	static Hook<tGetViewport> hkGetViewport;
+	static Hook<tGetPrimaryAttackActivity> hkGetPrimaryAttackActivity;
+	static Hook<tEyePosition> hkEyePosition;
+	static Hook<tDrawModelExecute> hkDrawModelExecute;
+	static Hook<tPushRenderTargetAndViewport> hkPushRenderTargetAndViewport;
+	static Hook<tPopRenderTargetAndViewport> hkPopRenderTargetAndViewport;
+	static Hook<tVgui_Paint> hkVgui_Paint;
+	static Hook<tIsSplitScreen> hkIsSplitScreen;
+	static Hook<tPrePushRenderTarget> hkPrePushRenderTarget;
+	static Hook<tGetFullScreenTexture> hkGetFullScreenTexture;
+	static Hook<tWeapon_ShootPosition> hkWeapon_ShootPosition;
+	static Hook<tTraceFirePortal> hkTraceFirePortal;
 
-	static inline Hook<tGetModeHeight> hkGetModeHeight;
-	static inline Hook<tDrawSelf> hkDrawSelf;
-	static inline Hook<tClipTransform> hkClipTransform;
-	static inline Hook<tPlayerPortalled> hkPlayerPortalled;
-	static inline Hook<tVGui_GetHudBounds> hkVGui_GetHudBounds;
-	static inline Hook<tVGui_GetPanelBounds> hkVGui_GetPanelBounds;
+	static Hook<tGetModeHeight> hkGetModeHeight;
+	static Hook<tDrawSelf> hkDrawSelf;
+	static Hook<tClipTransform> hkClipTransform;
+	static Hook<tPlayerPortalled> hkPlayerPortalled;
+	static Hook<tVGui_GetHudBounds> hkVGui_GetHudBounds;
+	static Hook<tVGui_GetPanelBounds> hkVGui_GetPanelBounds;
 
-	static inline Hook<tVGUI_UpdateScreenSpaceBounds> hkVGUI_UpdateScreenSpaceBounds;
-	static inline Hook<tVGui_GetTrueScreenSize> hkVGui_GetTrueScreenSize;
+	static Hook<tVGUI_UpdateScreenSpaceBounds> hkVGUI_UpdateScreenSpaceBounds;
+	static Hook<tVGui_GetTrueScreenSize> hkVGui_GetTrueScreenSize;
 
-	static inline Hook<tSetBounds> hkSetBounds;
-	static inline Hook<tGetScreenSize> hkGetScreenSize;
-	static inline Hook<tPush2DView> hkPush2DView;
-	static inline Hook<tRender> hkRender;
-	static inline Hook<tGetClipRect> hkGetClipRect;
-	static inline Hook<tGetHudSize> hkGetHudSize;
-	static inline Hook<tSetSize> hkSetSize;
+	static Hook<tSetBounds> hkSetBounds;
+	static Hook<tGetScreenSize> hkGetScreenSize;
+	static Hook<tPush2DView> hkPush2DView;
+	static Hook<tRender> hkRender;
+	static Hook<tGetClipRect> hkGetClipRect;
+	static Hook<tGetHudSize> hkGetHudSize;
+	static Hook<tSetSize> hkSetSize;
 	
-	static inline Hook<tComputeError> hkComputeError;
-	static inline Hook<tUpdateObject> hkUpdateObject;
-	static inline Hook<tUpdateObjectVM> hkUpdateObjectVM;
-	static inline Hook<tRotateObject> hkRotateObject;
-	static inline Hook<tEyeAngles> hkEyeAngles;
+	static Hook<tComputeError> hkComputeError;
+	static Hook<tUpdateObject> hkUpdateObject;
+	static Hook<tUpdateObjectVM> hkUpdateObjectVM;
+	static Hook<tRotateObject> hkRotateObject;
+	static Hook<tEyeAngles> hkEyeAngles;
 
-	static inline Hook<tMatrixBuildPerspectiveX> hkMatrixBuildPerspectiveX;
+	static Hook<tMatrixBuildPerspectiveX> hkMatrixBuildPerspectiveX;
 	
-	static inline Hook<tGetDefaultFOV> hkGetDefaultFOV;
-	static inline Hook<tGetFOV> hkGetFOV;
-	static inline Hook<tGetViewModelFOV> hkGetViewModelFOV;
+	static Hook<tGetDefaultFOV> hkGetDefaultFOV;
+	static Hook<tGetFOV> hkGetFOV;
+	static Hook<tGetViewModelFOV> hkGetViewModelFOV;
 
-	static inline Hook<tSetDrawOnlyForSplitScreenUser> hkSetDrawOnlyForSplitScreenUser;
-	static inline Hook<tClientThink> hkClientThink;
-	static inline Hook<tPrecache> hkPrecache;
-	static inline Hook<tCHudCrosshair_ShouldDraw> hkCHudCrosshair_ShouldDraw;
-	static inline Hook<tCWeaponPortalgun_FirePortal> hkCWeaponPortalgun_FirePortal;
+	static Hook<tSetDrawOnlyForSplitScreenUser> hkSetDrawOnlyForSplitScreenUser;
+	static Hook<tClientThink> hkClientThink;
+	static Hook<tPrecache> hkPrecache;
+	static Hook<tCHudCrosshair_ShouldDraw> hkCHudCrosshair_ShouldDraw;
+	static Hook<tCWeaponPortalgun_FirePortal> hkCWeaponPortalgun_FirePortal;
 
 	//Precache
 
@@ -248,7 +251,7 @@ public:
 	static ITexture *__fastcall dGetFullScreenTexture();
 
 	// Fire portals from right controller
-	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
+	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr);
 
 	// Portalling angle fix
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3);
@@ -289,19 +292,19 @@ public:
 	static void __fastcall dPrecache(void* ecx, void* edx);
 	static bool __fastcall dCHudCrosshair_ShouldDraw(void* ecx, void* edx);
 
-	static void* __fastcall dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool bPortal2, Vector* pVector = 0);
+	static void* __fastcall dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool isSecondaryPortal, Vector* pVector = 0);
 
-	static inline int m_PushHUDStep;
-	static inline bool m_PushedHud;
+	static int m_PushHUDStep;
+	static bool m_PushedHud;
 
-	static inline tCreatePingPointer CreatePingPointer;
-	static inline tGetPortalPlayer GetPortalPlayer;
-	static inline tPrecacheParticleSystem PrecacheParticleSystem;
+	static tCreatePingPointer CreatePingPointer;
+	static tGetPortalPlayer GetPortalPlayer;
+	static tPrecacheParticleSystem PrecacheParticleSystem;
 
-	static inline tUTIL_Portal_FirstAlongRay UTIL_Portal_FirstAlongRay;
-	static inline tUTIL_IntersectRayWithPortal UTIL_IntersectRayWithPortal;
-	static inline tUTIL_Portal_AngleTransform UTIL_Portal_AngleTransform;
-	static inline tEntindex EntityIndex;
-	static inline tGetOwner GetOwner;
-	static inline tGetFullScreenTexture GetFullScreenTexture;
+	static tUTIL_Portal_FirstAlongRay UTIL_Portal_FirstAlongRay;
+	static tUTIL_IntersectRayWithPortal UTIL_IntersectRayWithPortal;
+	static tUTIL_Portal_AngleTransform UTIL_Portal_AngleTransform;
+	static tEntindex EntityIndex;
+	static tGetOwner GetOwner;
+	static tGetFullScreenTexture GetFullScreenTexture;
 };

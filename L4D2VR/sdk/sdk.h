@@ -10,6 +10,7 @@
 #include "material.h"
 #include "worldsize.h"
 #include <unordered_map>
+#include <string>
 
 #define IN_ATTACK		(1 << 0)
 #define IN_JUMP			(1 << 1)
@@ -325,9 +326,22 @@ class VMatrix;
 class CViewSetup
 {
 public:
-	inline char* STR() {
+	inline std::string STR() const {
 		char errorString[512];
-		sprintf_s(errorString, 512, "X: %i (%i), Y: %i (%i)", x, m_nUnscaledX, y, m_nUnscaledY, width, m_nUnscaledWidth, height, m_nUnscaledHeight, fov, fovViewmodel);
+		sprintf_s(
+			errorString,
+			sizeof(errorString),
+			"X: %d (%.2f), Y: %d (%.2f), W: %d (%d), H: %d (%d), FOV: %.2f, Viewmodel FOV: %.2f",
+			x,
+			m_nUnscaledX,
+			y,
+			m_nUnscaledY,
+			width,
+			m_nUnscaledWidth,
+			height,
+			m_nUnscaledHeight,
+			fov,
+			fovViewmodel);
 		return errorString;
 	}
 

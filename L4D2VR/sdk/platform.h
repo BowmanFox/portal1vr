@@ -804,7 +804,9 @@ typedef void * HINSTANCE;
 	#define HINT(THE_HINT)			__assume((THE_HINT))
 
 	// decls for aligning data
+	#ifndef DECL_ALIGN
 	#define DECL_ALIGN(x)			__declspec( align( x ) )
+	#endif
 
 	// GCC had a few areas where it didn't construct objects in the same order 
 	// that Windows does. So when CVProfile::CVProfile() would access g_pMemAlloc,
@@ -939,11 +941,21 @@ typedef void * HINSTANCE;
 #define ALIGN32 DECL_ALIGN(32)
 #define ALIGN128 DECL_ALIGN(128)
 
+#ifndef ALIGN4_POST
 #define ALIGN4_POST
+#endif
+#ifndef ALIGN8_POST
 #define ALIGN8_POST
+#endif
+#ifndef ALIGN16_POST
 #define ALIGN16_POST
+#endif
+#ifndef ALIGN32_POST
 #define ALIGN32_POST
+#endif
+#ifndef ALIGN128_POST
 #define ALIGN128_POST
+#endif
 #endif
 
 
@@ -2463,11 +2475,21 @@ int	_V_stricmp_NegativeForUnequal	  ( const char *s1, const char *s2 );
 #define ALIGN128 DECL_ALIGN(128)
 #define ALIGN_N( _align_ ) DECL_ALIGN( _align_ )
 
+#ifndef ALIGN4_POST
 #define ALIGN4_POST
+#endif
+#ifndef ALIGN8_POST
 #define ALIGN8_POST
+#endif
+#ifndef ALIGN16_POST
 #define ALIGN16_POST
+#endif
+#ifndef ALIGN32_POST
 #define ALIGN32_POST
+#endif
+#ifndef ALIGN128_POST
 #define ALIGN128_POST
+#endif
 #define ALIGN_N_POST( _align_ )
 #endif
 

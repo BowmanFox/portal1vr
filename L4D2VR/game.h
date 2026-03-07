@@ -25,7 +25,7 @@ class Offsets;
 class VR;
 class Hooks;
 
-inline Game *g_Game;
+extern Game *g_Game;
 
 struct Player
 {

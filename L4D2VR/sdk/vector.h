@@ -4,9 +4,15 @@
 
 #define  FORCEINLINE			__forceinline
 
+#ifndef DECL_ALIGN
 #define DECL_ALIGN(x) __declspec(align(x))
+#endif
+#ifndef ALIGN16
 #define ALIGN16 DECL_ALIGN(16)
+#endif
+#ifndef ALIGN16_POST
 #define ALIGN16_POST DECL_ALIGN(16)
+#endif
 
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
 #define M_PI_F		((float)(M_PI))	// Shouldn't collide with anything.
@@ -894,18 +900,19 @@ inline vec_t VectorNormalize(Vector &v)
 inline Vector VectorRotate(const Vector &v, const Vector &k, float degrees)
 {
 	// Rodrigues rotation
-	float radians = degrees * 3.14159265 / 180;
+	float radians = degrees * 3.14159265f / 180.0f;
 
 	Vector crossProduct;
 	CrossProduct(k, v, crossProduct);
 
-	return v*cos(radians) + crossProduct * sin(radians) + k * DotProduct(k,v) * (1-cos(radians));
+	return v * std::cos(radians) + crossProduct * std::sin(radians) + k * DotProduct(k, v) * (1.0f - std::cos(radians));
 }
 
 inline void VectorPivotXY(Vector &point, const Vector &pivot, float degrees)
 {
-	float s = sin(degrees * 3.14159265 / 180);
-	float c = cos(degrees * 3.14159265 / 180);
+	float radians = degrees * 3.14159265f / 180.0f;
+	float s = std::sin(radians);
+	float c = std::cos(radians);
 	point.x -= pivot.x;
 	point.y -= pivot.y;
 	float xnew = point.x * c - point.y * s;
@@ -1137,12 +1144,12 @@ inline void QAngle::VectorAngles(const Vector &forward, QAngle &angles)
 	}
 	else
 	{
-		yaw = (atan2(forward[1], forward[0]) * 180 / M_PI);
+		yaw = std::atan2(forward[1], forward[0]) * 180.0f / M_PI_F;
 		if (yaw < 0)
 			yaw += 360;
 
-		tmp = sqrt(forward[0] * forward[0] + forward[1] * forward[1]);
-		pitch = (atan2(-forward[2], tmp) * 180 / M_PI);
+		tmp = std::sqrt(forward[0] * forward[0] + forward[1] * forward[1]);
+		pitch = std::atan2(-forward[2], tmp) * 180.0f / M_PI_F;
 		if (pitch < 0)
 			pitch += 360;
 	}

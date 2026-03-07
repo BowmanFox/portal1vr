@@ -9,14 +9,6 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -29,31 +21,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.8.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.8.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ImageContentTask.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\ImageContentTask.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\lc.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\lc.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\marmasm.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\masm.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\MeshContentTask.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\MeshContentTask.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.props" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.props')" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -61,12 +47,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -84,18 +64,11 @@
     <ExecutablePath>$(ProjectDir)include;$(ExecutablePath)</ExecutablePath>
     <LibraryPath>$(DXSDK_DIR)Lib\x86;$(SolutionDir)thirdparty\minhook\lib\$(Configuration);$(SolutionDir)thirdparty\openvr\lib\win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <TargetName>dbgcore</TargetName>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);NOMINMAX</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;PORTAL_1;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions);NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
@@ -111,11 +84,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>openvr_api.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(SolutionDir)dxvk\src\d3d9\d3d9.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(OutDir)$(TargetName)$(TargetExt)" "H:\SteamLibrary\steamapps\common\Portal 2\bin\$(TargetName)$(TargetExt)"</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)copy-to-portal.ps1" "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -124,7 +97,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);NOMINMAX</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;PORTAL_1;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions);NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -140,51 +113,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>$(SolutionDir)dxvk\src\d3d9\d3d9.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>openvr_api.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(OutDir)$(TargetName)$(TargetExt)" "H:\SteamLibrary\steamapps\common\Portal 2\bin\$(TargetName)$(TargetExt)"</Command>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)copy-to-portal.ps1" "$(TargetPath)"</Command>
     </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;INFRA_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Dev\infra\openvr\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(ProjectDir)exports.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>C:\Dev\infra\openvr\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>openvr_api.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\dxvk\include\openvr\openvr.hpp" />
@@ -592,6 +525,11 @@
     <ClCompile Include="..\dxvk\src\vulkan\vulkan_loader.cpp" />
     <ClCompile Include="..\dxvk\src\vulkan\vulkan_names.cpp" />
     <ClCompile Include="..\dxvk\src\vulkan\vulkan_presenter.cpp" />
+    <ClCompile Include="..\thirdparty\minhook\src\buffer.c" />
+    <ClCompile Include="..\thirdparty\minhook\src\hook.c" />
+    <ClCompile Include="..\thirdparty\minhook\src\trampoline.c" />
+    <ClCompile Include="..\thirdparty\minhook\src\hde\hde32.c" />
+    <ClCompile Include="..\thirdparty\minhook\src\hde\hde64.c" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="hooks.cpp" />
@@ -613,5 +551,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.8.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.8.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ImageContentTask.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\ImageContentTask.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\lc.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\lc.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\marmasm.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\marmasm.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\masm.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\MeshContentTask.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\MeshContentTask.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.targets" Condition="Exists('$(VCTargetsPath)\BuildCustomizations\ShaderGraphContentTask.targets')" />
   </ImportGroup>
 </Project>

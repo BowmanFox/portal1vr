@@ -1,16 +1,16 @@
 <div align="center">
   <p>
     <a align="center" href="https://ultralytics.com/yolov5" target="_blank">
-      <img width="auto" src="https://raw.githubusercontent.com/Gistix/portal2vr/main/imgs/logo.png"></a>
+      <img width="auto" src="https://raw.githubusercontent.com/Gistix/portal1vr/main/imgs/logo.png"></a>
   </p>
 </div>
 
-# ![Portal 2 icon](imgs/icon.jpg "Portal 2 icon") Portal 2 VR
+# ![Portal icon](imgs/icon.jpg "Portal icon") Portal VR
 ### ~~Use this mod at your own risk of getting VAC banned. Use the -insecure launch option to help protect yourself.~~
-### Apparently Portal 2 doesn't have VAC, but just to be safe you should still run the game with the `insecure` flag.
+### Apparently Portal doesn't have VAC, but just to be safe you should still run the game with the `insecure` flag.
 This game contains flashing lights and fast motion sequences.
 
-## Portal 2 VR Mod First 20 Minutes (Youtube Video)
+## Portal VR Mod First 20 Minutes (Youtube Video)
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/nQZ601kEDFI/0.jpg)](https://www.youtube.com/watch?v=nQZ601kEDFI)
 
 ## Things that work
@@ -26,8 +26,8 @@ This game contains flashing lights and fast motion sequences.
 * CPU is underutilized
 
 ## How to use
-1. Download [Portal2VR.zip](https://github.com/Gistix/portal2vr/releases) and extract the files to your Portal 2 directory (steamapps\common\Portal 2)
-2. Connect your headset, then launch Portal 2 with these launch options:
+1. Download [Portal1VR.zip](https://github.com/Gistix/portal1vr/releases) and extract the files to your Portal directory (steamapps\common\Portal)
+2. Connect your headset, then launch Portal with these launch options:
    
    ``` -insecure -window -novid +mat_motion_blur_percent_of_screen_max 0 +mat_queue_mode 0 +mat_vsync 0 +mat_antialias 0 +mat_grain_scale_override 0 -width 1280 -height 720 ```
 
@@ -37,7 +37,7 @@ This game contains flashing lights and fast motion sequences.
 
 ## Troubleshooting
 If you have no audio:
-* Go to ```steamapps\common\Portal 2\portal2_dlc3``` and execute ```UpdateSoundCache.cmd```
+* Go to ```steamapps\common\Portal\``` and execute ```UpdateSoundCache.cmd``` (if present)
   
 If the game isn't loading in VR:
 * Try opening SteamVR before the game
@@ -52,12 +52,12 @@ If the game is crashing, try:
 * Re-installing the game
 
 ## Build instructions
-1. ``` git clone --recurse-submodules https://github.com/Gistix/portal2vr.git ```
+1. ``` git clone --recurse-submodules https://github.com/Gistix/portal1vr.git ```
 2. Open l4d2vr.sln
 3. Set to x86 Debug or Release
 4. Build -> Build Solution
 
-Note: After building, it will attempt to copy the new d3d9.dll to your Portal 2/bin directory.
+Note: After building, it will attempt to copy the new d3d9.dll to your Portal/bin directory.
 
 ## Based on
 * [l4d2vr](https://github.com/sd805/l4d2vr)

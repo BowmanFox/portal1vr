@@ -7,6 +7,8 @@
 #include "offsets.h"
 #include "sigscanner.h"
 
+Game* g_Game = nullptr;
+
 Game::Game()
 {
     while (!(m_BaseClient = (uintptr_t)GetModuleHandle("client.dll")))

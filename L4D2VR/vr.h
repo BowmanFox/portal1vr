@@ -6,8 +6,8 @@
 #define MAX_STR_LEN 256
 
 class Game;
-class IDirect3DTexture9;
-class IDirect3DSurface9;
+struct IDirect3DTexture9;
+struct IDirect3DSurface9;
 class ITexture;
 
 
@@ -20,8 +20,9 @@ struct TrackedDevicePoseData
 	QAngle TrackedDeviceAngVel;
 };
 
-struct SharedTextureHolder 
+class SharedTextureHolder
 {
+public:
 	vr::VRVulkanTextureData_t m_VulkanData;
 	vr::Texture_t m_VRTexture;
 };
@@ -183,15 +184,15 @@ public:
 	bool m_OverrideEyeAngles = false;
 	std::chrono::steady_clock::time_point m_PrevFrameTime;
 
-	float m_TurnSpeed = 0.15;
+	float m_TurnSpeed = 0.15f;
 	bool m_SnapTurning = false;
-	float m_SnapTurnAngle = 45.0;
+	float m_SnapTurnAngle = 45.0f;
 	bool m_LeftHanded = false;
-	float m_VRScale = 43.2;
-	float m_IpdScale = 1.0;
+	float m_VRScale = 43.2f;
+	float m_IpdScale = 1.0f;
 	bool m_6DOF = true;
-	float m_HudDistance = 1.3;
-	float m_HudSize = 4.0;
+	float m_HudDistance = 1.3f;
+	float m_HudSize = 4.0f;
 	bool m_HudAlwaysVisible = false;
 	int m_AimMode = 2;
 
