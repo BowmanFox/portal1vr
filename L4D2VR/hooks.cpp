@@ -85,6 +85,7 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	constexpr bool kEnableAllHooks = true;
 	constexpr bool kEnableClientModeHooks = false;
 
 	template <typename T>
@@ -127,6 +128,12 @@ Hooks::Hooks(Game *game)
 
 	m_PushHUDStep = -999;
 	m_PushedHud = true;
+
+	if (!kEnableAllHooks)
+	{
+		PortalVrLog("All hooks disabled for diagnostic run");
+		return;
+	}
 
 	initSourceHooks();
 	PortalVrLog("initSourceHooks complete render=%d createMove=%d getViewModelFov=%d", hkRenderView.isCreated(), hkCreateMove.isCreated(), hkGetViewModelFOV.isCreated());

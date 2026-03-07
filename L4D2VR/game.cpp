@@ -12,6 +12,8 @@
 
 namespace
 {
+    constexpr bool kEnableVrBootstrap = true;
+
     bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
     {
         HMODULE hModule = GetModuleHandleA(dllname);
@@ -69,10 +71,17 @@ Game::Game()
     m_Offsets = new Offsets();
     PortalVrLog("Offsets constructed");
 
-    m_VR = new VR(this);
-    PortalVrLog("VR constructed");
-    m_Hooks = new Hooks(this);
-    PortalVrLog("Hooks constructed");
+    if (kEnableVrBootstrap)
+    {
+        m_VR = new VR(this);
+        PortalVrLog("VR constructed");
+        m_Hooks = new Hooks(this);
+        PortalVrLog("Hooks constructed");
+    }
+    else
+    {
+        PortalVrLog("VR bootstrap disabled for diagnostic run");
+    }
 
     m_Initialized = true;
     PortalVrLog("Game::Game complete");
