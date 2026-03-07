@@ -12,7 +12,7 @@
 
 namespace
 {
-    constexpr bool kEnableVrBootstrap = true;
+    constexpr bool kEnableVrBootstrap = false;
 
     bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
     {
