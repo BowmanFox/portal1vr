@@ -1,5 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include <Windows.h>
+#include <winternl.h>
 #include <iostream>
 #include <cstdarg>
 #include <cstring>
@@ -14,6 +15,11 @@ namespace
     using ExitProcessFn = VOID (WINAPI *)(UINT);
     using TerminateProcessFn = BOOL (WINAPI *)(HANDLE, UINT);
     using Tier0SpewFn = void (__cdecl *)(const char *, ...);
+    using LoadLibraryAFn = HMODULE (WINAPI *)(LPCSTR);
+    using LoadLibraryWFn = HMODULE (WINAPI *)(LPCWSTR);
+    using LoadLibraryExAFn = HMODULE (WINAPI *)(LPCSTR, HANDLE, DWORD);
+    using LoadLibraryExWFn = HMODULE (WINAPI *)(LPCWSTR, HANDLE, DWORD);
+    using LdrLoadDllFn = NTSTATUS (NTAPI *)(PWSTR, PULONG, PUNICODE_STRING, PHANDLE);
 
     ExitProcessFn g_OriginalExitProcess = nullptr;
     TerminateProcessFn g_OriginalTerminateProcess = nullptr;
@@ -24,6 +30,48 @@ namespace
     Tier0SpewFn g_OriginalTier0DevWarning = nullptr;
     bool g_Tier0HooksInstalled = false;
     PVOID g_VectoredExceptionHandle = nullptr;
+    LoadLibraryAFn g_OriginalLoadLibraryA = nullptr;
+    LoadLibraryWFn g_OriginalLoadLibraryW = nullptr;
+    LoadLibraryExAFn g_OriginalLoadLibraryExA = nullptr;
+    LoadLibraryExWFn g_OriginalLoadLibraryExW = nullptr;
+    LdrLoadDllFn g_OriginalLdrLoadDll = nullptr;
+    bool g_LoadLibraryHooksInstalled = false;
+
+#ifndef STATUS_DLL_NOT_FOUND
+#define STATUS_DLL_NOT_FOUND static_cast<NTSTATUS>(0xC0000135L)
+#endif
+
+    bool IsBlockedModuleName(const char *moduleName)
+    {
+        if (!moduleName)
+            return false;
+
+        const char *baseName = strrchr(moduleName, '\\');
+        baseName = baseName ? baseName + 1 : moduleName;
+        return _stricmp(baseName, "fastprox.dll") == 0;
+    }
+
+    bool IsBlockedModuleName(const wchar_t *moduleName)
+    {
+        if (!moduleName)
+            return false;
+
+        const wchar_t *baseName = wcsrchr(moduleName, L'\\');
+        baseName = baseName ? baseName + 1 : moduleName;
+        return _wcsicmp(baseName, L"fastprox.dll") == 0;
+    }
+
+    bool IsBlockedModuleName(const UNICODE_STRING *moduleName)
+    {
+        if (!moduleName || !moduleName->Buffer || moduleName->Length == 0)
+            return false;
+
+        wchar_t buffer[MAX_PATH] = {};
+        const size_t requestedCharacters = static_cast<size_t>(moduleName->Length / sizeof(wchar_t));
+        const size_t characters = requestedCharacters < (ARRAYSIZE(buffer) - 1) ? requestedCharacters : (ARRAYSIZE(buffer) - 1);
+        wcsncpy_s(buffer, ARRAYSIZE(buffer), moduleName->Buffer, characters);
+        return IsBlockedModuleName(buffer);
+    }
 
     void LogAddressWithModule(const char *label, void *address)
     {
@@ -169,6 +217,119 @@ namespace
         PortalVrLog("Process exit hooks installed");
     }
 
+    HMODULE WINAPI HookedLoadLibraryA(LPCSTR libFileName)
+    {
+        if (IsBlockedModuleName(libFileName))
+        {
+            PortalVrLog("Blocked LoadLibraryA for %s", libFileName);
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return nullptr;
+        }
+
+        return g_OriginalLoadLibraryA ? g_OriginalLoadLibraryA(libFileName) : nullptr;
+    }
+
+    HMODULE WINAPI HookedLoadLibraryW(LPCWSTR libFileName)
+    {
+        if (IsBlockedModuleName(libFileName))
+        {
+            PortalVrLog("Blocked LoadLibraryW for fastprox.dll");
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return nullptr;
+        }
+
+        return g_OriginalLoadLibraryW ? g_OriginalLoadLibraryW(libFileName) : nullptr;
+    }
+
+    HMODULE WINAPI HookedLoadLibraryExA(LPCSTR libFileName, HANDLE file, DWORD flags)
+    {
+        if (IsBlockedModuleName(libFileName))
+        {
+            PortalVrLog("Blocked LoadLibraryExA for %s", libFileName);
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return nullptr;
+        }
+
+        return g_OriginalLoadLibraryExA ? g_OriginalLoadLibraryExA(libFileName, file, flags) : nullptr;
+    }
+
+    HMODULE WINAPI HookedLoadLibraryExW(LPCWSTR libFileName, HANDLE file, DWORD flags)
+    {
+        if (IsBlockedModuleName(libFileName))
+        {
+            PortalVrLog("Blocked LoadLibraryExW for fastprox.dll");
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return nullptr;
+        }
+
+        return g_OriginalLoadLibraryExW ? g_OriginalLoadLibraryExW(libFileName, file, flags) : nullptr;
+    }
+
+    NTSTATUS NTAPI HookedLdrLoadDll(PWSTR searchPath, PULONG loadFlags, PUNICODE_STRING moduleFileName, PHANDLE moduleHandle)
+    {
+        if (IsBlockedModuleName(moduleFileName))
+        {
+            PortalVrLog("Blocked LdrLoadDll for fastprox.dll");
+            if (moduleHandle)
+                *moduleHandle = nullptr;
+            SetLastError(ERROR_MOD_NOT_FOUND);
+            return STATUS_DLL_NOT_FOUND;
+        }
+
+        return g_OriginalLdrLoadDll
+            ? g_OriginalLdrLoadDll(searchPath, loadFlags, moduleFileName, moduleHandle)
+            : STATUS_DLL_NOT_FOUND;
+    }
+
+    void InstallLoadLibraryHooks()
+    {
+        if (g_LoadLibraryHooksInstalled)
+            return;
+
+        PortalVrLog("InstallLoadLibraryHooks start");
+
+        const MH_STATUS initStatus = MH_Initialize();
+        if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED)
+        {
+            PortalVrLog("MH_Initialize failed for LoadLibrary hooks status=%d", initStatus);
+            return;
+        }
+
+        void *ldrLoadDllAddress = nullptr;
+        if (HMODULE ntdll = GetModuleHandleW(L"ntdll.dll"))
+            ldrLoadDllAddress = reinterpret_cast<void *>(GetProcAddress(ntdll, "LdrLoadDll"));
+
+        const MH_STATUS hookAStatus = MH_CreateHookApi(L"kernel32", "LoadLibraryA", &HookedLoadLibraryA, reinterpret_cast<LPVOID *>(&g_OriginalLoadLibraryA));
+        const MH_STATUS hookWStatus = MH_CreateHookApi(L"kernel32", "LoadLibraryW", &HookedLoadLibraryW, reinterpret_cast<LPVOID *>(&g_OriginalLoadLibraryW));
+        const MH_STATUS hookExAStatus = MH_CreateHookApi(L"kernel32", "LoadLibraryExA", &HookedLoadLibraryExA, reinterpret_cast<LPVOID *>(&g_OriginalLoadLibraryExA));
+        const MH_STATUS hookExWStatus = MH_CreateHookApi(L"kernel32", "LoadLibraryExW", &HookedLoadLibraryExW, reinterpret_cast<LPVOID *>(&g_OriginalLoadLibraryExW));
+        const MH_STATUS ldrHookStatus = ldrLoadDllAddress
+            ? MH_CreateHook(ldrLoadDllAddress, &HookedLdrLoadDll, reinterpret_cast<LPVOID *>(&g_OriginalLdrLoadDll))
+            : MH_ERROR_NOT_EXECUTABLE;
+        if (hookAStatus != MH_OK || hookWStatus != MH_OK || hookExAStatus != MH_OK || hookExWStatus != MH_OK || ldrHookStatus != MH_OK)
+        {
+            PortalVrLog(
+                "Failed to create LoadLibrary hooks A=%d W=%d ExA=%d ExW=%d Ldr=%d addr=%p",
+                hookAStatus,
+                hookWStatus,
+                hookExAStatus,
+                hookExWStatus,
+                ldrHookStatus,
+                ldrLoadDllAddress);
+            return;
+        }
+
+        const MH_STATUS enableStatus = MH_EnableHook(MH_ALL_HOOKS);
+        if (enableStatus != MH_OK)
+        {
+            PortalVrLog("Failed to enable LoadLibrary hooks status=%d", enableStatus);
+            return;
+        }
+
+        g_LoadLibraryHooksInstalled = true;
+        PortalVrLog("LoadLibrary hooks installed ldr=%p fastproxLoaded=%p", ldrLoadDllAddress, GetModuleHandleA("fastprox.dll"));
+    }
+
     LONG CALLBACK PortalVrVectoredExceptionHandler(EXCEPTION_POINTERS *exceptionInfo)
     {
         if (!exceptionInfo || !exceptionInfo->ExceptionRecord)
@@ -297,6 +458,7 @@ DWORD WINAPI InitL4D2VR(LPVOID)
     PortalVrLog("Init thread start");
     InstallVectoredExceptionLogger();
     InstallProcessExitHooks();
+    InstallLoadLibraryHooks();
 
 // Release if buggy, so we'll be releasing the debug binary
 #ifdef _DEBUG
