@@ -85,6 +85,8 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	constexpr bool kEnableClientModeHooks = false;
+
 	template <typename T>
 	bool CreateHookAt(Hook<T> &hook, uintptr_t address, LPVOID detour, const char *name, bool required)
 	{
@@ -164,18 +166,25 @@ int Hooks::initSourceHooks()
 	if (m_Game->m_Offsets->CalcViewModelView.valid)
 		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);
 
-	CreateHookAt(
-		hkCreateMove,
-		SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_CreateMove),
-		reinterpret_cast<LPVOID>(&dCreateMove),
-		"Portal1::ClientModePortalNormal::CreateMove",
-		true);
-	CreateHookAt(
-		hkGetViewModelFOV,
-		SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_GetViewModelFOV),
-		reinterpret_cast<LPVOID>(&dGetViewModelFOV),
-		"Portal1::ClientModePortalNormal::GetViewModelFOV",
-		false);
+	if (kEnableClientModeHooks)
+	{
+		CreateHookAt(
+			hkCreateMove,
+			SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_CreateMove),
+			reinterpret_cast<LPVOID>(&dCreateMove),
+			"Portal1::ClientModePortalNormal::CreateMove",
+			true);
+		CreateHookAt(
+			hkGetViewModelFOV,
+			SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_GetViewModelFOV),
+			reinterpret_cast<LPVOID>(&dGetViewModelFOV),
+			"Portal1::ClientModePortalNormal::GetViewModelFOV",
+			false);
+	}
+	else
+	{
+		PortalVrLog("ClientMode hooks disabled for diagnostic run");
+	}
 
 	if (m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
