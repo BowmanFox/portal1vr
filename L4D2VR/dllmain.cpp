@@ -20,6 +20,8 @@ namespace
     using LoadLibraryExAFn = HMODULE (WINAPI *)(LPCSTR, HANDLE, DWORD);
     using LoadLibraryExWFn = HMODULE (WINAPI *)(LPCWSTR, HANDLE, DWORD);
     using LdrLoadDllFn = NTSTATUS (NTAPI *)(PWSTR, PULONG, PUNICODE_STRING, PHANDLE);
+    using CoCreateInstanceFn = HRESULT (WINAPI *)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID *);
+    using CoCreateInstanceExFn = HRESULT (WINAPI *)(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
 
     ExitProcessFn g_OriginalExitProcess = nullptr;
     TerminateProcessFn g_OriginalTerminateProcess = nullptr;
@@ -36,6 +38,11 @@ namespace
     LoadLibraryExWFn g_OriginalLoadLibraryExW = nullptr;
     LdrLoadDllFn g_OriginalLdrLoadDll = nullptr;
     bool g_LoadLibraryHooksInstalled = false;
+    CoCreateInstanceFn g_OriginalCoCreateInstance = nullptr;
+    CoCreateInstanceExFn g_OriginalCoCreateInstanceEx = nullptr;
+    bool g_ComHooksInstalled = false;
+
+    const GUID kClsidWbemLocator = { 0x4590f811, 0x1d3a, 0x11d0, { 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24 } };
 
 #ifndef STATUS_DLL_NOT_FOUND
 #define STATUS_DLL_NOT_FOUND static_cast<NTSTATUS>(0xC0000135L)
@@ -71,6 +78,11 @@ namespace
         const size_t characters = requestedCharacters < (ARRAYSIZE(buffer) - 1) ? requestedCharacters : (ARRAYSIZE(buffer) - 1);
         wcsncpy_s(buffer, ARRAYSIZE(buffer), moduleName->Buffer, characters);
         return IsBlockedModuleName(buffer);
+    }
+
+    bool IsBlockedClsid(REFCLSID clsid)
+    {
+        return IsEqualGUID(clsid, kClsidWbemLocator);
     }
 
     void LogAddressWithModule(const char *label, void *address)
@@ -281,6 +293,42 @@ namespace
             : STATUS_DLL_NOT_FOUND;
     }
 
+    HRESULT WINAPI HookedCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv)
+    {
+        if (IsBlockedClsid(rclsid))
+        {
+            PortalVrLog("Blocked CoCreateInstance for CLSID_WbemLocator");
+            if (ppv)
+                *ppv = nullptr;
+            return REGDB_E_CLASSNOTREG;
+        }
+
+        return g_OriginalCoCreateInstance
+            ? g_OriginalCoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv)
+            : REGDB_E_CLASSNOTREG;
+    }
+
+    HRESULT WINAPI HookedCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOuter, DWORD dwClsCtx, COSERVERINFO *pServerInfo, DWORD dwCount, MULTI_QI *pResults)
+    {
+        if (IsBlockedClsid(rclsid))
+        {
+            PortalVrLog("Blocked CoCreateInstanceEx for CLSID_WbemLocator");
+            if (pResults)
+            {
+                for (DWORD i = 0; i < dwCount; ++i)
+                {
+                    pResults[i].pItf = nullptr;
+                    pResults[i].hr = REGDB_E_CLASSNOTREG;
+                }
+            }
+            return REGDB_E_CLASSNOTREG;
+        }
+
+        return g_OriginalCoCreateInstanceEx
+            ? g_OriginalCoCreateInstanceEx(rclsid, punkOuter, dwClsCtx, pServerInfo, dwCount, pResults)
+            : REGDB_E_CLASSNOTREG;
+    }
+
     void InstallLoadLibraryHooks()
     {
         if (g_LoadLibraryHooksInstalled)
@@ -328,6 +376,51 @@ namespace
 
         g_LoadLibraryHooksInstalled = true;
         PortalVrLog("LoadLibrary hooks installed ldr=%p fastproxLoaded=%p", ldrLoadDllAddress, GetModuleHandleA("fastprox.dll"));
+    }
+
+    void InstallComHooks()
+    {
+        if (g_ComHooksInstalled)
+            return;
+
+        PortalVrLog("InstallComHooks start");
+
+        const MH_STATUS initStatus = MH_Initialize();
+        if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED)
+        {
+            PortalVrLog("MH_Initialize failed for COM hooks status=%d", initStatus);
+            return;
+        }
+
+        HMODULE ole32 = GetModuleHandleW(L"ole32.dll");
+        if (!ole32)
+            ole32 = LoadLibraryW(L"ole32.dll");
+        if (!ole32)
+        {
+            PortalVrLog("Failed to load ole32.dll for COM hooks");
+            return;
+        }
+
+        const MH_STATUS coCreateInstanceStatus = MH_CreateHookApi(L"ole32", "CoCreateInstance", &HookedCoCreateInstance, reinterpret_cast<LPVOID *>(&g_OriginalCoCreateInstance));
+        const MH_STATUS coCreateInstanceExStatus = MH_CreateHookApi(L"ole32", "CoCreateInstanceEx", &HookedCoCreateInstanceEx, reinterpret_cast<LPVOID *>(&g_OriginalCoCreateInstanceEx));
+        if (coCreateInstanceStatus != MH_OK || coCreateInstanceExStatus != MH_OK)
+        {
+            PortalVrLog(
+                "Failed to create COM hooks CoCreateInstance=%d CoCreateInstanceEx=%d",
+                coCreateInstanceStatus,
+                coCreateInstanceExStatus);
+            return;
+        }
+
+        const MH_STATUS enableStatus = MH_EnableHook(MH_ALL_HOOKS);
+        if (enableStatus != MH_OK)
+        {
+            PortalVrLog("Failed to enable COM hooks status=%d", enableStatus);
+            return;
+        }
+
+        g_ComHooksInstalled = true;
+        PortalVrLog("COM hooks installed ole32=%p", ole32);
     }
 
     LONG CALLBACK PortalVrVectoredExceptionHandler(EXCEPTION_POINTERS *exceptionInfo)
@@ -459,6 +552,7 @@ DWORD WINAPI InitL4D2VR(LPVOID)
     InstallVectoredExceptionLogger();
     InstallProcessExitHooks();
     InstallLoadLibraryHooks();
+    InstallComHooks();
 
 // Release if buggy, so we'll be releasing the debug binary
 #ifdef _DEBUG
