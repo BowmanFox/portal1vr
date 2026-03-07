@@ -36,7 +36,7 @@ public:
 	vr::IVRInput *m_Input = nullptr;
 	vr::IVROverlay *m_Overlay = nullptr;
 
-	vr::VROverlayHandle_t m_MainMenuHandle;
+	vr::VROverlayHandle_t m_MainMenuHandle = vr::k_ulOverlayHandleInvalid;
 	//vr::VROverlayHandle_t m_HUDHandle;
 
 	float m_HorizontalOffsetLeft;

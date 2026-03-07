@@ -20,6 +20,7 @@ namespace
 {
     constexpr bool kEnableVrMenuSubmission = false;
     constexpr bool kEnableVrMenuInput = false;
+    constexpr bool kEnableConfigWatcher = false;
 
     void GetOverlayWindowSize(const VR &vr, int &width, int &height)
     {
@@ -96,9 +97,16 @@ VR::VR(Game *game)
     InstallApplicationManifest("manifest.vrmanifest");
     SetActionManifest("action_manifest.json");
 
-    std::thread configParser(&VR::WaitForConfigUpdate, this);
-    configParser.detach();
-    PortalVrLog("Config watcher started");
+    if (kEnableConfigWatcher)
+    {
+        std::thread configParser(&VR::WaitForConfigUpdate, this);
+        configParser.detach();
+        PortalVrLog("Config watcher started");
+    }
+    else
+    {
+        PortalVrLog("Config watcher disabled");
+    }
 
     while (!g_D3DVR9) 
         Sleep(10);
@@ -109,23 +117,27 @@ VR::VR(Game *game)
         "Backbuffer ready width=%u height=%u",
         m_VKBackBuffer.m_VulkanData.m_nWidth,
         m_VKBackBuffer.m_VulkanData.m_nHeight);
-    m_Overlay = vr::VROverlay();
-    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
-    //m_Overlay->CreateOverlay("HUDOverlayKey", "HUDOverlay", &m_HUDHandle);
-    m_Overlay->SetOverlayInputMethod(m_MainMenuHandle, vr::VROverlayInputMethod_Mouse);
-   // m_Overlay->SetOverlayInputMethod(m_HUDHandle, vr::VROverlayInputMethod_Mouse);
-    m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
-    //m_Overlay->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
+    if (kEnableVrMenuSubmission || kEnableVrMenuInput)
+    {
+        m_Overlay = vr::VROverlay();
+        if (m_Overlay)
+        {
+            m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
+            m_Overlay->SetOverlayInputMethod(m_MainMenuHandle, vr::VROverlayInputMethod_Mouse);
+            m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
-    //const vr::HmdVector2_t mouseScaleHUD = {windowWidth, windowHeight};
-    //m_Overlay->SetOverlayMouseScale(m_HUDHandle, &mouseScaleHUD);
-
-    const vr::HmdVector2_t mouseScaleMenu = {
-        static_cast<float>(m_RenderWidth),
-        static_cast<float>(m_RenderHeight)
-    };
-    m_Overlay->SetOverlayCurvature(m_MainMenuHandle, 0.15f);
-    m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScaleMenu);
+            const vr::HmdVector2_t mouseScaleMenu = {
+                static_cast<float>(m_RenderWidth),
+                static_cast<float>(m_RenderHeight)
+            };
+            m_Overlay->SetOverlayCurvature(m_MainMenuHandle, 0.15f);
+            m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScaleMenu);
+        }
+    }
+    else
+    {
+        PortalVrLog("VR menu overlay initialization skipped");
+    }
 
     UpdatePosesAndActions();
     PortalVrLog("UpdatePosesAndActions complete");
@@ -216,6 +228,18 @@ void VR::Update()
         return;
 
     const bool cursorVisible = m_Game->m_VguiSurface->IsCursorVisible();
+    static bool loggedUpdateEntry = false;
+    static bool loggedAfterSubmit = false;
+    static bool loggedAfterPoses = false;
+    static bool loggedAfterTracking = false;
+    static bool loggedSkippedMenuInput = false;
+    static bool loggedAfterInput = false;
+
+    if (!loggedUpdateEntry)
+    {
+        PortalVrLog("VR::Update first entry cursorVisible=%d inGame=%d", cursorVisible, m_Game->m_EngineClient->IsInGame());
+        loggedUpdateEntry = true;
+    }
 
     if (m_IsVREnabled && g_D3DVR9)
     {
@@ -232,16 +256,45 @@ void VR::Update()
     }
 
     SubmitVRTextures();
+    if (!loggedAfterSubmit)
+    {
+        PortalVrLog("VR::Update completed SubmitVRTextures");
+        loggedAfterSubmit = true;
+    }
+
     UpdatePosesAndActions();
+    if (!loggedAfterPoses)
+    {
+        PortalVrLog("VR::Update completed UpdatePosesAndActions");
+        loggedAfterPoses = true;
+    }
+
     UpdateTracking();
+    if (!loggedAfterTracking)
+    {
+        PortalVrLog("VR::Update completed UpdateTracking");
+        loggedAfterTracking = true;
+    }
 
     if (cursorVisible) {
         if (!kEnableVrMenuInput)
+        {
+            if (!loggedSkippedMenuInput)
+            {
+                PortalVrLog("VR::Update skipped VR menu input");
+                loggedSkippedMenuInput = true;
+            }
             return;
+        }
 
         ProcessMenuInput();
     } else {
         ProcessInput();
+        if (!loggedAfterInput)
+        {
+            PortalVrLog("VR::Update completed ProcessInput");
+            loggedAfterInput = true;
+        }
     }
 }
 

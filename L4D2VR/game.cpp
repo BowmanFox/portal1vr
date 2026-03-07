@@ -12,7 +12,7 @@
 
 namespace
 {
-    constexpr bool kEnableVrBootstrap = true;
+    constexpr bool kEnableVrBootstrap = false;
 
     bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
     {
@@ -73,10 +73,7 @@ Game::Game()
 
     if (kEnableVrBootstrap)
     {
-        m_VR = new VR(this);
-        PortalVrLog("VR constructed");
-        m_Hooks = new Hooks(this);
-        PortalVrLog("Hooks constructed");
+        EnsureVrBootstrap();
     }
     else
     {
@@ -85,6 +82,27 @@ Game::Game()
 
     m_Initialized = true;
     PortalVrLog("Game::Game complete");
+}
+
+void Game::EnsureVrBootstrap()
+{
+    if (m_VrBootstrapAttempted || m_VR != nullptr)
+        return;
+
+    m_VrBootstrapAttempted = true;
+    PortalVrLog("EnsureVrBootstrap start");
+
+    m_VR = new VR(this);
+    PortalVrLog("VR constructed");
+
+    if (!m_VR || !m_VR->m_IsInitialized)
+    {
+        PortalVrLog("EnsureVrBootstrap aborted: VR did not initialize");
+        return;
+    }
+
+    m_Hooks = new Hooks(this);
+    PortalVrLog("Hooks constructed");
 }
 
 void *Game::GetInterface(const char *dllname, const char *interfacename, bool required)

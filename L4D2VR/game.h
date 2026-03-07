@@ -72,6 +72,7 @@ public:
     Hooks *m_Hooks = nullptr;
 
     bool m_Initialized = false;
+    bool m_VrBootstrapAttempted = false;
 
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;
@@ -81,6 +82,7 @@ public:
     bool m_CachedArmsModel = false;
 
     Game();
+    void EnsureVrBootstrap();
 
     void *GetInterface(const char *dllname, const char *interfacename, bool required = true);
     void *GetModuleOffset(const char *dllname, uintptr_t offset, bool required = true);

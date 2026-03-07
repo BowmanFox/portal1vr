@@ -85,7 +85,7 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
-	constexpr bool kEnableAllHooks = true;
+	constexpr bool kEnableAllHooks = false;
 	constexpr bool kEnableClientModeHooks = false;
 
 	template <typename T>
