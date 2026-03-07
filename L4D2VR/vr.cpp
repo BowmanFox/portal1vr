@@ -15,6 +15,20 @@
 #include <algorithm>
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 
+namespace
+{
+    void GetOverlayWindowSize(const VR &vr, int &width, int &height)
+    {
+        width = static_cast<int>(vr.m_VKBackBuffer.m_VulkanData.m_nWidth);
+        height = static_cast<int>(vr.m_VKBackBuffer.m_VulkanData.m_nHeight);
+
+        if (width <= 0)
+            width = static_cast<int>(vr.m_RenderWidth);
+        if (height <= 0)
+            height = static_cast<int>(vr.m_RenderHeight);
+    }
+}
+
 VR::VR(Game *game) 
 {
     m_Game = game;
@@ -86,9 +100,6 @@ VR::VR(Game *game)
    // m_Overlay->SetOverlayInputMethod(m_HUDHandle, vr::VROverlayInputMethod_Mouse);
     m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
     //m_Overlay->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
-
-    int windowWidth, windowHeight;
-    m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
 
     //const vr::HmdVector2_t mouseScaleHUD = {windowWidth, windowHeight};
     //m_Overlay->SetOverlayMouseScale(m_HUDHandle, &mouseScaleHUD);
@@ -197,10 +208,6 @@ void VR::Update()
         // Prevents crashing at menu
         if (!inGame)
         {
-            IMatRenderContext *rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-            rndrContext->SetRenderTarget(NULL);
-            rndrContext->Release();
-
             m_Game->m_CachedArmsModel = false;
             m_CreatedVRTextures = false; // Have to recreate textures otherwise some workshop maps won't render
         } 
@@ -219,17 +226,9 @@ void VR::Update()
 
 void VR::CreateVRTextures()
 {
-    int windowWidth, windowHeight;
-
-    IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-    rndrContext->GetWindowSize(windowWidth, windowHeight);
-    rndrContext->Release();
-
     std::cout << "RenderTexture - Width: " << m_RenderWidth << ", Height: " << m_RenderHeight << "\n";
 
-    m_Game->m_MaterialSystem->isGameRunning = false;
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
-    m_Game->m_MaterialSystem->isGameRunning = true;
 
     m_CreatingTextureID = Texture_LeftEye;
     m_LeftEyeTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
@@ -254,9 +253,6 @@ void VR::SubmitVRTextures()
 {
     if (!m_RenderedNewFrame)
     {
-        if (!m_BlankTexture)
-            CreateVRTextures();
-
         if (!vr::VROverlay()->IsOverlayVisible(m_MainMenuHandle))
             RepositionOverlays();
 
@@ -266,9 +262,7 @@ void VR::SubmitVRTextures()
             // menu only renders to the window portion of the texture. Until we figure out a proper fix,
             // as a workaround only show that portion of the texture
             int windowWidth, windowHeight;
-            IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-            rndrContext->GetWindowSize(windowWidth, windowHeight);
-            rndrContext->Release();
+            GetOverlayWindowSize(*this, windowWidth, windowHeight);
 
             bounds.uMax = (float)windowWidth / m_RenderWidth;
             bounds.vMax = (float)windowHeight / m_RenderHeight;
@@ -282,11 +276,8 @@ void VR::SubmitVRTextures()
         vr::VROverlay()->ShowOverlay(m_MainMenuHandle);
         //vr::VROverlay()->HideOverlay(m_HUDHandle);
 
-        //if (!m_Game->m_EngineClient->IsInGame())
-        {
-            vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBlankTexture.m_VRTexture, NULL, vr::Submit_Default);
-            vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBlankTexture.m_VRTexture, NULL, vr::Submit_Default);
-        }
+        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBackBuffer.m_VRTexture, NULL, vr::Submit_Default);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBackBuffer.m_VRTexture, NULL, vr::Submit_Default);
 
         return;
     }
@@ -343,7 +334,7 @@ void VR::RepositionOverlays()
     Vector hmdForward = { -hmdMat.m[0][2], 0, -hmdMat.m[2][2] };
 
     int windowWidth, windowHeight;
-    m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
+    GetOverlayWindowSize(*this, windowWidth, windowHeight);
 
     vr::HmdMatrix34_t menuTransform = 
     {
@@ -487,7 +478,7 @@ void VR::ProcessMenuInput()
         vr::VROverlay()->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, true);
 
         int windowWidth, windowHeight;
-        m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
+        GetOverlayWindowSize(*this, windowWidth, windowHeight);
 
         vr::VREvent_t vrEvent;
         while (vr::VROverlay()->PollNextOverlayEvent(currentOverlay, &vrEvent, sizeof(vrEvent)))

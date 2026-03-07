@@ -201,12 +201,12 @@ ITexture* __fastcall Hooks::dGetRenderTarget(void* ecx, void* edx)
 
 void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw)
 {
+	if (m_Game->m_VguiSurface->IsCursorVisible())
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
+
 	if (!m_VR->m_CreatedVRTextures) {
 		m_VR->CreateVRTextures();
 	}
-
-	if (m_Game->m_VguiSurface->IsCursorVisible())
-		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	//VPanel* g_pFullscreenRootPanel = *(VPanel**)(m_Game->m_Offsets->g_pFullscreenRootPanel.address);
 
