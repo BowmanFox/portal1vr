@@ -13,6 +13,7 @@
 #include <thread>
 #include <type_traits>
 #include <algorithm>
+#include <cstring>
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include "debuglog.h"
 
@@ -21,6 +22,27 @@ namespace
     constexpr bool kEnableVrMenuSubmission = false;
     constexpr bool kEnableVrMenuInput = false;
     constexpr bool kEnableConfigWatcher = false;
+
+    bool GetRuntimeBaseDirectory(char *buffer, size_t bufferSize)
+    {
+        if (!buffer || bufferSize == 0)
+            return false;
+
+        HMODULE module = GetModuleHandleA("d3d9.dll");
+        if (!module)
+            return false;
+
+        const DWORD length = GetModuleFileNameA(module, buffer, static_cast<DWORD>(bufferSize));
+        if (length == 0 || length >= bufferSize)
+            return false;
+
+        char *lastSlash = strrchr(buffer, '\\');
+        if (!lastSlash)
+            return false;
+
+        *lastSlash = '\0';
+        return true;
+    }
 
     void GetOverlayWindowSize(const VR &vr, int &width, int &height)
     {
@@ -108,8 +130,11 @@ VR::VR(Game *game)
         PortalVrLog("Config watcher disabled");
     }
 
-    while (!g_D3DVR9) 
-        Sleep(10);
+    if (!g_D3DVR9)
+    {
+        PortalVrLog("VR::VR aborted: D3D9 VR interop not ready");
+        return;
+    }
     PortalVrLog("g_D3DVR9 ready");
 
     g_D3DVR9->GetBackBufferData(&m_VKBackBuffer);
@@ -150,13 +175,21 @@ VR::VR(Game *game)
 int VR::SetActionManifest(const char *fileName) 
 {
     char currentDir[MAX_STR_LEN];
-    GetCurrentDirectory(MAX_STR_LEN, currentDir);
+    if (!GetRuntimeBaseDirectory(currentDir, ARRAYSIZE(currentDir)))
+    {
+        PortalVrLog("SetActionManifest failed: runtime base directory unavailable");
+        Game::errorMsg("Failed to resolve runtime directory for action manifest");
+        return 1;
+    }
+
     char path[MAX_STR_LEN];
     sprintf_s(path, MAX_STR_LEN, "%s\\VR\\SteamVRActionManifest\\%s", currentDir, fileName);
+    PortalVrLog("SetActionManifest path=%s", path);
 
     if (m_Input->SetActionManifestPath(path) != vr::VRInputError_None) 
     {
         Game::errorMsg("SetActionManifestPath failed");
+        return 1;
     }
 
     m_Input->GetActionHandle("/actions/main/in/ActivateVR", &m_ActionActivateVR);
@@ -193,9 +226,15 @@ int VR::SetActionManifest(const char *fileName)
 void VR::InstallApplicationManifest(const char *fileName)
 {
     char currentDir[MAX_STR_LEN];
-    GetCurrentDirectory(MAX_STR_LEN, currentDir);
+    if (!GetRuntimeBaseDirectory(currentDir, ARRAYSIZE(currentDir)))
+    {
+        PortalVrLog("InstallApplicationManifest failed: runtime base directory unavailable");
+        return;
+    }
+
     char path[MAX_STR_LEN];
     sprintf_s(path, MAX_STR_LEN, "%s\\VR\\%s", currentDir, fileName);
+    PortalVrLog("InstallApplicationManifest path=%s", path);
 
     vr::VRApplications()->AddApplicationManifest(path);
 }
@@ -227,24 +266,27 @@ void VR::Update()
     if (!m_IsInitialized || !m_Game->m_Initialized)
         return;
 
-    const bool cursorVisible = m_Game->m_VguiSurface->IsCursorVisible();
+    const bool hasGameplayInterfaces = m_Game->m_EngineClient != nullptr
+        && m_Game->m_ClientEntityList != nullptr
+        && m_Game->m_EngineTrace != nullptr;
+    const bool cursorVisible = m_Game->m_VguiSurface != nullptr && m_Game->m_VguiSurface->IsCursorVisible();
+    const bool inGame = m_Game->m_EngineClient != nullptr ? m_Game->m_EngineClient->IsInGame() : true;
     static bool loggedUpdateEntry = false;
     static bool loggedAfterSubmit = false;
     static bool loggedAfterPoses = false;
     static bool loggedAfterTracking = false;
     static bool loggedSkippedMenuInput = false;
     static bool loggedAfterInput = false;
+    static bool loggedSkippedGameplayInput = false;
 
     if (!loggedUpdateEntry)
     {
-        PortalVrLog("VR::Update first entry cursorVisible=%d inGame=%d", cursorVisible, m_Game->m_EngineClient->IsInGame());
+        PortalVrLog("VR::Update first entry cursorVisible=%d inGame=%d gameplayInterfaces=%d", cursorVisible, inGame, hasGameplayInterfaces);
         loggedUpdateEntry = true;
     }
 
     if (m_IsVREnabled && g_D3DVR9)
     {
-        bool inGame = m_Game->m_EngineClient->IsInGame();
-
         //SetScreenSizeOverride(inGame);
 
         // Prevents crashing at menu
@@ -288,18 +330,27 @@ void VR::Update()
         }
 
         ProcessMenuInput();
-    } else {
+    } else if (hasGameplayInterfaces) {
         ProcessInput();
         if (!loggedAfterInput)
         {
             PortalVrLog("VR::Update completed ProcessInput");
             loggedAfterInput = true;
         }
+    } else if (!loggedSkippedGameplayInput) {
+        PortalVrLog("VR::Update skipped gameplay input because gameplay interfaces are unavailable");
+        loggedSkippedGameplayInput = true;
     }
 }
 
 void VR::CreateVRTextures()
 {
+    if (!m_Game->m_MaterialSystem)
+    {
+        PortalVrLog("CreateVRTextures skipped: material system unavailable");
+        return;
+    }
+
     std::cout << "RenderTexture - Width: " << m_RenderWidth << ", Height: " << m_RenderHeight << "\n";
 
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
@@ -362,7 +413,7 @@ void VR::SubmitVRTextures()
 
     //vr::VROverlay()->SetOverlayTexture(m_HUDHandle, &m_VKHUD.m_VRTexture);
 
-    if (m_Game->m_VguiSurface->IsCursorVisible())
+    if (m_Game->m_VguiSurface && m_Game->m_VguiSurface->IsCursorVisible())
     {
         // We're in the pause menu
         //vr::VROverlay()->ShowOverlay(m_HUDHandle);
@@ -1012,11 +1063,6 @@ void VR::UpdateTracking()
 {
     GetPoses();
 
-    int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
-    C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(playerIndex);
-    if (!localPlayer)
-        return;
-
     // HMD tracking
     Vector hmdPosLocal = m_HmdPose.TrackedDevicePos;
     Vector hmdPosCentered = hmdPosLocal - m_Center;
@@ -1031,6 +1077,14 @@ void VR::UpdateTracking()
     UpdateHMDAngles();
 
     m_HmdPosRelative = hmdPosCorrected * m_VRScale;
+
+    if (!m_Game->m_EngineClient || !m_Game->m_ClientEntityList || !m_Game->m_EngineTrace)
+        return;
+
+    int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
+    C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(playerIndex);
+    if (!localPlayer)
+        return;
 
     // Roomscale setup
     /*Vector cameraMovingDirection = m_Center - m_SetupOriginPrev;

@@ -67,7 +67,20 @@ if (-not (Test-Path -LiteralPath $binDir)) {
     New-Item -ItemType Directory -Path $binDir | Out-Null
 }
 
+$vrDir = Join-Path $binDir "VR"
+if (-not (Test-Path -LiteralPath $vrDir)) {
+    New-Item -ItemType Directory -Path $vrDir | Out-Null
+}
+
+$vrActionDir = Join-Path $vrDir "SteamVRActionManifest"
+if (-not (Test-Path -LiteralPath $vrActionDir)) {
+    New-Item -ItemType Directory -Path $vrActionDir | Out-Null
+}
+
 $openVrSource = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\thirdparty\openvr\bin\win32\openvr_api.dll"))
+$manifestSource = Join-Path $PSScriptRoot "manifest.vrmanifest"
+$capsuleSource = Join-Path $PSScriptRoot "portal1vr_capsule_main.png"
+$portraitSource = Join-Path $PSScriptRoot "portal1vr_portrait_main.png"
 $runtimeFiles = @(
     @{
         Source = $SourceDll
@@ -78,6 +91,21 @@ $runtimeFiles = @(
         Source = $openVrSource
         Destination = Join-Path $binDir "openvr_api.dll"
         Label = "openvr_api.dll"
+    },
+    @{
+        Source = $manifestSource
+        Destination = Join-Path $vrDir "manifest.vrmanifest"
+        Label = "manifest.vrmanifest"
+    },
+    @{
+        Source = $capsuleSource
+        Destination = Join-Path $vrDir "portal1vr_capsule_main.png"
+        Label = "portal1vr_capsule_main.png"
+    },
+    @{
+        Source = $portraitSource
+        Destination = Join-Path $vrDir "portal1vr_portrait_main.png"
+        Label = "portal1vr_portrait_main.png"
     }
 )
 
@@ -99,4 +127,13 @@ foreach ($file in $runtimeFiles) {
 
         throw
     }
+}
+
+$actionManifestSourceDir = Join-Path $PSScriptRoot "SteamVRActionManifest"
+if (Test-Path -LiteralPath $actionManifestSourceDir) {
+    Copy-Item -LiteralPath (Join-Path $actionManifestSourceDir "*") -Destination $vrActionDir -Recurse -Force
+    Write-Host "Copied SteamVRActionManifest to $vrActionDir"
+}
+else {
+    Write-Warning "Skipped SteamVRActionManifest copy because the source directory was not found: $actionManifestSourceDir"
 }

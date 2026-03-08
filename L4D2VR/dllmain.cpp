@@ -17,6 +17,8 @@ namespace
     constexpr bool kEnableLoadLibraryHooks = false;
     constexpr bool kEnableComHooks = false;
     constexpr bool kEnableTier0SpewHooks = false;
+    constexpr bool kDisableDxvkVrProviders = true;
+    constexpr bool kEnableGameBootstrap = true;
 
     using ExitProcessFn = VOID (WINAPI *)(UINT);
     using TerminateProcessFn = BOOL (WINAPI *)(HANDLE, UINT);
@@ -555,6 +557,11 @@ DWORD WINAPI InitL4D2VR(LPVOID)
 {
     PortalVrResetLog();
     PortalVrLog("Init thread start");
+    if (kDisableDxvkVrProviders)
+    {
+        SetEnvironmentVariableA("DXVK_NO_VR", "1");
+        PortalVrLog("DXVK_NO_VR enabled");
+    }
     if (kEnableVectoredExceptionLogger)
         InstallVectoredExceptionLogger();
     if (kEnableProcessExitHooks)
@@ -605,6 +612,12 @@ DWORD WINAPI InitL4D2VR(LPVOID)
         return 0;
     }
 
+    if (!kEnableGameBootstrap)
+    {
+        PortalVrLog("Game bootstrap disabled for diagnostic run");
+        return 0;
+    }
+
     PortalVrLog("Launch arguments validated, constructing Game");
     g_Game = new Game();
     PortalVrLog("Game constructed successfully");
@@ -625,6 +638,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
         {
+            if (kDisableDxvkVrProviders)
+                SetEnvironmentVariableA("DXVK_NO_VR", "1");
             HANDLE initThread = CreateThread(NULL, 0, InitL4D2VR, hModule, 0, NULL);
             if (initThread)
                 CloseHandle(initThread);

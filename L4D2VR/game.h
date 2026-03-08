@@ -73,6 +73,8 @@ public:
 
     bool m_Initialized = false;
     bool m_VrBootstrapAttempted = false;
+    uint32_t m_LastRuntimeInterfaceResolveTick = 0;
+    bool m_LoggedVrInterfaceReady = false;
 
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;
@@ -83,6 +85,8 @@ public:
 
     Game();
     void EnsureVrBootstrap();
+    bool TryResolveVrInterfaces(bool force = false);
+    bool HasVrRuntimeInterfaces() const;
 
     void *GetInterface(const char *dllname, const char *interfacename, bool required = true);
     void *GetModuleOffset(const char *dllname, uintptr_t offset, bool required = true);

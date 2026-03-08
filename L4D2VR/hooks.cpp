@@ -85,7 +85,7 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
-	constexpr bool kEnableAllHooks = false;
+	constexpr bool kEnableAllHooks = true;
 	constexpr bool kEnableClientModeHooks = false;
 
 	template <typename T>
@@ -159,6 +159,8 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
+	const bool hasOffsets = m_Game->m_Offsets != nullptr;
+
 	PortalVrLog(
 		"initSourceHooks objects clientMode=%p clientViewRender=%p",
 		m_Game->m_ClientMode,
@@ -171,7 +173,10 @@ int Hooks::initSourceHooks()
 		"Portal1::CViewRender::RenderView",
 		true);
 
-	if (m_Game->m_Offsets->CalcViewModelView.valid)
+	if (!hasOffsets)
+		PortalVrLog("Offsets unavailable, enabling minimal hook set only");
+
+	if (hasOffsets && m_Game->m_Offsets->CalcViewModelView.valid)
 		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);
 
 	if (kEnableClientModeHooks)
@@ -194,18 +199,18 @@ int Hooks::initSourceHooks()
 		PortalVrLog("ClientMode hooks disabled for diagnostic run");
 	}
 
-	if (m_Game->m_Offsets->TraceFirePortalServer.valid)
+	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 
-	if (m_Game->m_Offsets->CWeaponPortalgun_FirePortal.valid)
+	if (hasOffsets && m_Game->m_Offsets->CWeaponPortalgun_FirePortal.valid)
 		CreateHookAt(hkCWeaponPortalgun_FirePortal, m_Game->m_Offsets->CWeaponPortalgun_FirePortal.address, reinterpret_cast<LPVOID>(&dCWeaponPortalgun_FirePortal), "CWeaponPortalgun_FirePortal", false);
 
-	GetPortalPlayer = m_Game->m_Offsets->GetPortalPlayer.valid ? (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address : nullptr;
-	CreatePingPointer = m_Game->m_Offsets->CreatePingPointer.valid ? (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address : nullptr;
-	PrecacheParticleSystem = m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
-	EntityIndex = m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
-	GetOwner = m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
-	GetFullScreenTexture = m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
+	GetPortalPlayer = hasOffsets && m_Game->m_Offsets->GetPortalPlayer.valid ? (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address : nullptr;
+	CreatePingPointer = hasOffsets && m_Game->m_Offsets->CreatePingPointer.valid ? (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address : nullptr;
+	PrecacheParticleSystem = hasOffsets && m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
+	EntityIndex = hasOffsets && m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
+	GetOwner = hasOffsets && m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
+	GetFullScreenTexture = hasOffsets && m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
 	PortalVrLog(
 		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p",
 		hkRenderView.pTarget,
@@ -253,17 +258,19 @@ ITexture* __fastcall Hooks::dGetRenderTarget(void* ecx, void* edx)
 void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw)
 {
 	static bool loggedRenderViewEntry = false;
+	if (!m_Game->TryResolveVrInterfaces())
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
+
 	if (!loggedRenderViewEntry)
 	{
-		PortalVrLog("dRenderView first entry ecx=%p cursorVisible=%d", ecx, m_Game->m_VguiSurface->IsCursorVisible());
+		PortalVrLog("dRenderView first entry ecx=%p", ecx);
 		loggedRenderViewEntry = true;
 	}
 
-	if (m_Game->m_VguiSurface->IsCursorVisible())
-		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
-
 	if (!m_VR->m_CreatedVRTextures) {
 		m_VR->CreateVRTextures();
+		if (!m_VR->m_CreatedVRTextures)
+			return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 	}
 
 	//VPanel* g_pFullscreenRootPanel = *(VPanel**)(m_Game->m_Offsets->g_pFullscreenRootPanel.address);
@@ -291,8 +298,6 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	m_VR->m_SetupOrigin = position;
 
 	Vector hmdAngle = m_VR->GetViewAngle();
-	QAngle inGameAngle(hmdAngle.x, hmdAngle.y, hmdAngle.z);
-	m_Game->m_EngineClient->SetViewAngles(inGameAngle);
 
 	float aspect = setup.m_flAspectRatio;
 
@@ -312,13 +317,8 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	CViewSetup leftEyeView = setup;
 	CViewSetup rightEyeView = setup;
 
-	int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
-	C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(playerIndex);
-
 	// Left eye CViewSetup
-	QAngle tempAngle = QAngle(setup.angles.x, setup.angles.y, setup.angles.z);
-	leftEyeView.origin = m_VR->TraceEye((uint32_t*)localPlayer, position, m_VR->GetViewOriginLeft(position), tempAngle);
-	leftEyeView.angles.y = tempAngle.y;
+	leftEyeView.origin = m_VR->GetViewOriginLeft(position);
 
 	//std::cout << "dRenderView - Left Start\n";
 	IMatRenderContext* rndrContext = matSystem->GetRenderContext();
@@ -327,9 +327,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw);
 	
 	// Right eye CViewSetup
-	tempAngle = QAngle(setup.angles.x, setup.angles.y, setup.angles.z);
-	rightEyeView.origin = m_VR->TraceEye((uint32_t*)localPlayer, position, m_VR->GetViewOriginRight(position), tempAngle);
-	rightEyeView.angles.y = tempAngle.y;
+	rightEyeView.origin = m_VR->GetViewOriginRight(position);
 
 	//std::cout << "dRenderView - Right Start\n";
 	rndrContext = matSystem->GetRenderContext();

@@ -8,11 +8,16 @@
 #include "portal1.h"
 #include "sigscanner.h"
 #include "debuglog.h"
+#include "../dxvk/src/d3d9/d3d9_vr.h"
 #include <Psapi.h>
 
 namespace
 {
     constexpr bool kEnableVrBootstrap = false;
+    constexpr bool kResolveInterfaces = true;
+    constexpr bool kConstructOffsets = false;
+    constexpr bool kResolveClientGlobals = true;
+    constexpr bool kResolveCreateInterfaces = false;
 
     bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
     {
@@ -21,6 +26,18 @@ namespace
             return false;
 
         return GetModuleInformation(GetCurrentProcess(), hModule, &moduleInfo, sizeof(moduleInfo)) != FALSE;
+    }
+
+    template <typename T>
+    bool ResolveInterfaceSlot(Game *game, T *&slot, const char *dllname, const char *interfacename)
+    {
+        if (slot)
+            return true;
+
+        PortalVrLog("Resolving interface %s from %s", interfacename, dllname);
+        slot = static_cast<T *>(game->GetInterface(dllname, interfacename, false));
+        PortalVrLog("Resolved interface %s from %s => %p", interfacename, dllname, slot);
+        return slot != nullptr;
     }
 }
 
@@ -49,27 +66,48 @@ Game::Game()
         reinterpret_cast<void *>(m_BaseServer),
         reinterpret_cast<void *>(m_BaseVgui2));
 
-    m_ClientEntityList = (IClientEntityList *)GetInterface("client.dll", Portal1::Interfaces::kClientEntityList);
-    m_EngineTrace = (IEngineTrace *)GetInterface("engine.dll", Portal1::Interfaces::kEngineTrace);
-    m_EngineClient = (IEngineClient *)GetInterface("engine.dll", Portal1::Interfaces::kEngineClient);
-    m_MaterialSystem = (IMaterialSystem *)GetInterface("MaterialSystem.dll", Portal1::Interfaces::kMaterialSystem);
-    m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal);
-    m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender);
-    m_EngineViewRender = (IViewRender *)GetInterface("engine.dll", Portal1::Interfaces::kEngineRenderView, false);
-    m_ModelInfo = (IModelInfo *)GetInterface("engine.dll", Portal1::Interfaces::kModelInfo);
-    m_ModelRender = (IModelRender *)GetInterface("engine.dll", Portal1::Interfaces::kModelRender);
-    m_VguiInput = (IInput *)GetInterface("vgui2.dll", Portal1::Interfaces::kVguiInput);
-    m_VguiSurface = (ISurface *)GetInterface("vguimatsurface.dll", Portal1::Interfaces::kVguiSurface);
+    if (kResolveInterfaces)
+    {
+        if (kResolveClientGlobals)
+        {
+            m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal);
+            m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender);
+        }
+        else
+        {
+            PortalVrLog("Client globals disabled for diagnostic run");
+        }
 
-    PortalVrLog(
-        "Interfaces ready clientMode=%p clientViewRender=%p engineViewRender=%p materialSystem=%p",
-        m_ClientMode,
-        m_ClientViewRender,
-        m_EngineViewRender,
-        m_MaterialSystem);
+        if (kResolveCreateInterfaces)
+        {
+            TryResolveVrInterfaces(true);
+        }
+        else
+        {
+            PortalVrLog("CreateInterface resolution deferred until runtime");
+        }
 
-    m_Offsets = new Offsets();
-    PortalVrLog("Offsets constructed");
+        PortalVrLog(
+            "Interfaces ready clientMode=%p clientViewRender=%p engineViewRender=%p materialSystem=%p",
+            m_ClientMode,
+            m_ClientViewRender,
+            m_EngineViewRender,
+            m_MaterialSystem);
+    }
+    else
+    {
+        PortalVrLog("Interface resolution disabled for diagnostic run");
+    }
+
+    if (kConstructOffsets)
+    {
+        m_Offsets = new Offsets();
+        PortalVrLog("Offsets constructed");
+    }
+    else
+    {
+        PortalVrLog("Offsets construction disabled for diagnostic run");
+    }
 
     if (kEnableVrBootstrap)
     {
@@ -77,7 +115,7 @@ Game::Game()
     }
     else
     {
-        PortalVrLog("VR bootstrap disabled for diagnostic run");
+        PortalVrLog("VR bootstrap deferred until runtime");
     }
 
     m_Initialized = true;
@@ -88,6 +126,12 @@ void Game::EnsureVrBootstrap()
 {
     if (m_VrBootstrapAttempted || m_VR != nullptr)
         return;
+
+    if (!g_D3DVR9)
+    {
+        PortalVrLog("EnsureVrBootstrap deferred: D3D9 VR interop not ready");
+        return;
+    }
 
     m_VrBootstrapAttempted = true;
     PortalVrLog("EnsureVrBootstrap start");
@@ -103,6 +147,59 @@ void Game::EnsureVrBootstrap()
 
     m_Hooks = new Hooks(this);
     PortalVrLog("Hooks constructed");
+}
+
+bool Game::TryResolveVrInterfaces(bool force)
+{
+    if (HasVrRuntimeInterfaces())
+    {
+        if (!m_LoggedVrInterfaceReady)
+        {
+            PortalVrLog(
+                "VR render interfaces ready clientViewRender=%p materialSystem=%p",
+                m_ClientViewRender,
+                m_MaterialSystem);
+            m_LoggedVrInterfaceReady = true;
+        }
+
+        return true;
+    }
+
+    const DWORD now = GetTickCount();
+    if (!force && m_LastRuntimeInterfaceResolveTick != 0 && (now - m_LastRuntimeInterfaceResolveTick) < 1000)
+        return false;
+
+    m_LastRuntimeInterfaceResolveTick = now;
+    PortalVrLog("TryResolveVrInterfaces attempt");
+
+    if (!m_ClientMode)
+        m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal, false);
+    if (!m_ClientViewRender)
+        m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender, false);
+
+    ResolveInterfaceSlot(this, m_MaterialSystem, "materialsystem.dll", Portal1::Interfaces::kMaterialSystem);
+
+    if (HasVrRuntimeInterfaces())
+    {
+        PortalVrLog(
+            "VR render interfaces ready clientViewRender=%p materialSystem=%p",
+            m_ClientViewRender,
+            m_MaterialSystem);
+        m_LoggedVrInterfaceReady = true;
+        return true;
+    }
+
+    PortalVrLog(
+        "VR render interfaces pending clientViewRender=%p materialSystem=%p",
+        m_ClientViewRender,
+        m_MaterialSystem);
+    return false;
+}
+
+bool Game::HasVrRuntimeInterfaces() const
+{
+    return m_ClientViewRender != nullptr
+        && m_MaterialSystem != nullptr;
 }
 
 void *Game::GetInterface(const char *dllname, const char *interfacename, bool required)
