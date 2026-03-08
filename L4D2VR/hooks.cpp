@@ -342,6 +342,15 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	setup.zNearViewmodel = 2;
 	setup.angles = hmdAngle;
 
+	if (!m_VR->m_CreatedVRTextures)
+	{
+		setup.origin = m_VR->GetViewOrigin(position);
+		hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
+		m_PushedHud = false;
+		m_VR->m_RenderedNewFrame = true;
+		return;
+	}
+
 	CViewSetup leftEyeView = setup;
 	CViewSetup rightEyeView = setup;
 

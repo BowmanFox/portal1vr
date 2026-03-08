@@ -22,6 +22,7 @@ namespace
     constexpr bool kEnableVrMenuSubmission = false;
     constexpr bool kEnableVrMenuInput = false;
     constexpr bool kEnableConfigWatcher = false;
+    constexpr bool kEnableMaterialSystemEyeTargets = false;
 
     bool GetRuntimeBaseDirectory(char *buffer, size_t bufferSize)
     {
@@ -167,6 +168,9 @@ VR::VR(Game *game)
     UpdatePosesAndActions();
     PortalVrLog("UpdatePosesAndActions complete");
 
+    if (!kEnableMaterialSystemEyeTargets)
+        PortalVrLog("Using backbuffer VR submit path; materialsystem eye targets disabled");
+
     m_IsInitialized = true;
     m_IsVREnabled = true;
     PortalVrLog("VR::VR complete");
@@ -298,7 +302,7 @@ void VR::Update()
                 m_CreatedVRTextures = false;
         } 
 
-        if (!m_CreatedVRTextures)
+        if (kEnableMaterialSystemEyeTargets && !m_CreatedVRTextures)
         {
             PortalVrLog("VR::Update creating VR textures outside RenderView");
             CreateVRTextures();
@@ -431,8 +435,16 @@ void VR::SubmitVRTextures()
         //vr::VROverlay()->ShowOverlay(m_HUDHandle);
     }
 
-    vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKLeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-    vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKRightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+    if (m_CreatedVRTextures)
+    {
+        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKLeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKRightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+    }
+    else
+    {
+        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBackBuffer.m_VRTexture, nullptr, vr::Submit_Default);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBackBuffer.m_VRTexture, nullptr, vr::Submit_Default);
+    }
 
     m_RenderedNewFrame = false;
 }
