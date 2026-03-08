@@ -143,7 +143,6 @@ typedef float(__thiscall* tGetViewModelFOV)(void* thisptr);
 typedef void(__thiscall* tCreatePingPointer)(void* thisptr, Vector vecDestintaion);
 typedef void(__thiscall* tSetDrawOnlyForSplitScreenUser)(void* thisptr, int nSlot);
 typedef void(__thiscall* tClientThink)(void* thisptr);
-typedef void*(__cdecl* tGetPortalPlayer)(int index);
 typedef int(__cdecl* tPrecacheParticleSystem)(const char* pParticleSystemName);
 typedef void(__thiscall* tPrecache)(void* thisptr);
 typedef bool(__thiscall* tCHudCrosshair_ShouldDraw)(void* thisptr);
@@ -308,7 +307,6 @@ public:
 	static bool m_PushedHud;
 
 	static tCreatePingPointer CreatePingPointer;
-	static tGetPortalPlayer GetPortalPlayer;
 	static tPrecacheParticleSystem PrecacheParticleSystem;
 
 	static tUTIL_Portal_FirstAlongRay UTIL_Portal_FirstAlongRay;

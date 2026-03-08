@@ -8,6 +8,7 @@
 #include "portal1.h"
 #include "sigscanner.h"
 #include "debuglog.h"
+#include "trace.h"
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include <Psapi.h>
 
@@ -15,7 +16,7 @@ namespace
 {
     constexpr bool kEnableVrBootstrap = false;
     constexpr bool kResolveInterfaces = true;
-    constexpr bool kConstructOffsets = false;
+    constexpr bool kConstructOffsets = true;
     constexpr bool kResolveClientGlobals = true;
     constexpr bool kResolveCreateInterfaces = false;
 
@@ -38,6 +39,38 @@ namespace
         slot = static_cast<T *>(game->GetInterface(dllname, interfacename, false));
         PortalVrLog("Resolved interface %s from %s => %p", interfacename, dllname, slot);
         return slot != nullptr;
+    }
+
+    template <typename T>
+    T *ResolveInterfaceOnDemand(Game *game, T *&slot, const char *dllname, const char *interfacename, uint32_t &lastResolveTick, bool force = false)
+    {
+        if (slot)
+            return slot;
+
+        const DWORD now = GetTickCount();
+        if (!force && lastResolveTick != 0 && (now - lastResolveTick) < 1000)
+            return nullptr;
+
+        lastResolveTick = now;
+        slot = static_cast<T *>(game->GetInterface(dllname, interfacename, false));
+        PortalVrLog("ResolveInterfaceOnDemand %s from %s => %p", interfacename, dllname, slot);
+        return slot;
+    }
+
+    template <typename T>
+    T *ResolveGlobalOnDemand(Game *game, T *&slot, const char *dllname, uintptr_t offset, uint32_t &lastResolveTick, const char *name, bool force = false)
+    {
+        if (slot)
+            return slot;
+
+        const DWORD now = GetTickCount();
+        if (!force && lastResolveTick != 0 && (now - lastResolveTick) < 1000)
+            return nullptr;
+
+        lastResolveTick = now;
+        slot = reinterpret_cast<T *>(game->GetModuleOffset(dllname, offset, false));
+        PortalVrLog("ResolveGlobalOnDemand %s from %s+0x%zX => %p", name, dllname, static_cast<size_t>(offset), slot);
+        return slot;
     }
 }
 
@@ -70,8 +103,8 @@ Game::Game()
     {
         if (kResolveClientGlobals)
         {
-            m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal);
-            m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender);
+            m_ClientMode = GetClientMode(true);
+            m_ClientViewRender = GetClientViewRender(true);
         }
         else
         {
@@ -173,9 +206,9 @@ bool Game::TryResolveVrInterfaces(bool force)
     PortalVrLog("TryResolveVrInterfaces attempt");
 
     if (!m_ClientMode)
-        m_ClientMode = (IClientMode *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kClientModePortalNormal, false);
+        m_ClientMode = GetClientMode(force);
     if (!m_ClientViewRender)
-        m_ClientViewRender = (IViewRender *)GetModuleOffset("client.dll", Portal1::ClientGlobal::kViewRender, false);
+        m_ClientViewRender = GetClientViewRender(force);
 
     ResolveInterfaceSlot(this, m_MaterialSystem, "materialsystem.dll", Portal1::Interfaces::kMaterialSystem);
 
@@ -200,6 +233,185 @@ bool Game::HasVrRuntimeInterfaces() const
 {
     return m_ClientViewRender != nullptr
         && m_MaterialSystem != nullptr;
+}
+
+IClientMode *Game::GetClientMode(bool force)
+{
+    return ResolveGlobalOnDemand(this, m_ClientMode, "client.dll", Portal1::ClientGlobal::kClientModePortalNormal, m_LastClientModeResolveTick, "ClientModePortalNormal", force);
+}
+
+IViewRender *Game::GetClientViewRender(bool force)
+{
+    return ResolveGlobalOnDemand(this, m_ClientViewRender, "client.dll", Portal1::ClientGlobal::kViewRender, m_LastClientViewRenderResolveTick, "CViewRender", force);
+}
+
+IClientEntityList *Game::GetClientEntityList(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_ClientEntityList, "client.dll", Portal1::Interfaces::kClientEntityList, m_LastClientEntityListResolveTick, force);
+}
+
+IEngineTrace *Game::GetEngineTrace(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_EngineTrace, "engine.dll", Portal1::Interfaces::kEngineTrace, m_LastEngineTraceResolveTick, force);
+}
+
+IEngineClient *Game::GetEngineClient(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_EngineClient, "engine.dll", Portal1::Interfaces::kEngineClient, m_LastEngineClientResolveTick, force);
+}
+
+IMaterialSystem *Game::GetMaterialSystem(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_MaterialSystem, "materialsystem.dll", Portal1::Interfaces::kMaterialSystem, m_LastRuntimeInterfaceResolveTick, force);
+}
+
+IModelInfo *Game::GetModelInfo(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_ModelInfo, "engine.dll", Portal1::Interfaces::kModelInfo, m_LastModelInfoResolveTick, force);
+}
+
+IModelRender *Game::GetModelRender(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_ModelRender, "engine.dll", Portal1::Interfaces::kModelRender, m_LastModelRenderResolveTick, force);
+}
+
+IInput *Game::GetVguiInput(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_VguiInput, "vgui2.dll", Portal1::Interfaces::kVguiInput, m_LastVguiInputResolveTick, force);
+}
+
+ISurface *Game::GetVguiSurface(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_VguiSurface, "vguimatsurface.dll", Portal1::Interfaces::kVguiSurface, m_LastVguiSurfaceResolveTick, force);
+}
+
+C_Portal_Player *Game::GetPortalPlayer(int index)
+{
+    IClientEntityList *entityList = GetClientEntityList();
+    if (!entityList)
+        return nullptr;
+
+    int playerIndex = index;
+    if (playerIndex < 0)
+    {
+        if (IEngineClient *engineClient = GetEngineClient())
+            playerIndex = engineClient->GetLocalPlayer();
+
+        if (playerIndex < 1)
+            playerIndex = Portal1::Constants::kSinglePlayerLocalIndex;
+    }
+
+    return reinterpret_cast<C_Portal_Player *>(entityList->GetClientEntity(playerIndex));
+}
+
+C_Portal_Player *Game::GetLocalPortalPlayer()
+{
+    return GetPortalPlayer(-1);
+}
+
+int Game::GetLocalPlayerIndex()
+{
+    if (IEngineClient *engineClient = GetEngineClient())
+    {
+        const int localIndex = engineClient->GetLocalPlayer();
+        if (localIndex > 0)
+            return localIndex;
+    }
+
+    return GetLocalPortalPlayer() ? Portal1::Constants::kSinglePlayerLocalIndex : -1;
+}
+
+bool Game::IsInGame()
+{
+    if (IEngineClient *engineClient = GetEngineClient())
+        return engineClient->IsInGame();
+
+    return GetLocalPortalPlayer() != nullptr;
+}
+
+bool Game::GetViewAngles(QAngle &angle)
+{
+    C_Portal_Player *localPlayer = GetLocalPortalPlayer();
+    if (!localPlayer)
+        return false;
+
+    angle = localPlayer->GetEyeAngles();
+    return true;
+}
+
+bool Game::SetViewAngles(const QAngle &angle)
+{
+    C_Portal_Player *localPlayer = GetLocalPortalPlayer();
+    if (!localPlayer)
+        return false;
+
+    localPlayer->SetEyeAngles(angle);
+    return true;
+}
+
+bool Game::IsCursorVisible()
+{
+    ISurface *surface = GetVguiSurface();
+    return surface != nullptr && surface->IsCursorVisible();
+}
+
+bool Game::IsScreenSizeOverrideActive()
+{
+    ISurface *surface = GetVguiSurface();
+    return surface != nullptr && surface->IsScreenSizeOverrideActive();
+}
+
+bool Game::GetScreenSize(int &wide, int &tall)
+{
+    ISurface *surface = GetVguiSurface();
+    if (!surface)
+        return false;
+
+    surface->GetScreenSize(wide, tall);
+    return true;
+}
+
+bool Game::ForceScreenSizeOverride(bool state, int wide, int tall)
+{
+    ISurface *surface = GetVguiSurface();
+    return surface != nullptr && surface->ForceScreenSizeOverride(state, wide, tall);
+}
+
+void Game::OnScreenSizeChanged(int oldWidth, int oldHeight)
+{
+    ISurface *surface = GetVguiSurface();
+    if (surface)
+        surface->OnScreenSizeChanged(oldWidth, oldHeight);
+}
+
+bool Game::SetCursorPos(int x, int y)
+{
+    IInput *input = GetVguiInput();
+    if (!input)
+        return false;
+
+    input->SetCursorPos(x, y);
+    return true;
+}
+
+bool Game::InternalMouseWheeled(int delta)
+{
+    IInput *input = GetVguiInput();
+    if (!input)
+        return false;
+
+    input->InternalMouseWheeled(delta);
+    return true;
+}
+
+bool Game::TraceRay(const Ray_t &ray, unsigned int mask, CTraceFilter *traceFilter, CGameTrace *trace)
+{
+    IEngineTrace *engineTrace = GetEngineTrace();
+    if (!engineTrace)
+        return false;
+
+    engineTrace->TraceRay(ray, mask, traceFilter, trace);
+    return true;
 }
 
 void *Game::GetInterface(const char *dllname, const char *interfacename, bool required)
@@ -265,7 +477,8 @@ void Game::errorMsg(const char *msg)
 
 CBaseEntity *Game::GetClientEntity(int entityIndex)
 {
-    return (CBaseEntity *)(m_ClientEntityList->GetClientEntity(entityIndex));
+    IClientEntityList *entityList = GetClientEntityList();
+    return entityList ? reinterpret_cast<CBaseEntity *>(entityList->GetClientEntity(entityIndex)) : nullptr;
 }
 
 char *Game::getNetworkName(uintptr_t *entity)
@@ -281,12 +494,14 @@ char *Game::getNetworkName(uintptr_t *entity)
 
 void Game::ClientCmd(const char *szCmdString)
 {
-    m_EngineClient->ClientCmd(szCmdString);
+    if (IEngineClient *engineClient = GetEngineClient())
+        engineClient->ClientCmd(szCmdString);
 }
 
 void Game::ClientCmd_Unrestricted(const char *szCmdString)
 {
-    m_EngineClient->ClientCmd_Unrestricted(szCmdString);
+    if (IEngineClient *engineClient = GetEngineClient())
+        engineClient->ClientCmd_Unrestricted(szCmdString);
 }
 
 

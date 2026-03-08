@@ -73,7 +73,6 @@ int Hooks::m_PushHUDStep = 0;
 bool Hooks::m_PushedHud = false;
 
 tCreatePingPointer Hooks::CreatePingPointer = nullptr;
-tGetPortalPlayer Hooks::GetPortalPlayer = nullptr;
 tPrecacheParticleSystem Hooks::PrecacheParticleSystem = nullptr;
 
 tUTIL_Portal_FirstAlongRay Hooks::UTIL_Portal_FirstAlongRay = nullptr;
@@ -86,7 +85,7 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 namespace
 {
 	constexpr bool kEnableAllHooks = true;
-	constexpr bool kEnableClientModeHooks = false;
+	constexpr bool kEnableClientModeHooks = true;
 
 	template <typename T>
 	bool CreateHookAt(Hook<T> &hook, uintptr_t address, LPVOID detour, const char *name, bool required)
@@ -145,6 +144,8 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
 	EnableIfCreated(hkGetViewModelFOV);
+	EnableIfCreated(hkPlayerPortalled);
+	EnableIfCreated(hkCHudCrosshair_ShouldDraw);
 	PortalVrLog("Hooks enabled");
 }
 
@@ -160,15 +161,20 @@ Hooks::~Hooks()
 int Hooks::initSourceHooks()
 {
 	const bool hasOffsets = m_Game->m_Offsets != nullptr;
+	IViewRender *clientViewRender = m_Game->GetClientViewRender();
+	IClientMode *clientMode = m_Game->GetClientMode();
 
 	PortalVrLog(
 		"initSourceHooks objects clientMode=%p clientViewRender=%p",
-		m_Game->m_ClientMode,
-		m_Game->m_ClientViewRender);
+		clientMode,
+		clientViewRender);
 
+	const uintptr_t renderViewTarget = clientViewRender
+		? SigScanner::GetVirtualFunction(clientViewRender, Portal1::VTableIndex::kViewRender_RenderView)
+		: 0;
 	CreateHookAt(
 		hkRenderView,
-		SigScanner::GetVirtualFunction(m_Game->m_ClientViewRender, Portal1::VTableIndex::kViewRender_RenderView),
+		renderViewTarget,
 		reinterpret_cast<LPVOID>(&dRenderView),
 		"Portal1::CViewRender::RenderView",
 		true);
@@ -176,20 +182,30 @@ int Hooks::initSourceHooks()
 	if (!hasOffsets)
 		PortalVrLog("Offsets unavailable, enabling minimal hook set only");
 
-	if (hasOffsets && m_Game->m_Offsets->CalcViewModelView.valid)
-		CreateHookAt(hkCalcViewModelView, m_Game->m_Offsets->CalcViewModelView.address, reinterpret_cast<LPVOID>(&dCalcViewModelView), "CalcViewModelView", false);
+	CreateHookAt(
+		hkCalcViewModelView,
+		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kCalcViewModelView, false)),
+		reinterpret_cast<LPVOID>(&dCalcViewModelView),
+		"Portal1::CalcViewModelView",
+		false);
 
 	if (kEnableClientModeHooks)
 	{
+		const uintptr_t createMoveTarget = clientMode
+			? SigScanner::GetVirtualFunction(clientMode, Portal1::VTableIndex::kClientMode_CreateMove)
+			: 0;
+		const uintptr_t getViewModelFovTarget = clientMode
+			? SigScanner::GetVirtualFunction(clientMode, Portal1::VTableIndex::kClientMode_GetViewModelFOV)
+			: 0;
 		CreateHookAt(
 			hkCreateMove,
-			SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_CreateMove),
+			createMoveTarget,
 			reinterpret_cast<LPVOID>(&dCreateMove),
 			"Portal1::ClientModePortalNormal::CreateMove",
 			true);
 		CreateHookAt(
 			hkGetViewModelFOV,
-			SigScanner::GetVirtualFunction(m_Game->m_ClientMode, Portal1::VTableIndex::kClientMode_GetViewModelFOV),
+			getViewModelFovTarget,
 			reinterpret_cast<LPVOID>(&dGetViewModelFOV),
 			"Portal1::ClientModePortalNormal::GetViewModelFOV",
 			false);
@@ -205,19 +221,32 @@ int Hooks::initSourceHooks()
 	if (hasOffsets && m_Game->m_Offsets->CWeaponPortalgun_FirePortal.valid)
 		CreateHookAt(hkCWeaponPortalgun_FirePortal, m_Game->m_Offsets->CWeaponPortalgun_FirePortal.address, reinterpret_cast<LPVOID>(&dCWeaponPortalgun_FirePortal), "CWeaponPortalgun_FirePortal", false);
 
-	GetPortalPlayer = hasOffsets && m_Game->m_Offsets->GetPortalPlayer.valid ? (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address : nullptr;
-	CreatePingPointer = hasOffsets && m_Game->m_Offsets->CreatePingPointer.valid ? (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address : nullptr;
+	CreatePingPointer = reinterpret_cast<tCreatePingPointer>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kCreatePingPointer, false));
 	PrecacheParticleSystem = hasOffsets && m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
 	EntityIndex = hasOffsets && m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
 	GetOwner = hasOffsets && m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
 	GetFullScreenTexture = hasOffsets && m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
+	CreateHookAt(
+		hkPlayerPortalled,
+		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kPlayerPortalled, false)),
+		reinterpret_cast<LPVOID>(&dPlayerPortalled),
+		"Portal1::C_Portal_Player::PlayerPortalled",
+		false);
+	CreateHookAt(
+		hkCHudCrosshair_ShouldDraw,
+		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kHudCrosshairShouldDraw, false)),
+		reinterpret_cast<LPVOID>(&dCHudCrosshair_ShouldDraw),
+		"Portal1::CHudCrosshair::ShouldDraw",
+		false);
 	PortalVrLog(
-		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p",
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p playerPortalled=%p crosshair=%p",
 		hkRenderView.pTarget,
 		hkCreateMove.pTarget,
 		hkGetViewModelFOV.pTarget,
 		hkCalcViewModelView.pTarget,
-		hkTraceFirePortal.pTarget);
+		hkTraceFirePortal.pTarget,
+		hkPlayerPortalled.pTarget,
+		hkCHudCrosshair_ShouldDraw.pTarget);
 	return 1;
 } 
 
@@ -267,15 +296,14 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 		loggedRenderViewEntry = true;
 	}
 
-	if (!m_VR->m_CreatedVRTextures) {
-		m_VR->CreateVRTextures();
-		if (!m_VR->m_CreatedVRTextures)
-			return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
-	}
+	if (!m_VR->m_CreatedVRTextures)
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	//VPanel* g_pFullscreenRootPanel = *(VPanel**)(m_Game->m_Offsets->g_pFullscreenRootPanel.address);
 
-	IMaterialSystem* matSystem = m_Game->m_MaterialSystem;
+	IMaterialSystem* matSystem = m_Game->GetMaterialSystem();
+	if (!matSystem)
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	Vector position = setup.origin;
 
@@ -320,27 +348,32 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	// Left eye CViewSetup
 	leftEyeView.origin = m_VR->GetViewOriginLeft(position);
 
-	//std::cout << "dRenderView - Left Start\n";
 	IMatRenderContext* rndrContext = matSystem->GetRenderContext();
-	rndrContext->SetRenderTarget(m_VR->m_LeftEyeTexture);
-	rndrContext->Release();
+	if (!rndrContext)
+		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
+
+	rndrContext->PushRenderTargetAndViewport(
+		m_VR->m_LeftEyeTexture,
+		0,
+		0,
+		static_cast<int>(m_VR->m_RenderWidth),
+		static_cast<int>(m_VR->m_RenderHeight));
 	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw);
+	rndrContext->PopRenderTargetAndViewport();
 	
 	// Right eye CViewSetup
 	rightEyeView.origin = m_VR->GetViewOriginRight(position);
 
-	//std::cout << "dRenderView - Right Start\n";
-	rndrContext = matSystem->GetRenderContext();
-	rndrContext->SetRenderTarget(m_VR->m_RightEyeTexture);
-	rndrContext->Release();
+	rndrContext->PushRenderTargetAndViewport(
+		m_VR->m_RightEyeTexture,
+		0,
+		0,
+		static_cast<int>(m_VR->m_RenderWidth),
+		static_cast<int>(m_VR->m_RenderHeight));
 	hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw);
+	rndrContext->PopRenderTargetAndViewport();
 
 	m_PushedHud = false;
-
-
-
-	rndrContext = matSystem->GetRenderContext();
-	rndrContext->SetRenderTarget(NULL);
 	rndrContext->Release();
 
 	/*rndrContext = matSystem->GetRenderContext();
@@ -552,23 +585,30 @@ Vector *Hooks::dEyePosition(void *ecx, void *edx, Vector *eyePos)
 // We'll keep this for... future reference!
 void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld)
 {
+	auto *modelInfo = m_Game->GetModelInfo();
+	auto *materialSystem = m_Game->GetMaterialSystem();
+	auto *modelRender = m_Game->GetModelRender();
+
 	if (info.pModel)
 	{
-		std::string modelName = m_Game->m_ModelInfo->GetModelName(info.pModel);
+		if (!modelInfo || !materialSystem)
+			return hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
+
+		std::string modelName = modelInfo->GetModelName(info.pModel);
 		if (modelName.find("/arms/") != std::string::npos)
 		{
-			m_Game->m_ArmsMaterial = m_Game->m_MaterialSystem->FindMaterial(modelName.c_str(), "Model textures");
+			m_Game->m_ArmsMaterial = materialSystem->FindMaterial(modelName.c_str(), "Model textures");
 			m_Game->m_ArmsModel = info.pModel;
 			m_Game->m_CachedArmsModel = true;
 		}
 	}
 
-	if (info.pModel && info.pModel == m_Game->m_ArmsModel)
+	if (info.pModel && info.pModel == m_Game->m_ArmsModel && modelRender)
 	{
 		m_Game->m_ArmsMaterial->SetMaterialVarFlag(MATERIAL_VAR_NO_DRAW, true);
-		m_Game->m_ModelRender->ForcedMaterialOverride(m_Game->m_ArmsMaterial);
+		modelRender->ForcedMaterialOverride(m_Game->m_ArmsMaterial);
 		hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
-		m_Game->m_ModelRender->ForcedMaterialOverride(NULL);
+		modelRender->ForcedMaterialOverride(NULL);
 		return;
 	}
 
@@ -579,17 +619,21 @@ void Hooks::dPushRenderTargetAndViewport(void *ecx, void *edx, ITexture *pTextur
 {
 	if (m_VR->m_CreatedVRTextures && !m_PushedHud)
 	{
+		auto *materialSystem = m_Game->GetMaterialSystem();
+		if (!materialSystem)
+			return hkPushRenderTargetAndViewport.fOriginal(ecx, pTexture, pDepthTexture, nViewX, nViewY, nViewW, nViewH);
+
 		pTexture = m_VR->m_HUDTexture;
 
 		//pTexture = m_VR->m_RightEyeTexture;
 
-		IMatRenderContext *renderContext = m_Game->m_MaterialSystem->GetRenderContext();
+		IMatRenderContext *renderContext = materialSystem->GetRenderContext();
 		renderContext->ClearBuffers(false, true, true);
 		renderContext->Release();
 
 		hkPushRenderTargetAndViewport.fOriginal(ecx, pTexture, pDepthTexture, nViewX, nViewY, nViewW, nViewH);
 
-		renderContext = m_Game->m_MaterialSystem->GetRenderContext();
+		renderContext = materialSystem->GetRenderContext();
 		renderContext->OverrideAlphaWriteEnable(true, true);
 		renderContext->ClearColor4ub(0, 0, 0, 0);
 		renderContext->ClearBuffers(true, false);
@@ -615,10 +659,13 @@ void Hooks::dPopRenderTargetAndViewport(void *ecx, void *edx)
 
 	if (m_PushedHud)
 	{
-		IMatRenderContext* renderContext = m_Game->m_MaterialSystem->GetRenderContext();
-		renderContext->OverrideAlphaWriteEnable(false, true);
-		renderContext->ClearColor4ub(0, 0, 0, 255);
-		renderContext->Release();
+		if (IMaterialSystem *materialSystem = m_Game->GetMaterialSystem())
+		{
+			IMatRenderContext* renderContext = materialSystem->GetRenderContext();
+			renderContext->OverrideAlphaWriteEnable(false, true);
+			renderContext->ClearColor4ub(0, 0, 0, 255);
+			renderContext->Release();
+		}
 	}
 
 	hkPopRenderTargetAndViewport.fOriginal(ecx);
@@ -626,7 +673,7 @@ void Hooks::dPopRenderTargetAndViewport(void *ecx, void *edx)
 
 void Hooks::dVGui_Paint(void *ecx, void *edx, int mode)
 {
-	if (!m_VR->m_CreatedVRTextures || m_VR->m_Game->m_VguiSurface->IsCursorVisible())
+	if (!m_VR->m_CreatedVRTextures || m_Game->IsCursorVisible())
 		return hkVgui_Paint.fOriginal(ecx, mode);
 
 	//std::cout << "dVGui_Paint\n";
@@ -668,7 +715,7 @@ Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
 	if (!EntityIndex)
 		return result;
 
-	int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
+	int localIndex = m_Game->GetLocalPlayerIndex();
 	int index = EntityIndex(ecx);
 
 	auto vrPlayer = m_Game->m_PlayersVRInfo[index];
@@ -684,13 +731,13 @@ Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
 	return result;
 }
 
-void* Hooks::dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool bPortal2, Vector* pVector) {
-	auto result = hkCWeaponPortalgun_FirePortal.fOriginal(ecx, bPortal2, pVector);
+void* Hooks::dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool isSecondaryPortal, Vector* pVector) {
+	auto result = hkCWeaponPortalgun_FirePortal.fOriginal(ecx, isSecondaryPortal, pVector);
 
 	return result;
 }
 
-bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr) //trace_tx& tr, Vector& vFinalPosition //  , Vector& vFinalPosition, QAngle& qFinalAngles, int iPlacedBy, bool bTest /*= false*/
+bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr) //trace_tx& tr, Vector& vFinalPosition //  , Vector& vFinalPosition, QAngle& qFinalAngles, int iPlacedBy, bool bTest /*= false*/
 {
 	Vector vNewTraceStart = vTraceStart;
 	Vector vNewDirection = vDirection;
@@ -700,7 +747,7 @@ bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTra
 		vNewDirection = m_VR->m_RightControllerForward;
 	}
 	else if (iPlacedBy == 2 && GetOwner && EntityIndex) {
-		int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
+		int localIndex = m_Game->GetLocalPlayerIndex();
 
 		auto owner = GetOwner(ecx);
 
@@ -723,7 +770,7 @@ bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTra
 		}
 	}
 
-	return hkTraceFirePortal.fOriginal(ecx, vNewTraceStart, vNewDirection, bPortal2, iPlacedBy, tr);
+	return hkTraceFirePortal.fOriginal(ecx, vNewTraceStart, vNewDirection, isSecondaryPortal, iPlacedBy, tr);
 }
 
 void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3)
@@ -731,12 +778,12 @@ void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 
 	CBaseEntity* pBaseEntity = (CBaseEntity*)ecx;
 
 	QAngle angAbsRotationBefore;
-	m_Game->m_EngineClient->GetViewAngles(angAbsRotationBefore);
+	m_Game->GetViewAngles(angAbsRotationBefore);
 
 	hkPlayerPortalled.fOriginal(ecx, a2, a3);
 
 	QAngle angAbsRotationAfter;
-	m_Game->m_EngineClient->GetViewAngles(angAbsRotationAfter);
+	m_Game->GetViewAngles(angAbsRotationAfter);
 
 	if (angAbsRotationBefore != angAbsRotationAfter) {
 		m_VR->m_PortalRotationOffset = angAbsRotationAfter - angAbsRotationBefore;
@@ -779,7 +826,17 @@ int __fastcall Hooks::dDrawSelf(void* ecx, void* edx, int x, int y, int w, int h
 	if (m_VR->m_IsVREnabled)
 	{
 		int windowWidth, windowHeight;
-		m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
+		if (IMaterialSystem *materialSystem = m_Game->GetMaterialSystem())
+		{
+			IMatRenderContext *renderContext = materialSystem->GetRenderContext();
+			renderContext->GetWindowSize(windowWidth, windowHeight);
+			renderContext->Release();
+		}
+		else
+		{
+			windowWidth = m_VR->m_RenderWidth;
+			windowHeight = m_VR->m_RenderHeight;
+		}
 
 		Vector screen = { 0, 0, 0 };
 
@@ -800,7 +857,7 @@ int __fastcall Hooks::dDrawSelf(void* ecx, void* edx, int x, int y, int w, int h
 }
 
 void __cdecl Hooks::dVGui_GetHudBounds(int slot, int& x, int& y, int& w, int& h) {
-	if (m_VR->m_IsVREnabled && !m_Game->m_VguiSurface->IsCursorVisible())
+	if (m_VR->m_IsVREnabled && !m_Game->IsCursorVisible())
 	{
 		x = y = 0;
 		w = m_VR->m_RenderWidth;
@@ -813,7 +870,7 @@ void __cdecl Hooks::dVGui_GetHudBounds(int slot, int& x, int& y, int& w, int& h)
 }
 
 void __cdecl Hooks::dVGui_GetPanelBounds(int slot, int& x, int& y, int& w, int& h) {
-	if (m_VR->m_IsVREnabled && !m_Game->m_VguiSurface->IsCursorVisible())
+	if (m_VR->m_IsVREnabled && !m_Game->IsCursorVisible())
 	{
 		x = y = 0;
 		w = m_VR->m_RenderWidth;
@@ -931,7 +988,7 @@ void __fastcall Hooks::dRotateObject(void* ecx, void* edx, void* pPlayer, float 
 // This works for release, but why was it crashing before??? TODO: buy a c++ book...
 QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
 	if (m_VR->m_OverrideEyeAngles && EntityIndex) {
-		int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
+		int localIndex = m_Game->GetLocalPlayerIndex();
 		int index = EntityIndex(ecx);
 
 		auto& vrPlayer = m_Game->m_PlayersVRInfo[index];

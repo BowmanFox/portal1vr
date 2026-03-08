@@ -5,6 +5,7 @@
 #include <math.h>
 #include "game.h"
 #include "offsets.h"
+#include "portal1.h"
 #include "cnewparticleeffect.h"
 #include "usercmd.h"
 #include "material.h"
@@ -2156,6 +2157,19 @@ public:
 class C_Portal_Player
 {
 public:
+    QAngle GetEyeAngles() const
+    {
+        const float pitch = *reinterpret_cast<const float *>(reinterpret_cast<uintptr_t>(this) + Portal1::Netvar::kPortalPlayerEyeAnglesPitch);
+        const float yaw = *reinterpret_cast<const float *>(reinterpret_cast<uintptr_t>(this) + Portal1::Netvar::kPortalPlayerEyeAnglesYaw);
+        return QAngle(pitch, yaw, 0.0f);
+    }
+
+    void SetEyeAngles(const QAngle &angles)
+    {
+        *reinterpret_cast<float *>(reinterpret_cast<uintptr_t>(this) + Portal1::Netvar::kPortalPlayerEyeAnglesPitch) = angles.x;
+        *reinterpret_cast<float *>(reinterpret_cast<uintptr_t>(this) + Portal1::Netvar::kPortalPlayerEyeAnglesYaw) = angles.y;
+    }
+
 	inline CWeaponPortalBase* GetActivePortalWeapon() {
 		typedef CWeaponPortalBase* (__thiscall* tGetActivePortalWeapon)(void* thisptr);
 		//static tGetActivePortalWeapon oGetActivePortalWeapon = (tGetActivePortalWeapon)(g_Game->m_Offsets->GetActivePortalWeapon.address);

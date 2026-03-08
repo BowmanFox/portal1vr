@@ -117,15 +117,15 @@ public:
 		Texture_Blank
 	};
 
-	ITexture *m_LeftEyeTexture;
-	ITexture *m_RightEyeTexture;
-	ITexture *m_HUDTexture;
+	ITexture *m_LeftEyeTexture = nullptr;
+	ITexture *m_RightEyeTexture = nullptr;
+	ITexture *m_HUDTexture = nullptr;
 	ITexture *m_BlankTexture = nullptr;
 
-	IDirect3DSurface9 *m_D9LeftEyeSurface;
-	IDirect3DSurface9 *m_D9RightEyeSurface;
-	IDirect3DSurface9 *m_D9HUDSurface;
-	IDirect3DSurface9 *m_D9BlankSurface;
+	IDirect3DSurface9 *m_D9LeftEyeSurface = nullptr;
+	IDirect3DSurface9 *m_D9RightEyeSurface = nullptr;
+	IDirect3DSurface9 *m_D9HUDSurface = nullptr;
+	IDirect3DSurface9 *m_D9BlankSurface = nullptr;
 
 	SharedTextureHolder m_VKLeftEye;
 	SharedTextureHolder m_VKRightEye;

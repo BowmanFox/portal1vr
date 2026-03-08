@@ -240,12 +240,14 @@ void VR::InstallApplicationManifest(const char *fileName)
 }
 
 void VR::SetScreenSizeOverride(bool bState) {
-    bool isOverriding = m_Game->m_VguiSurface->IsScreenSizeOverrideActive();
+    bool isOverriding = m_Game->IsScreenSizeOverrideActive();
 
     if (bState && !isOverriding || !bState && isOverriding) {
         int iOldWidth, iOldHeight;
-        m_Game->m_VguiSurface->GetScreenSize(iOldWidth, iOldHeight);
-        m_Game->m_VguiSurface->ForceScreenSizeOverride(bState, m_RenderWidth, m_RenderHeight);
+        if (!m_Game->GetScreenSize(iOldWidth, iOldHeight))
+            return;
+
+        m_Game->ForceScreenSizeOverride(bState, m_RenderWidth, m_RenderHeight);
        /*int x = 0, y = 0, w = m_RenderWidth, h = m_RenderHeight;
 
         if (m_Game->m_ClientMode->GetViewport())
@@ -256,8 +258,7 @@ void VR::SetScreenSizeOverride(bool bState) {
             renderContext->Viewport(0, 0, m_RenderWidth, m_RenderHeight);
             renderContext->Release();*/
         }
-
-        m_Game->m_VguiSurface->OnScreenSizeChanged(iOldWidth, iOldHeight);
+        m_Game->OnScreenSizeChanged(iOldWidth, iOldHeight);
     }
 }
 
@@ -266,11 +267,10 @@ void VR::Update()
     if (!m_IsInitialized || !m_Game->m_Initialized)
         return;
 
-    const bool hasGameplayInterfaces = m_Game->m_EngineClient != nullptr
-        && m_Game->m_ClientEntityList != nullptr
-        && m_Game->m_EngineTrace != nullptr;
-    const bool cursorVisible = m_Game->m_VguiSurface != nullptr && m_Game->m_VguiSurface->IsCursorVisible();
-    const bool inGame = m_Game->m_EngineClient != nullptr ? m_Game->m_EngineClient->IsInGame() : true;
+    const bool hasGameplayInterfaces = m_Game->GetLocalPortalPlayer() != nullptr
+        && m_Game->GetEngineTrace() != nullptr;
+    const bool cursorVisible = m_Game->IsCursorVisible();
+    const bool inGame = m_Game->IsInGame();
     static bool loggedUpdateEntry = false;
     static bool loggedAfterSubmit = false;
     static bool loggedAfterPoses = false;
@@ -278,6 +278,7 @@ void VR::Update()
     static bool loggedSkippedMenuInput = false;
     static bool loggedAfterInput = false;
     static bool loggedSkippedGameplayInput = false;
+    static bool wasInGame = false;
 
     if (!loggedUpdateEntry)
     {
@@ -289,13 +290,22 @@ void VR::Update()
     {
         //SetScreenSizeOverride(inGame);
 
-        // Prevents crashing at menu
+        // Only force a texture rebuild when transitioning out of gameplay.
         if (!inGame)
         {
             m_Game->m_CachedArmsModel = false;
-            m_CreatedVRTextures = false; // Have to recreate textures otherwise some workshop maps won't render
+            if (wasInGame)
+                m_CreatedVRTextures = false;
         } 
+
+        if (!m_CreatedVRTextures)
+        {
+            PortalVrLog("VR::Update creating VR textures outside RenderView");
+            CreateVRTextures();
+        }
     }
+
+    wasInGame = inGame;
 
     SubmitVRTextures();
     if (!loggedAfterSubmit)
@@ -345,33 +355,35 @@ void VR::Update()
 
 void VR::CreateVRTextures()
 {
-    if (!m_Game->m_MaterialSystem)
+    if (m_CreatedVRTextures)
+        return;
+
+    IMaterialSystem *materialSystem = m_Game->GetMaterialSystem();
+    if (!materialSystem)
     {
         PortalVrLog("CreateVRTextures skipped: material system unavailable");
         return;
     }
 
-    std::cout << "RenderTexture - Width: " << m_RenderWidth << ", Height: " << m_RenderHeight << "\n";
+    PortalVrLog("CreateVRTextures start width=%u height=%u", m_RenderWidth, m_RenderHeight);
 
-    m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
+    materialSystem->BeginRenderTargetAllocation();
 
     m_CreatingTextureID = Texture_LeftEye;
-    m_LeftEyeTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    m_LeftEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
     
     m_CreatingTextureID = Texture_RightEye;
-    m_RightEyeTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
-
-    m_CreatingTextureID = Texture_HUD;
-    m_HUDTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("vrHUD", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-    
-    m_CreatingTextureID = Texture_Blank;
-    m_BlankTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-    
+    m_RightEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
     m_CreatingTextureID = Texture_None;
 
-    m_Game->m_MaterialSystem->EndRenderTargetAllocation();
+    materialSystem->EndRenderTargetAllocation();
 
-    m_CreatedVRTextures = true;
+    m_CreatedVRTextures = m_LeftEyeTexture != nullptr && m_RightEyeTexture != nullptr;
+    PortalVrLog(
+        "CreateVRTextures complete left=%p right=%p created=%d",
+        m_LeftEyeTexture,
+        m_RightEyeTexture,
+        m_CreatedVRTextures);
 }
 
 void VR::SubmitVRTextures()
@@ -385,7 +397,7 @@ void VR::SubmitVRTextures()
             RepositionOverlays();
 
         vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-        if (m_Game->m_EngineClient->IsInGame())
+        if (m_Game->IsInGame())
         {
             // menu only renders to the window portion of the texture. Until we figure out a proper fix,
             // as a workaround only show that portion of the texture
@@ -413,7 +425,7 @@ void VR::SubmitVRTextures()
 
     //vr::VROverlay()->SetOverlayTexture(m_HUDHandle, &m_VKHUD.m_VRTexture);
 
-    if (m_Game->m_VguiSurface && m_Game->m_VguiSurface->IsCursorVisible())
+    if (m_Game->IsCursorVisible())
     {
         // We're in the pause menu
         //vr::VROverlay()->ShowOverlay(m_HUDHandle);
@@ -619,7 +631,7 @@ void VR::ProcessMenuInput()
                 float laserX = vrEvent.data.mouse.x;
                 float laserY = vrEvent.data.mouse.y;
 
-                if (m_Game->m_EngineClient->IsInGame())
+                if (m_Game->IsInGame())
                 {
                     laserY -= (m_RenderHeight - windowHeight);
                     laserY = windowHeight - laserY;
@@ -630,7 +642,7 @@ void VR::ProcessMenuInput()
                     laserY = ((-laserY + m_RenderHeight) / m_RenderHeight) * windowHeight;
                 }
 
-                m_Game->m_VguiInput->SetCursorPos(laserX, laserY);
+                m_Game->SetCursorPos(static_cast<int>(laserX), static_cast<int>(laserY));
                 break;
             }
 
@@ -658,7 +670,7 @@ void VR::ProcessMenuInput()
                 break;
 
             case vr::VREvent_ScrollDiscrete:
-                m_Game->m_VguiInput->InternalMouseWheeled((int)vrEvent.data.scroll.ydelta);
+                m_Game->InternalMouseWheeled((int)vrEvent.data.scroll.ydelta);
                 break;
             }
         }
@@ -1078,11 +1090,7 @@ void VR::UpdateTracking()
 
     m_HmdPosRelative = hmdPosCorrected * m_VRScale;
 
-    if (!m_Game->m_EngineClient || !m_Game->m_ClientEntityList || !m_Game->m_EngineTrace)
-        return;
-
-    int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
-    C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(playerIndex);
+    C_BasePlayer* localPlayer = reinterpret_cast<C_BasePlayer *>(m_Game->GetLocalPortalPlayer());
     if (!localPlayer)
         return;
 
@@ -1137,7 +1145,8 @@ void VR::UpdateTracking()
     extendedHmdPos = m_HmdPosAbs + (extendedHmdPos * 10);
     ray.Init(m_SetupOrigin, extendedHmdPos);
 
-    m_Game->m_EngineTrace->TraceRay(ray, STANDARD_TRACE_MASK, &tracefilter, &trace);
+    if (!m_Game->TraceRay(ray, STANDARD_TRACE_MASK, &tracefilter, &trace))
+        return vecEnd;
     if (trace.fraction < 1 && trace.fraction > 0)
     {
         Vector distanceInsideWall = trace.endpos - extendedHmdPos;
@@ -1263,7 +1272,8 @@ Vector VR::Trace(uint32_t* localPlayer) {
 
     ray.Init(vecStart, vecEnd);
 
-    m_Game->m_EngineTrace->TraceRay(ray, MASK_SHOT | MASK_SHOT_HULL, &tracefilter, &trace);
+    if (!m_Game->TraceRay(ray, MASK_SHOT | MASK_SHOT_HULL, &tracefilter, &trace))
+        return vecEnd;
 
     return trace.endpos;
 }
@@ -1418,7 +1428,8 @@ Vector VR::TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAng
     CTraceFilterSkipNPCsAndPlayers tracefilter((IHandleEntity*)localPlayer, 0);
 
     ray.Init(cameraPos, eyePos);
-    m_Game->m_EngineTrace->TraceRay(ray, MASK_SHOT | MASK_SHOT_HULL, &tracefilter, &trTestObstructionsNearPortals);
+    if (!m_Game->TraceRay(ray, MASK_SHOT | MASK_SHOT_HULL, &tracefilter, &trTestObstructionsNearPortals))
+        return eyePos;
 
     float flWallHitFraction = trTestObstructionsNearPortals.fraction + 0.01f;
     CPortal_Base2D* pPortal = (CPortal_Base2D*)m_Game->m_Hooks->UTIL_Portal_FirstAlongRay(ray, flWallHitFraction);

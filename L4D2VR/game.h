@@ -18,7 +18,11 @@ class IInput;
 class ISurface;
 class IClientMode;
 class C_BasePlayer;
+class C_Portal_Player;
+class CTraceFilter;
 struct model_t;
+struct Ray_t;
+class CGameTrace;
 
 class Game;
 class Offsets;
@@ -75,7 +79,15 @@ public:
     bool m_VrBootstrapAttempted = false;
     uint32_t m_LastRuntimeInterfaceResolveTick = 0;
     bool m_LoggedVrInterfaceReady = false;
-
+    uint32_t m_LastClientModeResolveTick = 0;
+    uint32_t m_LastClientViewRenderResolveTick = 0;
+    uint32_t m_LastClientEntityListResolveTick = 0;
+    uint32_t m_LastEngineTraceResolveTick = 0;
+    uint32_t m_LastEngineClientResolveTick = 0;
+    uint32_t m_LastModelInfoResolveTick = 0;
+    uint32_t m_LastModelRenderResolveTick = 0;
+    uint32_t m_LastVguiInputResolveTick = 0;
+    uint32_t m_LastVguiSurfaceResolveTick = 0;
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;
 
@@ -87,6 +99,30 @@ public:
     void EnsureVrBootstrap();
     bool TryResolveVrInterfaces(bool force = false);
     bool HasVrRuntimeInterfaces() const;
+    IClientMode *GetClientMode(bool force = false);
+    IViewRender *GetClientViewRender(bool force = false);
+    IClientEntityList *GetClientEntityList(bool force = false);
+    IEngineTrace *GetEngineTrace(bool force = false);
+    IEngineClient *GetEngineClient(bool force = false);
+    IMaterialSystem *GetMaterialSystem(bool force = false);
+    IModelInfo *GetModelInfo(bool force = false);
+    IModelRender *GetModelRender(bool force = false);
+    IInput *GetVguiInput(bool force = false);
+    ISurface *GetVguiSurface(bool force = false);
+    C_Portal_Player *GetPortalPlayer(int index = -1);
+    C_Portal_Player *GetLocalPortalPlayer();
+    int GetLocalPlayerIndex();
+    bool IsInGame();
+    bool GetViewAngles(QAngle &angle);
+    bool SetViewAngles(const QAngle &angle);
+    bool IsCursorVisible();
+    bool IsScreenSizeOverrideActive();
+    bool GetScreenSize(int &wide, int &tall);
+    bool ForceScreenSizeOverride(bool state, int wide, int tall);
+    void OnScreenSizeChanged(int oldWidth, int oldHeight);
+    bool SetCursorPos(int x, int y);
+    bool InternalMouseWheeled(int delta);
+    bool TraceRay(const Ray_t &ray, unsigned int mask, CTraceFilter *traceFilter, CGameTrace *trace);
 
     void *GetInterface(const char *dllname, const char *interfacename, bool required = true);
     void *GetModuleOffset(const char *dllname, uintptr_t offset, bool required = true);

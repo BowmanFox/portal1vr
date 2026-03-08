@@ -25,6 +25,29 @@ inline constexpr uintptr_t kViewRender = 0x50EB98;
 inline constexpr uintptr_t kClientModePortalNormal = 0x51ACF0;
 }
 
+namespace ClientFunction
+{
+// Resolved from the Portal 1 client.dll decompile / verified Portal 1 RVAs.
+inline constexpr uintptr_t kCalcViewModelView = 0x27D750;
+inline constexpr uintptr_t kPlayerPortalled = 0x27C9D0;
+inline constexpr uintptr_t kCreatePingPointer = 0x280660;
+inline constexpr uintptr_t kSetControlPoint = 0x17BD30;
+inline constexpr uintptr_t kStopEmission = 0x17B6A0;
+inline constexpr uintptr_t kHudCrosshairShouldDraw = 0x141BE0;
+}
+
+namespace Netvar
+{
+// Resolved from the Portal 1 client.dll decompile.
+inline constexpr uintptr_t kPortalPlayerEyeAnglesPitch = 5388;
+inline constexpr uintptr_t kPortalPlayerEyeAnglesYaw = 5392;
+}
+
+namespace Constants
+{
+inline constexpr int kSinglePlayerLocalIndex = 1;
+}
+
 namespace VTableIndex
 {
 inline constexpr size_t kViewRender_RenderView = 6;
