@@ -84,13 +84,13 @@ inline void AlignBareArms(const matrix3x4_t *bones, matrix3x4_t *result,
 
 inline matrix3x4_t FingerBend(float radians)
 {
-    // The custom VPK hand is authored with +X down each finger and +Z as
-    // the palm normal.  Rotate about that local palm axis so the segments
-    // curl toward the palm.  The previous Y-axis bend made the fingers fan
-    // sideways, which read as a karate-chop pose (especially on the left
-    // mirrored chain).
+    // The custom VPK finger bones run down local +X.  Local +Z is the back of
+    // the hand, so the knuckle hinge is local Y: rotating around Z only turns
+    // the fingers sideways and produces the user's karate-chop pose.  Positive
+    // Y rotation sends +X toward the palm (-Z); the mirrored wrist frame makes
+    // the same local pose correct for both hands.
     const float c = cosf(radians), s = sinf(radians);
-    return Frame({c,s,0}, {-s,c,0}, {0,0,1}, {0,0,0});
+    return Frame({c,0,-s}, {0,1,0}, {s,0,c}, {0,0,0});
 }
 
 inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
@@ -102,15 +102,29 @@ inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
     static const int chains[5][3] = {
         {21,22,23}, {18,19,20}, {15,16,17}, {12,13,14}, {9,10,11}
     };
+    // Distribute the tracked curl down the three segments. Applying the same
+    // angle at every joint folds the custom mesh into a thick stack of lobes;
+    // a real finger bends most at the knuckle and progressively less toward
+    // the fingertip.
+    static const float segmentWeight[3] = {0.55f, 0.30f, 0.15f};
     for (int finger = 0; finger < 5; ++finger) {
         // Both authored hand chains use the same local curl sign; their
         // mirrored wrist frames already account for left/right orientation.
-        const float perJoint = curl[finger] * (finger == 0 ? 0.28f : 0.42f);
+        // The Pico compatibility layer reports a normalized curl value, while
+        // this model's authored bind pose is almost fully open.  The previous
+        // small multiplier only moved each joint a few degrees, which read as
+        // four rigid, parallel fingers.  Use a useful range for the full
+        // 0..1 input and let the segment weights keep the knuckle dominant.
+        const float totalCurl = curl[finger] * (finger == 0 ? 0.78f : 1.05f);
         int parent = wrist;
         for (int segment = 0; segment < 3; ++segment) {
             const int bone = chains[finger][segment] + offset;
             const auto local = Concat(InverseRigid(bind[parent]), bind[bone]);
-            result[bone] = Concat(result[parent], Concat(FingerBend(perJoint), local));
+            // Source's viewmodel matrices use the parent-frame convention:
+            // pre-multiplying rotates the segment and advances the next joint
+            // along that rotated segment. Keep the per-segment weights small
+            // enough that the authored mesh remains fully visible.
+            result[bone] = Concat(result[parent], Concat(FingerBend(totalCurl * segmentWeight[segment]), local));
             parent = bone;
         }
     }

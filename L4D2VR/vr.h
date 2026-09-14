@@ -183,8 +183,11 @@ public:
 	vr::VRActionHandle_t m_Pause = 0;
 	vr::VRActionHandle_t m_ActionSkeletonLeft = 0;
 	vr::VRActionHandle_t m_ActionSkeletonRight = 0;
-	float m_LeftFingerCurl[5] = { 0.35f, 0.35f, 0.35f, 0.35f, 0.35f };
-	float m_RightFingerCurl[5] = { 0.35f, 0.35f, 0.35f, 0.35f, 0.35f };
+	// A relaxed hand is slightly cupped.  Pico's SteamVR bridge does not expose
+	// a skeleton stream, so these values are also the procedural fallback until
+	// a controller reports real curl data.
+	float m_LeftFingerCurl[5] = { 0.42f, 0.50f, 0.56f, 0.52f, 0.46f };
+	float m_RightFingerCurl[5] = { 0.42f, 0.50f, 0.56f, 0.52f, 0.46f };
 	bool m_LeftSkeletonValid = false;
 	bool m_RightSkeletonValid = false;
 

@@ -811,16 +811,17 @@ void VR::ProcessInput()
 
     if (GetAnalogActionData(m_ActionTurn, analogActionData))
     {
+        float turnAngle = 0.0f;
         if (m_SnapTurning)
         {
             if (!m_PressedTurn && analogActionData.x > 0.5)
             {
-                m_RotationOffset.y -= m_SnapTurnAngle;
+                turnAngle = -m_SnapTurnAngle;
                 m_PressedTurn = true;
             }
             else if (!m_PressedTurn && analogActionData.x < -0.5)
             {
-                m_RotationOffset.y += m_SnapTurnAngle;
+                turnAngle = m_SnapTurnAngle;
                 m_PressedTurn = true;
             }
             else if (analogActionData.x < 0.3 && analogActionData.x > -0.3)
@@ -834,12 +835,30 @@ void VR::ProcessInput()
             float xNormalized = (abs(analogActionData.x) - deadzone) / (1 - deadzone);
             if (analogActionData.x > deadzone)
             {
-                m_RotationOffset.y -= m_TurnSpeed * deltaTime * xNormalized;
+                turnAngle = -m_TurnSpeed * deltaTime * xNormalized;
             }
             if (analogActionData.x < -deadzone)
             {
-                m_RotationOffset.y += m_TurnSpeed * deltaTime * xNormalized;
+                turnAngle = m_TurnSpeed * deltaTime * xNormalized;
             }
+        }
+
+        if (turnAngle != 0.0f)
+        {
+            m_RotationOffset.y += turnAngle;
+
+            // Keep the real HMD fixed in the room while artificial turning
+            // rotates the playspace. Without this counter-pivot, the tracked
+            // head offset is rotated around the recenter point and the player
+            // appears to walk in an arc around that point.
+            Vector hmdRelative = m_HmdPose.TrackedDevicePos - m_Center;
+            VectorPivotXY(hmdRelative, { 0, 0, 0 }, -turnAngle);
+            m_Center = m_HmdPose.TrackedDevicePos - hmdRelative;
+
+            // The center change is an intentional rotation, not roomscale
+            // locomotion. Keep the roomscale delta baseline in the same frame.
+            m_HmdPosRelativeRaw = hmdRelative;
+            m_HmdPosRelativeRawPrev = hmdRelative;
         }
 
         // Wrap from 0 to 360

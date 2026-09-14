@@ -94,12 +94,12 @@ static void CheckHandAttachment() {
     assert(leftFrame[0][0] == 1 && leftFrame[1][1] == 1 && leftFrame[2][2] == 1);
     assert(rightFrame[0][3] == 2 && leftFrame[1][3] == 6);
 
-    // Custom VPK fingers extend along +X, so curl must rotate in the X/Y
-    // plane around the local palm (+Z) axis. A Y-axis bend fans them sideways.
+    // Custom VPK fingers extend along +X and hinge around local +Y, so curl
+    // must rotate in the local X/Z plane toward the palm.
     const auto curlFrame = HandPose::FingerBend(0.5f);
-    assert(fabs(curlFrame[0][2]) < 0.0001f && fabs(curlFrame[1][2]) < 0.0001f);
-    assert(fabs(curlFrame[2][2] - 1.0f) < 0.0001f);
-    assert(fabs(curlFrame[0][1]) > 0.1f && fabs(curlFrame[1][0]) > 0.1f);
+    assert(fabs(curlFrame[0][1]) < 0.0001f && fabs(curlFrame[2][1]) < 0.0001f);
+    assert(fabs(curlFrame[1][1] - 1.0f) < 0.0001f);
+    assert(fabs(curlFrame[0][2]) > 0.1f && fabs(curlFrame[2][0]) > 0.1f);
 
     matrix3x4_t gun[45];
     for (auto &bone:gun) bone = source;

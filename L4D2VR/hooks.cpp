@@ -153,6 +153,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
 	EnableIfCreated(hkWeapon_ShootPosition);
+	EnableIfCreated(hkEyePosition);
 	EnableIfCreated(hkComputeError);
 	EnableIfCreated(hkUpdateObject);
 	EnableIfCreated(hkUpdateObjectVM);
@@ -246,6 +247,8 @@ int Hooks::initSourceHooks()
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 	if (hasOffsets) {
+		CreateHookAt(hkEyePosition, m_Game->m_Offsets->EyePosition.address,
+			reinterpret_cast<LPVOID>(&dEyePosition), "Portal1::EyePosition", false);
 		CreateHookAt(hkWeapon_ShootPosition, m_Game->m_Offsets->Weapon_ShootPosition.address,
 			reinterpret_cast<LPVOID>(&dWeapon_ShootPosition), "Portal1::WeaponShootPosition", false);
 		CreateHookAt(hkComputeError, m_Game->m_Offsets->ComputeError.address,
@@ -281,13 +284,14 @@ int Hooks::initSourceHooks()
 		"Portal1::CHudCrosshair::ShouldDraw",
 		false);
 	PortalVrLog(
-		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p shoot=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p shoot=%p eyePosition=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
 		hkRenderView.pTarget,
 		hkCreateMove.pTarget,
 		hkGetViewModelFOV.pTarget,
 		hkCalcViewModelView.pTarget,
 		hkTraceFirePortal.pTarget,
 		hkWeapon_ShootPosition.pTarget,
+		hkEyePosition.pTarget,
 		hkUpdateObject.pTarget,
 		hkEyeAngles.pTarget,
 		hkPlayerPortalled.pTarget,
@@ -499,10 +503,22 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
 		// Portal's object pickup code reads the server eye angles while +use is
 		// held. Feed it the portal-gun controller for that interval so the use
 		// trace and the held-object orientation follow the hand instead of the
-		// HMD. The VR renderer still uses the headset pose for the camera.
-		cmd->viewangles = m_VR->PressedDigitalAction(m_VR->m_ActionUse)
+		// HMD. Set IN_USE in the command itself as well as issuing +use from the
+		// input pump; this keeps the pickup trace and the server's button state
+		// on the same tick.
+		const bool useHeld = m_VR->PressedDigitalAction(m_VR->m_ActionUse);
+		cmd->buttons = useHeld ? (cmd->buttons | IN_USE) : (cmd->buttons & ~IN_USE);
+		cmd->viewangles = useHeld
 			? m_VR->m_RightControllerAngAbs
 			: m_VR->m_HmdAngAbs;
+		static bool lastUseHeld = false;
+		if (useHeld != lastUseHeld) {
+			PortalVrLog("Controller use state=%d origin=%f,%f,%f angle=%f,%f,%f cmdButtons=0x%X",
+				useHeld, m_VR->GetRightControllerAbsPos().x, m_VR->GetRightControllerAbsPos().y,
+				m_VR->GetRightControllerAbsPos().z, cmd->viewangles.x, cmd->viewangles.y,
+				cmd->viewangles.z, cmd->buttons);
+			lastUseHeld = useHeld;
+		}
 
 		vr::InputAnalogActionData_t analogActionData;
 		if (m_VR->GetAnalogActionData(m_VR->m_ActionWalk, analogActionData)) {
@@ -715,6 +731,16 @@ int Hooks::dGetPrimaryAttackActivity(void *ecx, void *edx, void *meleeInfo)
 Vector *Hooks::dEyePosition(void *ecx, void *edx, Vector *eyePos)
 {
 	Vector *result = hkEyePosition.fOriginal(ecx, eyePos);
+	if (result && m_VR->m_IsVREnabled && m_VR->PressedDigitalAction(m_VR->m_ActionUse)) {
+		if (!EntityIndex || EntityIndex(ecx) == m_Game->GetLocalPlayerIndex()) {
+			*result = m_VR->GetRightControllerAbsPos();
+			static bool logged = false;
+			if (!logged) {
+				PortalVrLog("Controller eye origin enabled origin=%f,%f,%f", result->x, result->y, result->z);
+				logged = true;
+			}
+		}
+	}
 	return result;
 }
 
