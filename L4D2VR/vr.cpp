@@ -19,10 +19,10 @@
 
 namespace
 {
-    constexpr bool kEnableVrMenuSubmission = false;
-    constexpr bool kEnableVrMenuInput = false;
+    constexpr bool kEnableVrMenuSubmission = true;
+    constexpr bool kEnableVrMenuInput = true;
     constexpr bool kEnableConfigWatcher = false;
-    constexpr bool kEnableMaterialSystemEyeTargets = false;
+    constexpr bool kEnableMaterialSystemEyeTargets = true;
 
     bool GetRuntimeBaseDirectory(char *buffer, size_t bufferSize)
     {
@@ -62,32 +62,32 @@ VR::VR(Game *game)
     m_Game = game;
     PortalVrLog("VR::VR start");
 
-    char errorString[MAX_STR_LEN];
-
     vr::HmdError error = vr::VRInitError_None;
     m_System = vr::VR_Init(&error, vr::VRApplication_Scene);
 
     if (error != vr::VRInitError_None) 
     {
-        PortalVrLog("VR_Init failed error=%d", error);
-        snprintf(errorString, MAX_STR_LEN, "VR_Init failed: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
-        Game::errorMsg(errorString);
+        PortalVrLog("VR_Init failed error=%d (%s); retrying when SteamVR is ready", error, vr::VR_GetVRInitErrorAsEnglishDescription(error));
         return;
     }
     PortalVrLog("VR_Init succeeded");
 
-    vr::EVRInitError peError = vr::VRInitError_None;
-
     if (!vr::VRCompositor())
     {
         PortalVrLog("VRCompositor init failed");
-        Game::errorMsg("Compositor initialization failed.");
+        vr::VR_Shutdown();
         return;
     }
     PortalVrLog("VRCompositor ready");
 
     m_Input = vr::VRInput();
     m_System = vr::OpenVRInternal_ModuleContext().VRSystem();
+    if (!m_Input || !m_System)
+    {
+        PortalVrLog("OpenVR system or input interface unavailable");
+        vr::VR_Shutdown();
+        return;
+    }
 
     m_System->GetRecommendedRenderTargetSize(&m_RenderWidth, &m_RenderHeight);
     m_AntiAliasing = 0;
@@ -118,7 +118,13 @@ VR::VR(Game *game)
     m_Fov = 2.0f * atan(tanHalfFov[0]) * 360 / (3.14159265358979323846 * 2);
 
     InstallApplicationManifest("manifest.vrmanifest");
-    SetActionManifest("action_manifest.json");
+    if (SetActionManifest("action_manifest.json") != 0)
+    {
+        PortalVrLog("VR initialization stopped: action manifest unavailable");
+        vr::VR_Shutdown();
+        return;
+    }
+    ParseConfigFile();
 
     if (kEnableConfigWatcher)
     {
@@ -134,6 +140,7 @@ VR::VR(Game *game)
     if (!g_D3DVR9)
     {
         PortalVrLog("VR::VR aborted: D3D9 VR interop not ready");
+        vr::VR_Shutdown();
         return;
     }
     PortalVrLog("g_D3DVR9 ready");
@@ -166,6 +173,8 @@ VR::VR(Game *game)
     }
 
     UpdatePosesAndActions();
+    GetPoses();
+    ResetPosition();
     PortalVrLog("UpdatePosesAndActions complete");
 
     if (!kEnableMaterialSystemEyeTargets)
@@ -374,17 +383,20 @@ void VR::CreateVRTextures()
     materialSystem->BeginRenderTargetAllocation();
 
     m_CreatingTextureID = Texture_LeftEye;
-    m_LeftEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    m_LeftEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_LITERAL, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
     
     m_CreatingTextureID = Texture_RightEye;
-    m_RightEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    m_RightEyeTexture = materialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_LITERAL, materialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
     m_CreatingTextureID = Texture_None;
 
     materialSystem->EndRenderTargetAllocation();
 
-    m_CreatedVRTextures = m_LeftEyeTexture != nullptr && m_RightEyeTexture != nullptr;
+    m_CreatedVRTextures = m_LeftEyeTexture && m_RightEyeTexture
+        && m_D9LeftEyeSurface && m_D9RightEyeSurface
+        && m_VKLeftEye.m_VulkanData.m_nImage && m_VKRightEye.m_VulkanData.m_nImage;
     PortalVrLog(
-        "CreateVRTextures complete left=%p right=%p created=%d",
+        "CreateVRTextures complete this=%p left=%p right=%p created=%d",
+        this,
         m_LeftEyeTexture,
         m_RightEyeTexture,
         m_CreatedVRTextures);
@@ -392,60 +404,59 @@ void VR::CreateVRTextures()
 
 void VR::SubmitVRTextures()
 {
-    if (!m_RenderedNewFrame)
+    if (!g_D3DVR9 || FAILED(g_D3DVR9->GetBackBufferData(&m_VKBackBuffer)))
+        return;
+    auto *compositor = vr::VRCompositor();
+    if (!compositor)
+        return;
+
+    const bool eyeFrame = m_RenderedNewFrame && m_CreatedVRTextures;
+    if (m_Overlay)
     {
-        if (!kEnableVrMenuSubmission)
-            return;
-
-        if (!vr::VROverlay()->IsOverlayVisible(m_MainMenuHandle))
-            RepositionOverlays();
-
-        vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-        if (m_Game->IsInGame())
+        if ((!eyeFrame || m_Game->IsCursorVisible()) && kEnableVrMenuSubmission)
         {
-            // menu only renders to the window portion of the texture. Until we figure out a proper fix,
-            // as a workaround only show that portion of the texture
-            int windowWidth, windowHeight;
-            GetOverlayWindowSize(*this, windowWidth, windowHeight);
-
-            bounds.uMax = (float)windowWidth / m_RenderWidth;
-            bounds.vMax = (float)windowHeight / m_RenderHeight;
-            vr::VROverlay()->SetOverlayTexelAspect(m_MainMenuHandle, bounds.vMax / bounds.uMax);
+            if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle))
+                RepositionOverlays();
+            vr::VRTextureBounds_t bounds{0, 0, 1, 1};
+            const vr::HmdVector2_t mouseScale = {
+                static_cast<float>(m_VKBackBuffer.m_VulkanData.m_nWidth),
+                static_cast<float>(m_VKBackBuffer.m_VulkanData.m_nHeight) };
+            m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScale);
+            m_Overlay->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
+            m_Overlay->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
+            auto error = m_Overlay->SetOverlayTexture(m_MainMenuHandle, &m_VKBackBuffer.m_VRTexture);
+            static int lastOverlayError = -1;
+            if (lastOverlayError != error)
+            {
+                PortalVrLog("Menu texture submission result=%d", error);
+                lastOverlayError = error;
+            }
+            m_Overlay->ShowOverlay(m_MainMenuHandle);
         }
         else
-            vr::VROverlay()->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
-
-        vr::VROverlay()->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
-        vr::VROverlay()->SetOverlayTexture(m_MainMenuHandle, &m_VKBackBuffer.m_VRTexture);
-        vr::VROverlay()->ShowOverlay(m_MainMenuHandle);
-        //vr::VROverlay()->HideOverlay(m_HUDHandle);
-
-        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBackBuffer.m_VRTexture, NULL, vr::Submit_Default);
-        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBackBuffer.m_VRTexture, NULL, vr::Submit_Default);
-
-        return;
+            m_Overlay->HideOverlay(m_MainMenuHandle);
     }
-    vr::VROverlay()->HideOverlay(m_MainMenuHandle);
 
-    //vr::VROverlay()->SetOverlayTexture(m_HUDHandle, &m_VKHUD.m_VRTexture);
-
-    if (m_Game->IsCursorVisible())
+    auto left = compositor->Submit(vr::Eye_Left,
+        eyeFrame ? &m_VKLeftEye.m_VRTexture : &m_VKBackBuffer.m_VRTexture,
+        eyeFrame ? &m_TextureBounds[0] : nullptr);
+    auto right = compositor->Submit(vr::Eye_Right,
+        eyeFrame ? &m_VKRightEye.m_VRTexture : &m_VKBackBuffer.m_VRTexture,
+        eyeFrame ? &m_TextureBounds[1] : nullptr);
+    static int lastLeft = -1, lastRight = -1;
+    static unsigned frames = 0;
+    static bool lastEyeFrame = false;
+    if ((++frames % 600) == 0 || lastEyeFrame != eyeFrame || lastLeft != left || lastRight != right)
     {
-        // We're in the pause menu
-        //vr::VROverlay()->ShowOverlay(m_HUDHandle);
+        PortalVrLog("VR frame=%u eyes=%d submitLeft=%d submitRight=%d inGame=%d hmdTracked=%d cursor=%d", frames, eyeFrame, left, right,
+            m_Game->IsInGame(), m_Poses[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid, m_Game->IsCursorVisible());
+        lastLeft = left;
+        lastRight = right;
+        lastEyeFrame = eyeFrame;
+        vr::InputAnalogActionData_t walk{};
+        auto inputError = m_Input->GetAnalogActionData(m_ActionWalk, &walk, sizeof(walk), vr::k_ulInvalidInputValueHandle);
+        PortalVrLog("Tracking yaw=%f walkError=%d active=%d axes=%f,%f", m_HmdAngAbs.y, inputError, walk.bActive, walk.x, walk.y);
     }
-
-    if (m_CreatedVRTextures)
-    {
-        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKLeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKRightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
-    }
-    else
-    {
-        vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBackBuffer.m_VRTexture, nullptr, vr::Submit_Default);
-        vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBackBuffer.m_VRTexture, nullptr, vr::Submit_Default);
-    }
-
     m_RenderedNewFrame = false;
 }
 
@@ -561,8 +572,12 @@ void VR::GetPoses()
     if (m_LeftHanded)
         std::swap(leftControllerIndex, rightControllerIndex);
 
-    vr::TrackedDevicePose_t leftControllerPose = m_Poses[leftControllerIndex];
-    vr::TrackedDevicePose_t rightControllerPose = m_Poses[rightControllerIndex];
+    vr::TrackedDevicePose_t leftControllerPose{};
+    vr::TrackedDevicePose_t rightControllerPose{};
+    if (leftControllerIndex < vr::k_unMaxTrackedDeviceCount)
+        leftControllerPose = m_Poses[leftControllerIndex];
+    if (rightControllerIndex < vr::k_unMaxTrackedDeviceCount)
+        rightControllerPose = m_Poses[rightControllerIndex];
 
     GetPoseData(hmdPose, m_HmdPose);
     GetPoseData(leftControllerPose, m_LeftControllerPose);
@@ -571,6 +586,9 @@ void VR::GetPoses()
 
 void VR::UpdatePosesAndActions() 
 {
+    static unsigned int loggedPoses = 0;
+    if (loggedPoses++ < 3)
+        PortalVrLog("Pose update this=%p poses=%p compositor=%p input=%p", this, m_Poses, vr::VRCompositor(), m_Input);
     vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
     m_Input->UpdateActionState(&m_ActiveActionSet, sizeof(vr::VRActiveActionSet_t), 1);
 }
@@ -635,7 +653,7 @@ void VR::ProcessMenuInput()
         vr::VREvent_t vrEvent;
         while (vr::VROverlay()->PollNextOverlayEvent(currentOverlay, &vrEvent, sizeof(vrEvent)))
         {
-            INPUT input;
+            INPUT input{};
             switch (vrEvent.eventType)
             {
             case vr::VREvent_MouseMove:
@@ -643,16 +661,7 @@ void VR::ProcessMenuInput()
                 float laserX = vrEvent.data.mouse.x;
                 float laserY = vrEvent.data.mouse.y;
 
-                if (m_Game->IsInGame())
-                {
-                    laserY -= (m_RenderHeight - windowHeight);
-                    laserY = windowHeight - laserY;
-                }
-                else // main menu (uses render sized texture)
-                {
-                    laserX = (laserX / m_RenderWidth) * windowWidth;
-                    laserY = ((-laserY + m_RenderHeight) / m_RenderHeight) * windowHeight;
-                }
+                laserY = windowHeight - laserY;
 
                 m_Game->SetCursorPos(static_cast<int>(laserX), static_cast<int>(laserY));
                 break;
@@ -1123,7 +1132,8 @@ void VR::UpdateTracking()
 
     m_AimPos = Trace((uint32_t*)localPlayer);
 
-    if (m_AimMode == 2) {
+    if (m_AimMode == 2 && m_Game->m_Hooks->CreatePingPointer &&
+        m_Game->m_Offsets->SetControlPoint.address && m_Game->m_Offsets->StopEmission.address) {
         C_Portal_Player* portalPlayer = (C_Portal_Player*)localPlayer;
 
         auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)portalPlayer + 968))(portalPlayer);
@@ -1150,7 +1160,7 @@ void VR::UpdateTracking()
     // Check if camera is clipping inside wall
     /*CGameTrace trace;
     Ray_t ray;
-    CTraceFilterSkipNPCsAndPlayers tracefilter((IHandleEntity*)localPlayer, 0);
+    CTraceFilterSkipEntity tracefilter((IHandleEntity*)localPlayer, 0);
 
     Vector extendedHmdPos = m_HmdPosAbs - m_SetupOrigin;
     VectorNormalize(extendedHmdPos);
@@ -1194,6 +1204,12 @@ void VR::UpdateTracking()
     VectorPivotXY(hmdToController, { 0, 0, 0 }, m_RotationOffset.y);
 
     m_RightControllerPosRel = hmdToController * m_VRScale;
+    Vector hmdToLeftController = leftControllerPosLocal - hmdPosLocal;
+    VectorPivotXY(hmdToLeftController, { 0, 0, 0 }, m_RotationOffset.y);
+    m_LeftControllerPosRel = hmdToLeftController * m_VRScale;
+    leftControllerAngLocal.x += m_RotationOffset.x;
+    leftControllerAngLocal.y += m_RotationOffset.y;
+    leftControllerAngLocal.z += m_RotationOffset.z;
 
     //rightControllerAngLocal += m_RotationOffset;
     rightControllerAngLocal.x += m_RotationOffset.x;
@@ -1205,6 +1221,12 @@ void VR::UpdateTracking()
 
     QAngle::AngleVectors(leftControllerAngLocal, &m_LeftControllerForward, &m_LeftControllerRight, &m_LeftControllerUp);
     QAngle::AngleVectors(rightControllerAngLocal, &m_RightControllerForward, &m_RightControllerRight, &m_RightControllerUp);
+
+    // Bare wrists use the tracked grip orientation, without the gun aim tilt.
+    m_RightHandForward = m_RightControllerForward;
+    m_RightHandUp = m_RightControllerUp;
+    m_LeftHandForward = m_LeftControllerForward;
+    m_LeftHandUp = m_LeftControllerUp;
 
     const float offset = -30;
 
@@ -1280,7 +1302,7 @@ Vector VR::Trace(uint32_t* localPlayer) {
 
     CGameTrace trace;
     Ray_t ray;
-    CTraceFilterSkipNPCsAndPlayers tracefilter((IHandleEntity*)localPlayer, 0);
+    CTraceFilterSkipEntity tracefilter((IHandleEntity*)localPlayer, 0);
 
     ray.Init(vecStart, vecEnd);
 
@@ -1437,7 +1459,7 @@ QAngle TransformAnglesToWorldSpace(const QAngle& angles, const matrix3x4_t& pare
 Vector VR::TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle) {
     CGameTrace trTestObstructionsNearPortals;
     Ray_t ray;
-    CTraceFilterSkipNPCsAndPlayers tracefilter((IHandleEntity*)localPlayer, 0);
+    CTraceFilterSkipEntity tracefilter((IHandleEntity*)localPlayer, 0);
 
     ray.Init(cameraPos, eyePos);
     if (!m_Game->TraceRay(ray, MASK_SHOT | MASK_SHOT_HULL, &tracefilter, &trTestObstructionsNearPortals))
@@ -1529,7 +1551,10 @@ catch (const std::logic_error& e)
 
 void VR::ParseConfigFile()
 {
-    std::ifstream configStream("VR\\config.txt");
+    char runtimeDirectory[MAX_PATH] = {};
+    if (!GetRuntimeBaseDirectory(runtimeDirectory, sizeof(runtimeDirectory)))
+        return;
+    std::ifstream configStream(std::filesystem::path(runtimeDirectory) / "VR" / "config.txt");
     std::unordered_map<std::string, std::string> userConfig;
 
     std::string line;

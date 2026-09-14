@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceDll
+    [string]$SourceDll,
+    [string]$PortalDirectory
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,8 +49,8 @@ function Get-SteamLibraryPaths {
     return $libraries | Select-Object -Unique
 }
 
-$portalDir = $null
-foreach ($library in Get-SteamLibraryPaths) {
+$portalDir = $PortalDirectory
+foreach ($library in $(if (-not $portalDir) { Get-SteamLibraryPaths })) {
     $candidate = Join-Path $library "steamapps\\common\\Portal"
     if (Test-Path -LiteralPath $candidate) {
         $portalDir = $candidate
@@ -60,6 +61,10 @@ foreach ($library in Get-SteamLibraryPaths) {
 if (-not $portalDir) {
     Write-Host "Portal install not found. Skipping DLL copy."
     exit 0
+}
+
+if (-not (Test-Path -LiteralPath (Join-Path $portalDir "hl2.exe"))) {
+    throw "Not a Portal installation: $portalDir"
 }
 
 $binDir = Join-Path $portalDir "bin"
@@ -111,8 +116,7 @@ $runtimeFiles = @(
 
 foreach ($file in $runtimeFiles) {
     if (-not (Test-Path -LiteralPath $file.Source)) {
-        Write-Warning "Skipped $($file.Label) copy because the source file was not found: $($file.Source)"
-        continue
+        throw "Required runtime file was not found: $($file.Source)"
     }
 
     try {
@@ -121,8 +125,7 @@ foreach ($file in $runtimeFiles) {
     }
     catch {
         if ($_.Exception.Message -like "*being used by another process*") {
-            Write-Warning "Skipped $($file.Label) copy because '$($file.Destination)' is in use. Close Portal to deploy the new build."
-            continue
+            throw "Close Portal before installing: '$($file.Destination)' is in use."
         }
 
         throw
@@ -131,9 +134,22 @@ foreach ($file in $runtimeFiles) {
 
 $actionManifestSourceDir = Join-Path $PSScriptRoot "SteamVRActionManifest"
 if (Test-Path -LiteralPath $actionManifestSourceDir) {
-    Copy-Item -LiteralPath (Join-Path $actionManifestSourceDir "*") -Destination $vrActionDir -Recurse -Force
+    Get-ChildItem -LiteralPath $actionManifestSourceDir -File | Copy-Item -Destination $vrActionDir -Force
     Write-Host "Copied SteamVRActionManifest to $vrActionDir"
 }
 else {
-    Write-Warning "Skipped SteamVRActionManifest copy because the source directory was not found: $actionManifestSourceDir"
+    throw "SteamVRActionManifest source directory was not found: $actionManifestSourceDir"
+}
+
+$configDestination = Join-Path $vrDir "config.txt"
+if (-not (Test-Path -LiteralPath $configDestination)) {
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "config.txt") -Destination $configDestination
+}
+
+$materialSource = Join-Path $PSScriptRoot "materials"
+$materialDestination = Join-Path $portalDir "portal\custom\portal1vr\materials"
+if (Test-Path -LiteralPath $materialSource) {
+    New-Item -ItemType Directory -Force -Path $materialDestination | Out-Null
+    Get-ChildItem -LiteralPath $materialSource -Directory | Copy-Item -Destination $materialDestination -Recurse -Force
+    Write-Host "Installed corrected arm materials"
 }

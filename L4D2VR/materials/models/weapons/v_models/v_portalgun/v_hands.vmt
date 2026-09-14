@@ -1,0 +1,8 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "models/weapons/v_models/v_portalgun/v_hands"
+    // This older gun mesh uses a different hand UV layout. Sample an intact
+    // skin patch instead of the atlas's empty black areas.
+    "$basetexturetransform" "center 0 0 scale 0.20 0.40 rotate 0 translate 0.05 0.50"
+    "$model" "1"
+}

@@ -449,6 +449,9 @@ namespace
             const ULONG_PTR accessType = exceptionInfo->ExceptionRecord->ExceptionInformation[0];
             const void *targetAddress = reinterpret_cast<void *>(exceptionInfo->ExceptionRecord->ExceptionInformation[1]);
             PortalVrLog("SEH access violation type=%Iu address=%p", accessType, targetAddress);
+            const auto *context = exceptionInfo->ContextRecord;
+            PortalVrLog("Registers eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX esi=%08lX edi=%08lX esp=%08lX ebp=%08lX",
+                context->Eax, context->Ebx, context->Ecx, context->Edx, context->Esi, context->Edi, context->Esp, context->Ebp);
         }
 
         return EXCEPTION_CONTINUE_SEARCH;
@@ -618,9 +621,8 @@ DWORD WINAPI InitL4D2VR(LPVOID)
         return 0;
     }
 
-    PortalVrLog("Launch arguments validated, constructing Game");
-    g_Game = new Game();
-    PortalVrLog("Game constructed successfully");
+    PortalVrLog("Launch arguments validated, scheduling render-thread bootstrap");
+    RequestPortalVrStart();
     if (kEnableTier0SpewHooks)
         InstallTier0SpewHooks();
 

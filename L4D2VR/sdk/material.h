@@ -124,140 +124,107 @@ enum PaintMode_t
 class IMatRenderContext;
 class IMaterial;
 
+// VMaterialSystem080, Windows Source SDK 2013 (not the Portal 2 ABI).
 class IMaterialSystem
 {
 public:
-	virtual void ConnectEPFPvPKcPiE() = 0; //CMaterialSystem::Connect(void * (*)(char const*,int *))
-	virtual void DisconnectEv() = 0; //CMaterialSystem::Disconnect(void)
-	virtual void QueryInterfaceEPKc() = 0; //CMaterialSystem::QueryInterface(char const*)
-	virtual void InitEv() = 0; //CMaterialSystem::Init(void)
-	virtual void ShutdownEv() = 0; //CMaterialSystem::Shutdown(void)
-	virtual void GetDependencies() = 0; //CMaterialSystem::GetDependencies(void)
-	virtual void GetTier() = 0;	//CMaterialSystem::GetTier(void)
-	virtual void Reconnect() = 0; //CMaterialSystem::Reconnect(void* (*)(char const*, int*), char const*)
-	virtual void InitEPKcP21IMaterialProxyFactoryPFPvS1_PiES7_() = 0; //CMaterialSystem::Init(char const*,IMaterialProxyFactory *,void * (*)(char const*,int *),void * (*)(char const*,int *))
-	virtual void SetShaderAPIEPKc() = 0; //CMaterialSystem::SetShaderAPI(char const*)
-	virtual void SetAdapterEii() = 0; //CMaterialSystem::SetAdapter(int,int)
-	virtual void ModInitEv() = 0; //CMaterialSystem::ModInit(void)
-	virtual void ModShutdownEv() = 0; //CMaterialSystem::ModShutdown(void)
-	virtual void SetThreadModeE20MaterialThreadMode_ti() = 0; //CMaterialSystem::SetThreadMode(MaterialThreadMode_t,int)
-	virtual void GetThreadModeEv() = 0; //CMaterialSystem::GetThreadMode(void)
-	virtual void IsRenderThreadSafeEv() = 0; //CMaterialSystem::IsRenderThreadSafe(void)
-	virtual void ExecuteQueuedEv() = 0; //CMaterialSystem::ExecuteQueued(void)
-	virtual void OnDebugEvent() = 0;  //CMaterialSystem::OnDebugEvent(char const*)
-	virtual void GetHardwareConfigEPKcPi() = 0; //CMaterialSystem::GetHardwareConfig(char const*,int *)
-	virtual void UpdateConfigEb() = 0; //CMaterialSystem::UpdateConfig(bool)
-	virtual void OverrideConfigERK23MaterialSystem_Config_tb() = 0; //CMaterialSystem::OverrideConfig(MaterialSystem_Config_t const&,bool)
-	virtual void GetCurrentConfigForVideoCardEv() = 0; //CMaterialSystem::GetCurrentConfigForVideoCard(void)
-	virtual void GetRecommendedConfigurationInfoEiP9KeyValues() = 0; //CMaterialSystem::GetRecommendedConfigurationInfo(int,KeyValues *)
-	virtual void GetDisplayAdapterCountEv() = 0; //CMaterialSystem::GetDisplayAdapterCount(void)
-	virtual void GetCurrentAdapterEv() = 0; //CMaterialSystem::GetCurrentAdapter(void)
-	virtual void GetDisplayAdapterInfoEiR21MaterialAdapterInfo_t() = 0; //CMaterialSystem::GetDisplayAdapterInfo(int,MaterialAdapterInfo_t &)
-	virtual void GetModeCountEi() = 0; //CMaterialSystem::GetModeCount(int)
-	virtual void GetModeInfoEiiR19MaterialVideoMode_t() = 0; //CMaterialSystem::GetModeInfo(int,int,MaterialVideoMode_t &)
-	virtual void AddModeChangeCallBackEPFvvE() = 0; //CMaterialSystem::AddModeChangeCallBack(void (*)(void))
-	virtual void GetDisplayModeER19MaterialVideoMode_t() = 0; //CMaterialSystem::GetDisplayMode(MaterialVideoMode_t &)
-	virtual void SetModeEPvRK23MaterialSystem_Config_t() = 0; //CMaterialSystem::SetMode(void *,MaterialSystem_Config_t const&)
-	virtual void SupportsMSAAModeEi() = 0; //CMaterialSystem::SupportsMSAAMode(int)
-	virtual void GetVideoCardIdentifierEv() = 0; //CMaterialSystem::GetVideoCardIdentifier(void)
-	virtual void SpewDriverInfoEv() = 0; //CMaterialSystem::SpewDriverInfo(void)
-	virtual void GetBackBufferDimensions(int &, int &) = 0; //CMaterialSystem::GetBackBufferDimensions(int &,int &)
-	virtual ImageFormat GetBackBufferFormat() = 0; //CMaterialSystem::GetBackBufferFormat(void)
-	virtual void GetAspectRatioInfo() = 0; //CMaterialSystem::GetAspectRatioInfo(void)const
-	virtual void SupportsHDRModeE9HDRType_t() = 0; //CMaterialSystem::SupportsHDRMode(HDRType_t)
-	virtual void AddViewEPv() = 0; //CMaterialSystem::AddView(void *)
-	virtual void RemoveViewEPv() = 0; //CMaterialSystem::RemoveView(void *)
-	virtual void SetViewEPv() = 0; //CMaterialSystem::SetView(void *)
-	virtual void BeginFrameEf() = 0; //CMaterialSystem::BeginFrame(float)
-	virtual void EndFrameEv() = 0; //CMaterialSystem::EndFrame(void)
-	virtual void FlushEb() = 0; //CMaterialSystem::Flush(bool)
-	virtual void GetCurrentFrameCount() = 0; //CMaterialSystem::GetCurrentFrameCount(void)
-	virtual void SwapBuffersEv() = 0; //CMaterialSystem::SwapBuffers(void)
-	virtual void EvictManagedResourcesEv() = 0; //CMaterialSystem::EvictManagedResources(void)
-	virtual void ReleaseResourcesEv() = 0; //CMaterialSystem::ReleaseResources(void)
-	virtual void ReacquireResourcesEv() = 0; //CMaterialSystem::ReacquireResources(void)
-	virtual void AddReleaseFuncEPFviE() = 0; //CMaterialSystem::AddReleaseFunc(void (*)(int))
-	virtual void RemoveReleaseFuncEPFviE() = 0; //CMaterialSystem::RemoveReleaseFunc(void (*)(int))
-	virtual void AddRestoreFuncEPFviE() = 0; //CMaterialSystem::AddRestoreFunc(void (*)(int))
-	virtual void RemoveRestoreFuncEPFviE() = 0; //CMaterialSystem::RemoveRestoreFunc(void (*)(int))
-	virtual void AddEndFrameCleanupFunc() = 0; //CMaterialSystem::AddEndFrameCleanupFunc(void (*)(void))
-	virtual void RemoveEndFrameCleanupFunc() = 0; // CMaterialSystem::RemoveEndFrameCleanupFunc(void (*)(void))
-	virtual void OnLevelShutdown() = 0; // CMaterialSystem::OnLevelShutdown(void)
-	virtual void AddOnLevelShutdownFunc() = 0; // CMaterialSystem::AddOnLevelShutdownFunc(void (*)(void *),void *)
-	virtual void RemoveOnLevelShutdownFunc() = 0; // CMaterialSystem::RemoveOnLevelShutdownFunc(void (*)(void *),void *)
-	virtual void ResetTempHWMemoryEb() = 0; //CMaterialSystem::ResetTempHWMemory(bool)
-	virtual void HandleDeviceLostEv() = 0; //CMaterialSystem::HandleDeviceLost(void)
-	virtual void ShaderCountEv() = 0; //CMaterialSystem::ShaderCount(void)
-	virtual void GetShadersEiiPP7IShader() = 0; //CMaterialSystem::GetShaders(int,int,IShader **)
-	virtual void ShaderFlagCountEv() = 0; //CMaterialSystem::ShaderFlagCount(void)
-	virtual void ShaderFlagNameEi() = 0; //CMaterialSystem::ShaderFlagName(int)
-	virtual void GetShaderFallbackEPKcPci() = 0; //CMaterialSystem::GetShaderFallback(char const*,char *,int)
-	virtual void GetMaterialProxyFactoryEv() = 0; //CMaterialSystem::GetMaterialProxyFactory(void)
-	virtual void SetMaterialProxyFactoryEP21IMaterialProxyFactory() = 0; //CMaterialSystem::SetMaterialProxyFactory(IMaterialProxyFactory *)
-	virtual void EnableEditorMaterialsEv() = 0; //CMaterialSystem::EnableEditorMaterials(void)
-	virtual void EnableGBuffersEv() = 0; //CMaterialSystem::EnableGBuffers(void)
-	virtual void SetInStubModeEb() = 0; //CMaterialSystem::SetInStubMode(bool)
-	virtual void DebugPrintUsedMaterialsEPKcb() = 0; //CMaterialSystem::DebugPrintUsedMaterials(char const*,bool)
-	virtual void DebugPrintUsedTexturesEv() = 0; //CMaterialSystem::DebugPrintUsedTextures(void)
-	virtual void ToggleSuppressMaterialEPKc() = 0; //CMaterialSystem::ToggleSuppressMaterial(char const*)
-	virtual void ToggleDebugMaterialEPKc() = 0; //CMaterialSystem::ToggleDebugMaterial(char const*)
-	virtual void UsingFastClippingEv() = 0; //CMaterialSystem::UsingFastClipping(void)
-	virtual void StencilBufferBitsEv() = 0; //CMaterialSystem::StencilBufferBits(void)
-	virtual void UncacheAllMaterialsEv() = 0; //CMaterialSystem::UncacheAllMaterials(void)
-	virtual void UncacheUnusedMaterialsEb() = 0; //CMaterialSystem::UncacheUnusedMaterials(bool)
-	virtual void CacheUsedMaterialsEv() = 0; //CMaterialSystem::CacheUsedMaterials(void)
-	virtual void ReloadTexturesEv() = 0; //CMaterialSystem::ReloadTextures(void)
-	virtual void ReloadMaterialsEPKc() = 0; //CMaterialSystem::ReloadMaterials(char const*)
-	virtual void CreateMaterialEPKcP9KeyValues() = 0; //CMaterialSystem::CreateMaterial(char const*,KeyValues *)
-	virtual IMaterial *FindMaterial(char const *pMaterialName, const char *pTextureGroupName, bool complain = true, const char *pComplainPrefix = NULL) = 0; //CMaterialSystem::FindMaterial(char const*,char const*,bool,char const*)
-	virtual void IsMaterialLoaded() = 0; //CMaterialSystem::IsMaterialLoaded(char const*)
-	virtual void FirstMaterialEv() = 0; //CMaterialSystem::FirstMaterial(void)
-	virtual void NextMaterialEt() = 0; //CMaterialSystem::NextMaterial(ushort)
-	virtual void InvalidMaterialEv() = 0; //CMaterialSystem::InvalidMaterial(void)
-	virtual void GetMaterialEt() = 0; //CMaterialSystem::GetMaterial(ushort)
-	virtual void GetNumMaterialsEv() = 0; //CMaterialSystem::GetNumMaterials(void)
-	virtual ITexture  *FindTexture(char const* pTextureName, const char* pTextureGroupName, bool complain = true, int nAdditionalCreationFlags = 0) = 0; //CMaterialSystem::FindTexture(char const*,char const*,bool,int)
-	virtual void IsTextureLoadedEPKc() = 0; //CMaterialSystem::IsTextureLoaded(char const*)
-	virtual void CreateProceduralTextureEPKcS1_ii11ImageFormati() = 0; //CMaterialSystem::CreateProceduralTexture(char const*,char const*,int,int,ImageFormat,int)
-	virtual void BeginRenderTargetAllocation() = 0; //CMaterialSystem::BeginRenderTargetAllocation(void)
-	virtual void EndRenderTargetAllocation() = 0; //CMaterialSystem::EndRenderTargetAllocation(void)
-	virtual void *CreateRenderTargetTexture(int, int, RenderTargetSizeMode_t, ImageFormat, MaterialRenderTargetDepth_t) = 0; //CMaterialSystem::CreateRenderTargetTexture(int,int,RenderTargetSizeMode_t,ImageFormat,MaterialRenderTargetDepth_t)
-	virtual ITexture *CreateNamedRenderTargetTextureEx(const char *pRTName,				// Pass in NULL here for an unnamed render target.
-														int w,
-														int h,
-														RenderTargetSizeMode_t sizeMode,	// Controls how size is generated (and regenerated on video mode change).
-														ImageFormat format,
-														MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SHARED,
-														unsigned int textureFlags = TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT,
-														unsigned int renderTargetFlags = 0) = 0; //CMaterialSystem::CreateNamedRenderTargetTextureEx(char const*,int,int,RenderTargetSizeMode_t,ImageFormat,MaterialRenderTargetDepth_t,uint,uint)
-	virtual void *CreateNamedRenderTargetTexture(char const *, int, int, RenderTargetSizeMode_t, ImageFormat, MaterialRenderTargetDepth_t, bool, bool) = 0; //CMaterialSystem::CreateNamedRenderTargetTexture(char const*,int,int,RenderTargetSizeMode_t,ImageFormat,MaterialRenderTargetDepth_t,bool,bool)
-	virtual ITexture *CreateNamedRenderTargetTextureEx2(const char *pRTName,				// Pass in NULL here for an unnamed render target.
-														int w,
-														int h,
-														RenderTargetSizeMode_t sizeMode,	// Controls how size is generated (and regenerated on video mode change).
-														ImageFormat format,
-														MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SHARED,
-														unsigned int textureFlags = TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT,
-														unsigned int renderTargetFlags = 0) = 0; //CMaterialSystem::CreateNamedRenderTargetTextureEx2(char const*,int,int,RenderTargetSizeMode_t,ImageFormat,MaterialRenderTargetDepth_t,uint,uint)
-	virtual void BeginLightmapAllocationEv() = 0; //CMaterialSystem::BeginLightmapAllocation(void)
-	virtual void EndLightmapAllocationEv() = 0; //CMaterialSystem::EndLightmapAllocation(void)
-	virtual void CleanupLightmaps() = 0; //CMaterialSystem::CleanupLightmaps(void)
-	virtual void AllocateLightmapEiiPiP9IMaterial() = 0; //CMaterialSystem::AllocateLightmap(int,int,int *,IMaterial *)
-	virtual void AllocateWhiteLightmapEP9IMaterial() = 0; //CMaterialSystem::AllocateWhiteLightmap(IMaterial *)
-	virtual void UpdateLightmapEiPiS0_PfS1_S1_S1_() = 0; //CMaterialSystem::UpdateLightmap(int,int *,int *,float *,float *,float *,float *)
-	virtual void GetNumSortIDsEv() = 0; //CMaterialSystem::GetNumSortIDs(void)
-	virtual void GetSortInfoEP25MaterialSystem_SortInfo_t() = 0; //CMaterialSystem::GetSortInfo(MaterialSystem_SortInfo_t *)
-	virtual void GetLightmapPageSizeEiPiS0_() = 0; //CMaterialSystem::GetLightmapPageSize(int,int *,int *)
-	virtual void ResetMaterialLightmapPageInfoEv() = 0; //CMaterialSystem::ResetMaterialLightmapPageInfo(void)
-	virtual void IsStereoSupported() = 0; //CMaterialSystem::IsStereoSupported(void)
-	virtual void IsStereoActiveThisFrame() = 0; //CMaterialSystem::IsStereoActiveThisFrame(void)const
-	virtual void NVStereoUpdate() = 0;//CMaterialSystem::NVStereoUpdate(void)
-	virtual void ClearBuffersEbbb() = 0; //CMaterialSystem::ClearBuffers(bool,bool,bool)
-	virtual void SpinPresent() = 0; //CMaterialSystem::SpinPresent(unsigned int)
-	virtual IMatRenderContext *GetRenderContext() = 0; //CMaterialSystem::GetRenderContext(void)
-	
-	char pad_0004[11180]; //0x0004
-	bool isGameRunning; //0x2AB8 -> 0x2BB0
-}; //Size: 0x2ABC
-static_assert(sizeof(IMaterialSystem) == 0x2BB4);
-
+    virtual void Unused0() = 0; // 0
+    virtual void Unused1() = 0; // 1
+    virtual void Unused2() = 0; // 2
+    virtual void Unused3() = 0; // 3
+    virtual void Unused4() = 0; // 4
+    virtual void Unused5() = 0; // 5
+    virtual void Unused6() = 0; // 6
+    virtual void Unused7() = 0; // 7
+    virtual void Unused8() = 0; // 8
+    virtual void Unused9() = 0; // 9
+    virtual void Unused10() = 0; // 10
+    virtual void Unused11() = 0; // 11
+    virtual void Unused12() = 0; // 12
+    virtual void Unused13() = 0; // 13
+    virtual void Unused14() = 0; // 14
+    virtual void Unused15() = 0; // 15
+    virtual void Unused16() = 0; // 16
+    virtual void Unused17() = 0; // 17
+    virtual void Unused18() = 0; // 18
+    virtual void Unused19() = 0; // 19
+    virtual void Unused20() = 0; // 20
+    virtual void Unused21() = 0; // 21
+    virtual void Unused22() = 0; // 22
+    virtual void Unused23() = 0; // 23
+    virtual void Unused24() = 0; // 24
+    virtual void Unused25() = 0; // 25
+    virtual void Unused26() = 0; // 26
+    virtual void Unused27() = 0; // 27
+    virtual void Unused28() = 0; // 28
+    virtual void Unused29() = 0; // 29
+    virtual void Unused30() = 0; // 30
+    virtual void GetBackBufferDimensions(int &, int &) = 0; // 31
+    virtual ImageFormat GetBackBufferFormat() = 0; // 32
+    virtual void Unused33() = 0; // 33
+    virtual void Unused34() = 0; // 34
+    virtual void Unused35() = 0; // 35
+    virtual void Unused36() = 0; // 36
+    virtual void Unused37() = 0; // 37
+    virtual void Unused38() = 0; // 38
+    virtual void Unused39() = 0; // 39
+    virtual void Unused40() = 0; // 40
+    virtual void Unused41() = 0; // 41
+    virtual void Unused42() = 0; // 42
+    virtual void Unused43() = 0; // 43
+    virtual void Unused44() = 0; // 44
+    virtual void Unused45() = 0; // 45
+    virtual void Unused46() = 0; // 46
+    virtual void Unused47() = 0; // 47
+    virtual void Unused48() = 0; // 48
+    virtual void Unused49() = 0; // 49
+    virtual void Unused50() = 0; // 50
+    virtual void Unused51() = 0; // 51
+    virtual void Unused52() = 0; // 52
+    virtual void Unused53() = 0; // 53
+    virtual void Unused54() = 0; // 54
+    virtual void Unused55() = 0; // 55
+    virtual void Unused56() = 0; // 56
+    virtual void Unused57() = 0; // 57
+    virtual void Unused58() = 0; // 58
+    virtual void Unused59() = 0; // 59
+    virtual void Unused60() = 0; // 60
+    virtual void Unused61() = 0; // 61
+    virtual void Unused62() = 0; // 62
+    virtual void Unused63() = 0; // 63
+    virtual void Unused64() = 0; // 64
+    virtual void Unused65() = 0; // 65
+    virtual void Unused66() = 0; // 66
+    virtual void Unused67() = 0; // 67
+    virtual void Unused68() = 0; // 68
+    virtual void Unused69() = 0; // 69
+    virtual void Unused70() = 0; // 70
+    virtual IMaterial *FindMaterial(const char *, const char *, bool complain = true, const char *prefix = nullptr) = 0; // 71
+    virtual void Unused72() = 0; // 72
+    virtual void Unused73() = 0; // 73
+    virtual void Unused74() = 0; // 74
+    virtual void Unused75() = 0; // 75
+    virtual void Unused76() = 0; // 76
+    virtual void Unused77() = 0; // 77
+    virtual void Unused78() = 0; // 78
+    virtual ITexture *FindTexture(const char *, const char *, bool complain = true, int flags = 0) = 0; // 79
+    virtual void Unused80() = 0; // 80
+    virtual void Unused81() = 0; // 81
+    virtual void BeginRenderTargetAllocation() = 0; // 82
+    virtual void EndRenderTargetAllocation() = 0; // 83
+    virtual void Unused84() = 0; // 84
+    virtual ITexture *CreateNamedRenderTargetTextureEx(const char *, int, int, RenderTargetSizeMode_t, ImageFormat, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SHARED, unsigned int flags = TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT, unsigned int targetFlags = 0) = 0; // 85
+    virtual void Unused86() = 0; // 86
+    virtual ITexture *CreateNamedRenderTargetTextureEx2(const char *, int, int, RenderTargetSizeMode_t, ImageFormat, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SHARED, unsigned int flags = TEXTUREFLAGS_CLAMPS | TEXTUREFLAGS_CLAMPT, unsigned int targetFlags = 0) = 0; // 87
+    virtual void Unused88() = 0; // 88
+    virtual void Unused89() = 0; // 89
+    virtual void Unused90() = 0; // 90
+    virtual void Unused91() = 0; // 91
+    virtual void Unused92() = 0; // 92
+    virtual void Unused93() = 0; // 93
+    virtual void Unused94() = 0; // 94
+    virtual void Unused95() = 0; // 95
+    virtual void Unused96() = 0; // 96
+    virtual void Unused97() = 0; // 97
+    virtual IMatRenderContext *GetRenderContext() = 0; // 98
+};

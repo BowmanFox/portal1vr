@@ -84,9 +84,12 @@ struct Hook {
 // Source Engine functions
 typedef ITexture *(__thiscall *tGetRenderTarget)(void *thisptr);
 typedef void(__thiscall *tRenderView)(void *thisptr, CViewSetup &setup, int nClearFlags, int whatToDraw);
+typedef void(__thiscall *tPush3DView)(void *thisptr, const CViewSetup &view, int flags, ITexture *target, void *frustum);
+typedef void(__thiscall *tPush3DViewDepth)(void *thisptr, const CViewSetup &view, int flags, ITexture *target, void *frustum, ITexture *depth);
 typedef bool(__thiscall *tCreateMove)(void *thisptr, float flInputSampleTime, CUserCmd *cmd);
 typedef void(__thiscall *tEndFrame)(PVOID);
 typedef void(__thiscall *tCalcViewModelView)(void *thisptr, const Vector &eyePosition, const QAngle &eyeAngles);
+typedef void(__thiscall *tCreateViewModel)(void *thisptr, int index);
 typedef float(__thiscall *tProcessUsercmds)(void *thisptr, edict_t *player, void *buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);
 typedef int(__cdecl *tReadUsercmd)(void *buf, CUserCmd *move, CUserCmd *from);
 typedef void(__thiscall *tWriteUsercmdDeltaToBuffer)(void *thisptr, int a1, void *buf, int from, int to, bool isnewcommand);
@@ -104,7 +107,8 @@ typedef int(__cdecl *tIsSplitScreen)();
 typedef DWORD *(__thiscall *tPrePushRenderTarget)(void *thisptr, int a2);
 typedef ITexture* (__thiscall* tGetFullScreenTexture)();
 
-typedef bool(__thiscall* tTraceFirePortal)(void* thisptr, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr);
+// Portal 1 returns a placement score in ST(0) and pops eight arguments.
+typedef float(__thiscall* tTraceFirePortal)(void* thisptr, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
 
 typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* a2, __int64 a3);
 
@@ -162,9 +166,13 @@ public:
 
 	static Hook<tGetRenderTarget> hkGetRenderTarget;
 	static Hook<tRenderView> hkRenderView;
+	static Hook<tPush3DView> hkPush3DView;
+	static Hook<tPush3DViewDepth> hkPush3DViewDepth;
+	static ITexture *m_ActiveEyeTexture;
 	static Hook<tCreateMove> hkCreateMove;
 	static Hook<tEndFrame> hkEndFrame;
 	static Hook<tCalcViewModelView> hkCalcViewModelView;
+	static Hook<tCreateViewModel> hkCreateViewModel;
 	static Hook<tProcessUsercmds> hkProcessUsercmds;
 	static Hook<tReadUsercmd> hkReadUsercmd;
 	static Hook<tWriteUsercmdDeltaToBuffer> hkWriteUsercmdDeltaToBuffer;
@@ -232,9 +240,12 @@ public:
 	// Detour functions
 	static ITexture *__fastcall dGetRenderTarget(void *ecx, void *edx);
 	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw);
+	static void __fastcall dPush3DView(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum);
+	static void __fastcall dPush3DViewDepth(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum, ITexture *depth);
 	static bool __fastcall dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd);
 	static void __fastcall dEndFrame(void *ecx, void *edx);
 	static void __fastcall dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles);
+	static void __fastcall dCreateViewModel(void *ecx, void *edx, int index);
 	static int dServerFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
 	static int dClientFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
 	static float __fastcall dProcessUsercmds(void *ecx, void *edx, edict_t *player, void *buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);
@@ -260,7 +271,7 @@ public:
 	static ITexture *__fastcall dGetFullScreenTexture();
 
 	// Fire portals from right controller
-	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr);
+	static float __fastcall dTraceFirePortal(void* ecx, void* edx, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
 
 	// Portalling angle fix
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3);

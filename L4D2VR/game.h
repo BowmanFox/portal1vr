@@ -30,6 +30,8 @@ class VR;
 class Hooks;
 
 extern Game *g_Game;
+void RequestPortalVrStart();
+void UpdatePortalVr();
 
 struct Player
 {
@@ -77,6 +79,7 @@ public:
 
     bool m_Initialized = false;
     bool m_VrBootstrapAttempted = false;
+    uint32_t m_LastVrBootstrapTick = 0;
     uint32_t m_LastRuntimeInterfaceResolveTick = 0;
     bool m_LoggedVrInterfaceReady = false;
     uint32_t m_LastClientModeResolveTick = 0;

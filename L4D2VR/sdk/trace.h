@@ -181,29 +181,19 @@ public:
 };
 
 
-class CTraceFilterSkipNPCsAndPlayers : public CTraceFilter
+class CTraceFilterSkipEntity : public CTraceFilter
 {
 public:
-	CTraceFilterSkipNPCsAndPlayers(IHandleEntity *passentity, int collisionGroup)
+	CTraceFilterSkipEntity(IHandleEntity *passentity, int collisionGroup)
 		: CTraceFilter(passentity, collisionGroup)
 	{
 	}
 
-	virtual bool ShouldHitEntity(IHandleEntity *pServerEntity, int contentsMask)
+	bool ShouldHitEntity(IHandleEntity *entity, int) override
 	{
-		C_BasePlayer *pEntity = (C_BasePlayer *)pServerEntity;
-		if (!pEntity)
-			return true;
-
-		if (m_pPassEnt == pServerEntity)
-			return false;
-
-		if (pEntity->IsNPC() || pEntity->IsPlayer())
-		{
-			return false;
-		}
-
-		return true;
+        // The trace supplies IHandleEntity, not a C_BasePlayer. Calling player
+        // virtuals through it dispatches to unrelated methods on Portal builds.
+        return entity != m_pPassEnt;
 	}
 };
 
@@ -281,7 +271,6 @@ class IEngineTrace
 public:
 
 	virtual void	GetPointContents() = 0;
-	virtual void	GetPointContents_WorldOnly() = 0;
 	virtual void	GetPointContents_Collideable() = 0;
 	virtual void	ClipRayToEntity() = 0;
 	virtual void	ClipRayToCollideable() = 0;

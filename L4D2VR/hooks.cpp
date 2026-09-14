@@ -7,6 +7,7 @@
 #include "offsets.h"
 #include "portal1.h"
 #include "debuglog.h"
+#include "handpose.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -14,9 +15,14 @@ VR *Hooks::m_VR = nullptr;
 
 Hook<tGetRenderTarget> Hooks::hkGetRenderTarget = {};
 Hook<tRenderView> Hooks::hkRenderView = {};
+Hook<tPush3DView> Hooks::hkPush3DView = {};
+Hook<tPush3DViewDepth> Hooks::hkPush3DViewDepth = {};
+ITexture *Hooks::m_ActiveEyeTexture = nullptr;
 Hook<tCreateMove> Hooks::hkCreateMove = {};
 Hook<tEndFrame> Hooks::hkEndFrame = {};
 Hook<tCalcViewModelView> Hooks::hkCalcViewModelView = {};
+Hook<tCreateViewModel> Hooks::hkCreateViewModel = {};
+static void *s_LeftArmRenderable = nullptr;
 Hook<tProcessUsercmds> Hooks::hkProcessUsercmds = {};
 Hook<tReadUsercmd> Hooks::hkReadUsercmd = {};
 Hook<tWriteUsercmdDeltaToBuffer> Hooks::hkWriteUsercmdDeltaToBuffer = {};
@@ -141,9 +147,13 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkCalcViewModelView);
 	EnableIfCreated(hkCreateMove);
 	EnableIfCreated(hkRenderView);
+	EnableIfCreated(hkPush3DView);
+	EnableIfCreated(hkPush3DViewDepth);
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
 	EnableIfCreated(hkGetViewModelFOV);
+	EnableIfCreated(hkCreateViewModel);
+	EnableIfCreated(hkDrawModelExecute);
 	EnableIfCreated(hkPlayerPortalled);
 	EnableIfCreated(hkCHudCrosshair_ShouldDraw);
 	PortalVrLog("Hooks enabled");
@@ -161,6 +171,17 @@ Hooks::~Hooks()
 int Hooks::initSourceHooks()
 {
 	const bool hasOffsets = m_Game->m_Offsets != nullptr;
+	CreateHookAt(hkCreateViewModel,
+		SigScanner::FindRttiVtableFunction("server.dll", ".?AVCBasePlayer@@", 323),
+		reinterpret_cast<LPVOID>(&dCreateViewModel), "Portal1::CreateViewModel", false);
+	void *modelRender = m_Game->GetInterface("engine.dll", Portal1::Interfaces::kModelRender, false);
+	CreateHookAt(hkDrawModelExecute, SigScanner::GetVirtualFunction(modelRender, 19),
+		reinterpret_cast<LPVOID>(&dDrawModelExecute), "IVModelRender::DrawModelExecute", false);
+	void *engineRenderView = m_Game->GetInterface("engine.dll", Portal1::Interfaces::kEngineRenderView);
+	CreateHookAt(hkPush3DViewDepth, SigScanner::GetVirtualFunction(engineRenderView, 37),
+		reinterpret_cast<LPVOID>(&dPush3DViewDepth), "IVRenderView::Push3DView(depth)", true);
+	CreateHookAt(hkPush3DView, SigScanner::GetVirtualFunction(engineRenderView, 38),
+		reinterpret_cast<LPVOID>(&dPush3DView), "IVRenderView::Push3DView", true);
 	IViewRender *clientViewRender = m_Game->GetClientViewRender();
 	IClientMode *clientMode = m_Game->GetClientMode();
 
@@ -184,7 +205,7 @@ int Hooks::initSourceHooks()
 
 	CreateHookAt(
 		hkCalcViewModelView,
-		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kCalcViewModelView, false)),
+		SigScanner::FindRttiVtableFunction("client.dll", ".?AVC_Portal_Player@@", 224),
 		reinterpret_cast<LPVOID>(&dCalcViewModelView),
 		"Portal1::CalcViewModelView",
 		false);
@@ -218,23 +239,23 @@ int Hooks::initSourceHooks()
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 
-	if (hasOffsets && m_Game->m_Offsets->CWeaponPortalgun_FirePortal.valid)
-		CreateHookAt(hkCWeaponPortalgun_FirePortal, m_Game->m_Offsets->CWeaponPortalgun_FirePortal.address, reinterpret_cast<LPVOID>(&dCWeaponPortalgun_FirePortal), "CWeaponPortalgun_FirePortal", false);
+	// The inherited FirePortal detour has Portal 2's ABI. Portal 1 aiming is
+	// handled by the verified eight-argument TraceFirePortal hook above.
 
-	CreatePingPointer = reinterpret_cast<tCreatePingPointer>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kCreatePingPointer, false));
+	CreatePingPointer = (hasOffsets ? reinterpret_cast<tCreatePingPointer>(m_Game->m_Offsets->CreatePingPointer.address) : nullptr);
 	PrecacheParticleSystem = hasOffsets && m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
 	EntityIndex = hasOffsets && m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
 	GetOwner = hasOffsets && m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
 	GetFullScreenTexture = hasOffsets && m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
 	CreateHookAt(
 		hkPlayerPortalled,
-		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kPlayerPortalled, false)),
+		(hasOffsets ? m_Game->m_Offsets->PlayerPortalled.address : 0),
 		reinterpret_cast<LPVOID>(&dPlayerPortalled),
 		"Portal1::C_Portal_Player::PlayerPortalled",
 		false);
 	CreateHookAt(
 		hkCHudCrosshair_ShouldDraw,
-		reinterpret_cast<uintptr_t>(m_Game->GetModuleOffset("client.dll", Portal1::ClientFunction::kHudCrosshairShouldDraw, false)),
+		(hasOffsets ? m_Game->m_Offsets->CHudCrosshair_ShouldDraw.address : 0),
 		reinterpret_cast<LPVOID>(&dCHudCrosshair_ShouldDraw),
 		"Portal1::CHudCrosshair::ShouldDraw",
 		false);
@@ -284,15 +305,29 @@ ITexture* __fastcall Hooks::dGetRenderTarget(void* ecx, void* edx)
 	return result;
 }
 
-void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int nClearFlags, int whatToDraw)
+
+void __fastcall Hooks::dPush3DView(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum)
 {
+    if (!target && m_ActiveEyeTexture) target = m_ActiveEyeTexture;
+    hkPush3DView.fOriginal(ecx, view, flags, target, frustum);
+}
+
+void __fastcall Hooks::dPush3DViewDepth(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum, ITexture *depth)
+{
+    if (!target && m_ActiveEyeTexture) target = m_ActiveEyeTexture;
+    hkPush3DViewDepth.fOriginal(ecx, view, flags, target, frustum, depth);
+}
+
+void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSetup, int nClearFlags, int whatToDraw)
+{
+    CViewSetup setup = originalSetup;
 	static bool loggedRenderViewEntry = false;
 	if (!m_Game->TryResolveVrInterfaces())
 		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	if (!loggedRenderViewEntry)
 	{
-		PortalVrLog("dRenderView first entry ecx=%p", ecx);
+		PortalVrLog("dRenderView first entry ecx=%p flags=%d draw=%d view=%dx%d fov=%f origin=%f,%f,%f", ecx, nClearFlags, whatToDraw, setup.width, setup.height, setup.fov, setup.origin.x, setup.origin.y, setup.origin.z);
 		loggedRenderViewEntry = true;
 	}
 
@@ -305,6 +340,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	if (!matSystem)
 		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
+	CViewSetup desktopView = setup;
 	Vector position = setup.origin;
 
 	if (m_VR->m_ApplyPortalRotationOffset) {
@@ -326,6 +362,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	m_VR->m_SetupOrigin = position;
 
 	Vector hmdAngle = m_VR->GetViewAngle();
+	m_Game->SetViewAngles(QAngle(hmdAngle.x, hmdAngle.y, hmdAngle.z));
 
 	float aspect = setup.m_flAspectRatio;
 
@@ -356,30 +393,42 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 
 	// Left eye CViewSetup
 	leftEyeView.origin = m_VR->GetViewOriginLeft(position);
+    static int loggedEye = 0;
+    if (++loggedEye == 120) PortalVrLog("Eye view fov=%f aspect=%f pos=%f,%f,%f angle=%f,%f,%f near=%f far=%f ortho=%d projectionOverride=%d",
+        leftEyeView.fov,leftEyeView.m_flAspectRatio,leftEyeView.origin.x,leftEyeView.origin.y,leftEyeView.origin.z,
+        leftEyeView.angles.x,leftEyeView.angles.y,leftEyeView.angles.z,leftEyeView.zNear,leftEyeView.zFar,leftEyeView.m_bOrtho,leftEyeView.m_bViewToProjectionOverride);
 
 	IMatRenderContext* rndrContext = matSystem->GetRenderContext();
 	if (!rndrContext)
 		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
+	m_VR->m_BindingEyeTexture = VR::Texture_LeftEye;
 	rndrContext->PushRenderTargetAndViewport(
 		m_VR->m_LeftEyeTexture,
 		0,
 		0,
 		static_cast<int>(m_VR->m_RenderWidth),
 		static_cast<int>(m_VR->m_RenderHeight));
-	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw);
+	m_VR->m_BindingEyeTexture = VR::Texture_None;
+	m_ActiveEyeTexture = m_VR->m_LeftEyeTexture;
+	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	m_ActiveEyeTexture = nullptr;
 	rndrContext->PopRenderTargetAndViewport();
 	
 	// Right eye CViewSetup
 	rightEyeView.origin = m_VR->GetViewOriginRight(position);
 
+	m_VR->m_BindingEyeTexture = VR::Texture_RightEye;
 	rndrContext->PushRenderTargetAndViewport(
 		m_VR->m_RightEyeTexture,
 		0,
 		0,
 		static_cast<int>(m_VR->m_RenderWidth),
 		static_cast<int>(m_VR->m_RenderHeight));
-	hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw);
+	m_VR->m_BindingEyeTexture = VR::Texture_None;
+	m_ActiveEyeTexture = m_VR->m_RightEyeTexture;
+	hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	m_ActiveEyeTexture = nullptr;
 	rndrContext->PopRenderTargetAndViewport();
 
 	m_PushedHud = false;
@@ -402,10 +451,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, int 
 	rndrContext->Release();*/
 
 	if (m_VR->m_RenderWindow) {
-		setup.m_flAspectRatio = aspect;
-
-		//setup.width, setup.height
-		hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
+        hkRenderView.fOriginal(ecx, desktopView, nClearFlags, whatToDraw);
 	}
 
 
@@ -420,6 +466,9 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
 	if (!cmd->command_number)
 		return hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
 
+    const bool originalResult = hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
+    if (!m_VR->m_IsVREnabled)
+        return originalResult;
 	if (m_VR->m_IsVREnabled)
 	{
 		cmd->viewangles = m_VR->m_HmdAngAbs;
@@ -490,8 +539,55 @@ void __fastcall Hooks::dEndFrame(void *ecx, void *edx)
 	return hkEndFrame.fOriginal(ecx);
 }
 
+void __fastcall Hooks::dCreateViewModel(void *ecx, void *edx, int index)
+{
+    hkCreateViewModel.fOriginal(ecx, index);
+    if (index == 0 && m_VR->m_IsVREnabled) {
+        // Use Source's second owned viewmodel. The game manages its lifetime,
+        // networking and save data, and gun pickup can keep the left arm visible.
+        hkCreateViewModel.fOriginal(ecx, 1);
+        PortalVrLog("Created independent left-arm viewmodel");
+    }
+}
+
 void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles)
 {
+	s_LeftArmRenderable = nullptr;
+	if (m_VR->m_IsVREnabled && m_Game->m_Offsets->GetViewModel.valid) {
+		using GetViewModelFn = void *(__thiscall *)(void *, int, bool);
+		for (int index = 0; index < 2; ++index) {
+			void *vm = reinterpret_cast<GetViewModelFn>(m_Game->m_Offsets->GetViewModel.address)(ecx, index, false);
+			if (vm) {
+				if (index == 1) s_LeftArmRenderable = static_cast<unsigned char *>(vm) + 4;
+				using GetWeaponFn = void *(__thiscall *)(void *);
+				const auto getWeapon = SigScanner::GetVirtualFunction(vm, 209);
+				void *weapon = getWeapon ? reinterpret_cast<GetWeaponFn>(getWeapon)(vm) : nullptr;
+				if (getWeapon && !weapon) {
+					using SetWeaponModelFn = void (__thiscall *)(void *, const char *, void *);
+					using RemoveEffectsFn = void (__thiscall *)(void *, int);
+					const auto setModel = SigScanner::GetVirtualFunction(vm, 202);
+					const auto removeEffects = SigScanner::GetVirtualFunction(vm, 208);
+					if (setModel && removeEffects) {
+						void *renderable = static_cast<unsigned char *>(vm) + 4;
+						const auto getModel = SigScanner::GetVirtualFunction(renderable, 9);
+						using GetModelFn = model_t *(__thiscall *)(void *);
+						model_t *model = getModel ? reinterpret_cast<GetModelFn>(getModel)(renderable) : nullptr;
+						const char *name = model && m_Game->GetModelInfo() ? m_Game->GetModelInfo()->GetModelName(model) : nullptr;
+						if (!name || _stricmp(name, "models/weapons/v_hands.mdl"))
+							reinterpret_cast<SetWeaponModelFn>(setModel)(vm, "models/weapons/v_hands.mdl", nullptr);
+						// Keep custom hands independent of the world-player skeleton.
+						// Reference-pose rendering also avoids the legacy idle animation.
+						reinterpret_cast<RemoveEffectsFn>(removeEffects)(vm, 1 | 32);
+					}
+				}
+				static int loggedModel = 0;
+				if (loggedModel++ < 3) PortalVrLog("Viewmodel entity=%p weapon=%p", vm, weapon);
+			}
+		}
+	}
+	static int logged = 0;
+	if (logged++ < 3) PortalVrLog("Controller viewmodel update player=%p hand=%f,%f,%f", ecx,
+		m_VR->m_RightControllerPosRel.x,m_VR->m_RightControllerPosRel.y,m_VR->m_RightControllerPosRel.z);
 	Vector vecNewOrigin = eyePosition;
 	QAngle vecNewAngles = eyeAngles;
 
@@ -591,37 +687,72 @@ Vector *Hooks::dEyePosition(void *ecx, void *edx, Vector *eyePos)
 	return result;
 }
 
-// We'll keep this for... future reference!
 void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld)
 {
-	auto *modelInfo = m_Game->GetModelInfo();
-	auto *materialSystem = m_Game->GetMaterialSystem();
-	auto *modelRender = m_Game->GetModelRender();
+    // Work on a copy: Source shares its cached matrices with attachments and
+    // other eyes. Rewriting that cache would accumulate the controller transform.
+    const auto *bones = static_cast<const matrix3x4_t *>(pCustomBoneToWorld);
+    if (m_VR->m_IsVREnabled && state && bones) {
+        const auto *hdr = *reinterpret_cast<const unsigned char **>(state);
+        if (hdr && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr), 164)) {
+            const char *name = reinterpret_cast<const char *>(hdr + 12);
+            const int count = *reinterpret_cast<const int *>(hdr + 156);
+            const auto kind = HandPose::Identify(name, count);
+            const bool gun = kind == HandPose::Model::Gun;
+            const bool hands = kind == HandPose::Model::Hands;
+            if ((gun || hands) && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(bones), count * sizeof(matrix3x4_t))
+                && m_VR->m_RightControllerForward.LengthSqr() > 0.9f) {
+                matrix3x4_t tracked[128];
+                memcpy(tracked, bones, count * sizeof(matrix3x4_t));
+                // Use the model's actual bind skeleton for skinning the arms.
+                // The inherited player/viewmodel animation can displace wrists
+                // relative to these meshes. Gun parts retain their animation below.
+                matrix3x4_t reference[128];
+                const int boneOffset = *reinterpret_cast<const int *>(hdr + 160);
+                const int modelLength = *reinterpret_cast<const int *>(hdr + 76);
+                if (boneOffset < 164 || modelLength < boneOffset || modelLength - boneOffset < count * 216
+                    || !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr + boneOffset), count * 216))
+                    return hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
+                for (int i = 0; i < count; ++i) {
+                    const auto &poseToBone = *reinterpret_cast<const matrix3x4_t *>(hdr + boneOffset + i * 216 + 96);
+                    reference[i] = HandPose::InverseRigid(poseToBone);
+                }
 
-	if (info.pModel)
-	{
-		if (!modelInfo || !materialSystem)
-			return hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
+                const Vector rightPosition = m_VR->GetRightHandAbsPos();
+                if (gun) {
+                    // The gun's local +Z is its barrel, +Y is up. Align its
+                    // grip with the controller and retain animated gun parts.
+                    matrix3x4_t source = reference[24];
+                    for (int row = 0; row < 3; ++row) source[row][3] = reference[8][row][3];
+                    const auto target = HandPose::Frame(-m_VR->m_RightControllerRight,
+                        m_VR->m_RightControllerUp, m_VR->m_RightControllerForward, rightPosition);
+                    for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
+                    const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
+                    for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
+                    HandPose::StraightenGunWrist(tracked);
+                } else {
+                    const auto rightTarget = HandPose::Frame(m_VR->m_RightHandForward,
+                        -m_VR->m_RightHandUp, -m_VR->m_RightControllerRight, rightPosition);
+                    const auto leftTarget = HandPose::Frame(m_VR->m_LeftHandForward,
+                        m_VR->m_LeftHandUp, m_VR->m_LeftControllerRight, m_VR->GetLeftHandAbsPos());
+                    HandPose::AlignBareArms(reference, tracked, leftTarget, rightTarget);
+                    if (s_LeftArmRenderable) {
+                        const bool leftOnly = info.pRenderable == s_LeftArmRenderable;
+                        const Vector hiddenAt = leftOnly ? m_VR->GetLeftHandAbsPos() : rightPosition;
+                        const auto collapsed = HandPose::Frame({0,0,0},{0,0,0},{0,0,0},hiddenAt);
+                        for (int i = 0; i < count; ++i)
+                            if (i < 5 || (leftOnly ? i >= 24 : i < 24)) tracked[i] = collapsed;
+                    }
 
-		std::string modelName = modelInfo->GetModelName(info.pModel);
-		if (modelName.find("/arms/") != std::string::npos)
-		{
-			m_Game->m_ArmsMaterial = materialSystem->FindMaterial(modelName.c_str(), "Model textures");
-			m_Game->m_ArmsModel = info.pModel;
-			m_Game->m_CachedArmsModel = true;
-		}
-	}
-
-	if (info.pModel && info.pModel == m_Game->m_ArmsModel && modelRender)
-	{
-		m_Game->m_ArmsMaterial->SetMaterialVarFlag(MATERIAL_VAR_NO_DRAW, true);
-		modelRender->ForcedMaterialOverride(m_Game->m_ArmsMaterial);
-		hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
-		modelRender->ForcedMaterialOverride(NULL);
-		return;
-	}
-
-	hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
+                }
+                static int logged = 0;
+                if (logged++ < 6) PortalVrLog("Hand-anchored model=%s wrist=%f,%f,%f", name,
+                    tracked[gun ? 8 : 27][0][3],tracked[gun ? 8 : 27][1][3],tracked[gun ? 8 : 27][2][3]);
+                return hkDrawModelExecute.fOriginal(ecx, state, info, tracked);
+            }
+        }
+    }
+    return hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
 }
 
 void Hooks::dPushRenderTargetAndViewport(void *ecx, void *edx, ITexture *pTexture, ITexture *pDepthTexture, int nViewX, int nViewY, int nViewW, int nViewH)
@@ -746,40 +877,23 @@ void* Hooks::dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool isSecondary
 	return result;
 }
 
-bool __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool isSecondaryPortal, int iPlacedBy, void* tr) //trace_tx& tr, Vector& vFinalPosition //  , Vector& vFinalPosition, QAngle& qFinalAngles, int iPlacedBy, bool bTest /*= false*/
+float __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, bool secondary,
+    const Vector& start, const Vector& direction, void* trace,
+    Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test)
 {
-	Vector vNewTraceStart = vTraceStart;
-	Vector vNewDirection = vDirection;
-
-	if (iPlacedBy == 2 && m_VR->m_IsVREnabled) {
-		vNewTraceStart = m_VR->GetRightControllerAbsPos();
-		vNewDirection = m_VR->m_RightControllerForward;
-	}
-	else if (iPlacedBy == 2 && GetOwner && EntityIndex) {
-		int localIndex = m_Game->GetLocalPlayerIndex();
-
-		auto owner = GetOwner(ecx);
-
-		if (owner) {
-			int index = EntityIndex(owner);
-
-			auto vrPlayer = m_Game->m_PlayersVRInfo[index];
-
-			if (m_VR->m_IsVREnabled && localIndex == index) {
-				vNewTraceStart = m_VR->GetRightControllerAbsPos();
-				vNewDirection = m_VR->m_RightControllerForward;
-			}
-			else if (vrPlayer.isUsingVR)
-			{
-				vNewTraceStart = vrPlayer.controllerPos;
-				Vector fwd, rt, up;
-				QAngle::AngleVectors(vrPlayer.controllerAngle, &fwd, &rt, &up);
-				vNewDirection = fwd;
-			}
-		}
-	}
-
-	return hkTraceFirePortal.fOriginal(ecx, vNewTraceStart, vNewDirection, isSecondaryPortal, iPlacedBy, tr);
+    Vector shotStart = start;
+    Vector shotDirection = direction;
+    if (placedBy == 2 && m_VR->m_IsVREnabled) {
+        shotStart = m_VR->GetRightHandAbsPos();
+        shotDirection = m_VR->m_RightControllerForward;
+        static int logged = 0;
+        if (!test && logged++ < 20)
+            PortalVrLog("Controller portal shot secondary=%d hand=%f,%f,%f direction=%f,%f,%f headDirection=%f,%f,%f",
+                secondary,shotStart.x,shotStart.y,shotStart.z,
+                shotDirection.x,shotDirection.y,shotDirection.z,direction.x,direction.y,direction.z);
+    }
+    return hkTraceFirePortal.fOriginal(ecx, secondary, shotStart, shotDirection, trace,
+        finalPosition, finalAngles, placedBy, test);
 }
 
 void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3)

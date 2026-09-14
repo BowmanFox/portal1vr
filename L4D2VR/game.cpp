@@ -11,6 +11,7 @@
 #include "trace.h"
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include <Psapi.h>
+#include <atomic>
 
 namespace
 {
@@ -19,6 +20,7 @@ namespace
     constexpr bool kConstructOffsets = true;
     constexpr bool kResolveClientGlobals = true;
     constexpr bool kResolveCreateInterfaces = false;
+    std::atomic<bool> startRequested{false};
 
     bool TryGetModuleInfo(const char *dllname, MODULEINFO &moduleInfo)
     {
@@ -68,13 +70,38 @@ namespace
             return nullptr;
 
         lastResolveTick = now;
-        slot = reinterpret_cast<T *>(game->GetModuleOffset(dllname, offset, false));
-        PortalVrLog("ResolveGlobalOnDemand %s from %s+0x%zX => %p", name, dllname, static_cast<size_t>(offset), slot);
+        const std::string typeName = std::string(".?AV") + name + "@@";
+        slot = reinterpret_cast<T *>(SigScanner::FindRttiObject(dllname, typeName.c_str()));
+        PortalVrLog("ResolveGlobalOnDemand %s from %s RTTI => %p", name, dllname, slot);
         return slot;
     }
 }
 
 Game* g_Game = nullptr;
+
+void RequestPortalVrStart()
+{
+    startRequested.store(true, std::memory_order_release);
+}
+
+void UpdatePortalVr()
+{
+    // Publish and use the game on the render thread, after the loader and
+    // D3D9 device have finished initialization. A deferred bootstrap must
+    // actually be retried; a worker must not publish half-ready interfaces.
+    if (!startRequested.load(std::memory_order_acquire) || !g_D3DVR9)
+        return;
+    if (!g_Game)
+    {
+        for (const char *module : {"client.dll", "engine.dll", "server.dll", "materialsystem.dll", "vgui2.dll"})
+            if (!GetModuleHandleA(module))
+                return;
+        g_Game = new Game();
+    }
+    g_Game->EnsureVrBootstrap();
+    if (g_Game->m_VR && g_Game->m_VR->m_IsInitialized)
+        g_Game->m_VR->Update();
+}
 
 Game::Game()
 {
@@ -157,7 +184,10 @@ Game::Game()
 
 void Game::EnsureVrBootstrap()
 {
-    if (m_VrBootstrapAttempted || m_VR != nullptr)
+    if (m_VR != nullptr)
+        return;
+    const DWORD bootstrapTick = GetTickCount();
+    if (m_VrBootstrapAttempted && bootstrapTick - m_LastVrBootstrapTick < 5000)
         return;
 
     if (!g_D3DVR9)
@@ -166,7 +196,11 @@ void Game::EnsureVrBootstrap()
         return;
     }
 
+    if (!TryResolveVrInterfaces() || !GetClientMode() || !GetEngineClient())
+        return;
+
     m_VrBootstrapAttempted = true;
+    m_LastVrBootstrapTick = bootstrapTick;
     PortalVrLog("EnsureVrBootstrap start");
 
     m_VR = new VR(this);
@@ -175,6 +209,8 @@ void Game::EnsureVrBootstrap()
     if (!m_VR || !m_VR->m_IsInitialized)
     {
         PortalVrLog("EnsureVrBootstrap aborted: VR did not initialize");
+        delete m_VR;
+        m_VR = nullptr;
         return;
     }
 
@@ -331,21 +367,19 @@ bool Game::IsInGame()
 
 bool Game::GetViewAngles(QAngle &angle)
 {
-    C_Portal_Player *localPlayer = GetLocalPortalPlayer();
-    if (!localPlayer)
+    IEngineClient *engineClient = GetEngineClient();
+    if (!engineClient)
         return false;
-
-    angle = localPlayer->GetEyeAngles();
+    engineClient->GetViewAngles(angle);
     return true;
 }
 
 bool Game::SetViewAngles(const QAngle &angle)
 {
-    C_Portal_Player *localPlayer = GetLocalPortalPlayer();
-    if (!localPlayer)
+    IEngineClient *engineClient = GetEngineClient();
+    if (!engineClient)
         return false;
-
-    localPlayer->SetEyeAngles(angle);
+    engineClient->SetViewAngles(angle);
     return true;
 }
 

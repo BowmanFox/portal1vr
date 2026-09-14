@@ -11,20 +11,20 @@ struct IDirect3DSurface9;
 class ITexture;
 
 
-struct TrackedDevicePoseData 
+struct TrackedDevicePoseData
 {
 	std::string TrackedDeviceName;
-	Vector TrackedDevicePos;
-	Vector TrackedDeviceVel;
-	QAngle TrackedDeviceAng;
-	QAngle TrackedDeviceAngVel;
+	Vector TrackedDevicePos = { 0, 0, 0 };
+	Vector TrackedDeviceVel = { 0, 0, 0 };
+	QAngle TrackedDeviceAng = { 0, 0, 0 };
+	QAngle TrackedDeviceAngVel = { 0, 0, 0 };
 };
 
 class SharedTextureHolder
 {
 public:
-	vr::VRVulkanTextureData_t m_VulkanData;
-	vr::Texture_t m_VRTexture;
+	vr::VRVulkanTextureData_t m_VulkanData{};
+	vr::Texture_t m_VRTexture{};
 };
 
 class VR
@@ -44,38 +44,42 @@ public:
 	float m_HorizontalOffsetRight;
 	float m_VerticalOffsetRight;
 
-	uint32_t m_RenderWidth;
-	uint32_t m_RenderHeight;
-	uint32_t m_AntiAliasing;
-	uint32_t m_RenderWindow;
+	uint32_t m_RenderWidth = 0;
+	uint32_t m_RenderHeight = 0;
+	uint32_t m_AntiAliasing = 0;
+	uint32_t m_RenderWindow = 0;
 	float m_Aspect;
 	float m_Fov;
 
 	vr::VRTextureBounds_t m_TextureBounds[2];
-	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount];
+	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount]{};
 
 	Vector m_EyeToHeadTransformPosLeft = { 0,0,0 };
 	Vector m_EyeToHeadTransformPosRight = { 0,0,0 };
 
-	Vector m_HmdForward;
-	Vector m_HmdRight;
-	Vector m_HmdUp;
+	Vector m_HmdForward = { 0, 0, 0 };
+	Vector m_HmdRight = { 0, 0, 0 };
+	Vector m_HmdUp = { 0, 0, 0 };
 
 	Vector m_HmdPosLocalInWorld = { 0,0,0 };
 
-	Vector m_LeftControllerForward;
-	Vector m_LeftControllerRight;
-	Vector m_LeftControllerUp;
+	Vector m_LeftControllerForward = { 0, 0, 0 };
+	Vector m_LeftControllerRight = { 0, 0, 0 };
+	Vector m_LeftControllerUp = { 0, 0, 0 };
 
-	Vector m_RightControllerForward;
-	Vector m_RightControllerRight;
-	Vector m_RightControllerUp;
+	Vector m_RightControllerForward = { 0, 0, 0 };
+	Vector m_RightControllerRight = { 0, 0, 0 };
+	Vector m_RightControllerUp = { 0, 0, 0 };
+	Vector m_RightHandForward = { 1, 0, 0 };
+	Vector m_RightHandUp = { 0, 0, 1 };
+	Vector m_LeftHandForward = { 1, 0, 0 };
+	Vector m_LeftHandUp = { 0, 0, 1 };
 
-	Vector m_ViewmodelForward;
-	Vector m_ViewmodelRight;
-	Vector m_ViewmodelUp;
+	Vector m_ViewmodelForward = { 0, 0, 0 };
+	Vector m_ViewmodelRight = { 0, 0, 0 };
+	Vector m_ViewmodelUp = { 0, 0, 0 };
 
-	QAngle m_HmdAngAbs;
+	QAngle m_HmdAngAbs = { 0, 0, 0 };
 
 	Vector m_HmdPosRelativeRaw = { 0,0,0 };
 	Vector m_HmdPosRelativeRawPrev = { 0,0,0 };
@@ -92,19 +96,19 @@ public:
 	float m_HeightOffset = 0.0;
 	bool m_RoomscaleActive = false;
 
-	Vector m_LeftControllerPosAbs;											
-	QAngle m_LeftControllerAngAbs;
-	Vector m_RightControllerPosRel;											
-	QAngle m_RightControllerAngAbs;
+	Vector m_LeftControllerPosRel = { 0, 0, 0 };
+	QAngle m_LeftControllerAngAbs = { 0, 0, 0 };
+	Vector m_RightControllerPosRel = { 0, 0, 0 };
+	QAngle m_RightControllerAngAbs = { 0, 0, 0 };
 
-	Vector m_ViewmodelPosOffset;
-	QAngle m_ViewmodelAngOffset;
+	Vector m_ViewmodelPosOffset = { 0, 0, 0 };
+	QAngle m_ViewmodelAngOffset = { 0, 0, 0 };
 
-	Vector m_ViewmodelPosCustomOffset; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
-    QAngle m_ViewmodelAngCustomOffset; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
+	Vector m_ViewmodelPosCustomOffset = { 0, 0, 0 }; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
+    QAngle m_ViewmodelAngCustomOffset = { 0, 0, 0 }; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
 
-	float m_Ipd;																	
-	float m_EyeZ;
+	float m_Ipd = 0.0f;
+	float m_EyeZ = 0.0f;
 
 	Vector m_IntendedPositionOffset = { 0,0,0 };
 
@@ -140,39 +144,40 @@ public:
 	bool m_CreatedVRTextures = false;
 	bool m_DrawCrosshair = false;
 	TextureID m_CreatingTextureID = Texture_None;
+	TextureID m_BindingEyeTexture = Texture_None;
 
 	bool m_PressedTurn = false;
 	bool m_PushingThumbstick = false;
 	bool m_PointerCreated = false;
 
 	// action set
-	vr::VRActionSetHandle_t m_ActionSet;
-	vr::VRActiveActionSet_t m_ActiveActionSet;
+	vr::VRActionSetHandle_t m_ActionSet = 0;
+	vr::VRActiveActionSet_t m_ActiveActionSet{};
 
 	// actions
-	vr::VRActionHandle_t m_ActionJump;
-	vr::VRActionHandle_t m_ActionPrimaryAttack;
-	vr::VRActionHandle_t m_ActionSecondaryAttack;
-	vr::VRActionHandle_t m_ActionReload;
-	vr::VRActionHandle_t m_ActionWalk;
-	vr::VRActionHandle_t m_ActionTurn;
-	vr::VRActionHandle_t m_ActionUse;
-	vr::VRActionHandle_t m_ActionNextItem;
-	vr::VRActionHandle_t m_ActionPrevItem;
-	vr::VRActionHandle_t m_ActionResetPosition;
-	vr::VRActionHandle_t m_ActionCrouch;
-	vr::VRActionHandle_t m_ActionFlashlight;
-	vr::VRActionHandle_t m_ActionActivateVR;
-	vr::VRActionHandle_t m_MenuSelect;
-	vr::VRActionHandle_t m_MenuBack;
-	vr::VRActionHandle_t m_MenuUp;
-	vr::VRActionHandle_t m_MenuDown;
-	vr::VRActionHandle_t m_MenuLeft;
-	vr::VRActionHandle_t m_MenuRight;
-	vr::VRActionHandle_t m_Spray; 
-	vr::VRActionHandle_t m_Scoreboard;
-	vr::VRActionHandle_t m_ShowHUD;
-	vr::VRActionHandle_t m_Pause;
+	vr::VRActionHandle_t m_ActionJump = 0;
+	vr::VRActionHandle_t m_ActionPrimaryAttack = 0;
+	vr::VRActionHandle_t m_ActionSecondaryAttack = 0;
+	vr::VRActionHandle_t m_ActionReload = 0;
+	vr::VRActionHandle_t m_ActionWalk = 0;
+	vr::VRActionHandle_t m_ActionTurn = 0;
+	vr::VRActionHandle_t m_ActionUse = 0;
+	vr::VRActionHandle_t m_ActionNextItem = 0;
+	vr::VRActionHandle_t m_ActionPrevItem = 0;
+	vr::VRActionHandle_t m_ActionResetPosition = 0;
+	vr::VRActionHandle_t m_ActionCrouch = 0;
+	vr::VRActionHandle_t m_ActionFlashlight = 0;
+	vr::VRActionHandle_t m_ActionActivateVR = 0;
+	vr::VRActionHandle_t m_MenuSelect = 0;
+	vr::VRActionHandle_t m_MenuBack = 0;
+	vr::VRActionHandle_t m_MenuUp = 0;
+	vr::VRActionHandle_t m_MenuDown = 0;
+	vr::VRActionHandle_t m_MenuLeft = 0;
+	vr::VRActionHandle_t m_MenuRight = 0;
+	vr::VRActionHandle_t m_Spray = 0;
+	vr::VRActionHandle_t m_Scoreboard = 0;
+	vr::VRActionHandle_t m_ShowHUD = 0;
+	vr::VRActionHandle_t m_Pause = 0;
 
 	TrackedDevicePoseData m_HmdPose;
 	TrackedDevicePoseData m_LeftControllerPose;
@@ -217,6 +222,16 @@ public:
 	QAngle GetRightControllerAbsAngle();
 	QAngle& GetRightControllerAbsAngleConst();
 	Vector GetRightControllerAbsPos(Vector eyePosition = {0, 0, 0});
+	Vector GetLeftControllerAbsPos() { return GetRightControllerAbsPos() - m_RightControllerPosRel + m_LeftControllerPosRel; }
+	Vector GetRightHandAbsPos() {
+		// The controller tracks the grip, while the model anchor is the wrist.
+		return GetRightControllerAbsPos() + m_RightControllerForward * (m_ViewmodelPosCustomOffset.x - 2.5f)
+			+ m_RightControllerRight * (m_ViewmodelPosCustomOffset.y - 1.0f)
+			+ m_RightControllerUp * m_ViewmodelPosCustomOffset.z;
+	}
+	Vector GetLeftHandAbsPos() {
+		return GetLeftControllerAbsPos() - m_LeftControllerForward * 2.5f + m_LeftControllerRight;
+	}
 	Vector GetRecommendedViewmodelAbsPos(Vector eyePosition);
 	QAngle GetRecommendedViewmodelAbsAngle();
 	void UpdateHMDAngles();

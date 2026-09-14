@@ -151,118 +151,117 @@ public:
 	virtual bool IsThirdPersonCamera() = 0;
 };
 
+// Portal VEngineClient014 (Source 2013). Slot numbers are part of the binary ABI.
 class IEngineClient
 {
 public:
-	virtual void *GetIntersectingSurfaces() = 0;
-	virtual void *GetLightForPoint() = 0;
-	virtual void *TraceLineMaterialAndLighting() = 0;
-	virtual void *ParseFile() = 0;
-	virtual void *CopyLocalFile() = 0;
-	virtual void *GetScreenSize() = 0;
-	virtual void *ServerCmd() = 0;
-	virtual void *ClientCmd(const char *szCmdString) = 0;
-	virtual bool GetPlayerInfo(int ent_num, player_info_t *pinfo) = 0;
-	virtual int GetPlayerForUserID(int userID) = 0;
-	virtual void TextMessageGet(char const*) = 0;
-	virtual bool Con_IsVisible() = 0;
-	virtual int GetLocalPlayer(void) = 0;
-	virtual int fn13() = 0;
-	virtual int fn14() = 0;
-	virtual int fn15() = 0;
-	virtual int fn16() = 0;
-	virtual int fn17() = 0;
-	virtual QAngle* GetViewAngles(QAngle &angle) = 0;
-	virtual QAngle* SetViewAngles(QAngle &angle) = 0;
-	virtual void *sub_1005D230() = 0;
-	virtual void *sub_1005D280() = 0;
-	virtual void *sub_1005D2A0() = 0;
-	virtual void *sub_1005D2C0() = 0;
-	virtual void *sub_1005D2D0() = 0;
-	virtual bool IsInGame() = 0;
-	virtual void *sub_1005F150() = 0;
-	virtual void *sub_1005D2F0() = 0;
-	virtual void *sub_1005D300() = 0;
-	virtual void *sub_1005D350() = 0;
-	virtual void *sub_1005D3B0() = 0;
-	virtual void *sub_1005D430() = 0;
-	virtual void *sub_1005D460() = 0;
-	virtual void *sub_1005D5A0() = 0;
-	virtual void *sub_1005D4F0() = 0;
-	virtual void *sub_1005D5B0() = 0;
-	virtual void *sub_1005D5C0() = 0;
-	virtual void *sub_1005D5D0() = 0;
-	virtual void *sub_1005D5E0() = 0;
-	virtual void *sub_1005D600() = 0;
-	virtual void *sub_1005D620() = 0;
-	virtual void *sub_1005D640() = 0;
-	virtual void *sub_1005D710() = 0;
-	virtual void *sub_1005D720() = 0;
-	virtual void *sub_1005D790() = 0;
-	virtual void *sub_1005D7C0() = 0;
-	virtual void *sub_1005D840() = 0;
-	virtual void *sub_1005D880() = 0;
-	virtual void *sub_1005D890() = 0;
-	virtual void *sub_1005D8A0() = 0;
-	virtual void *sub_1005D8D0() = 0;
-	virtual void *sub_1005F160() = 0;
-	virtual void *sub_1005F190() = 0;
-	virtual void *sub_1005DA90() = 0;
-	virtual void *sub_1005DAA0() = 0;
-	virtual void *sub_1005DAB0() = 0;
-	virtual void *sub_1005DAC0() = 0;
-	virtual void *sub_1005DAE0() = 0;
-	virtual void *sub_1005DB40() = 0;
-	virtual void *sub_1005DB70() = 0;
-	virtual void *sub_1005DBA0() = 0;
-	virtual void *sub_1005DBC0() = 0;
-	virtual void *sub_1005DBE0() = 0;
-	virtual void *sub_1005DC10() = 0;
-	virtual void *sub_1005DC40() = 0;
-	virtual void *sub_1005DC60() = 0;
-	virtual void *sub_1005DC80() = 0;
-	virtual void *sub_1005DCA0() = 0;
-	virtual void *sub_1005D7E0() = 0;
-	virtual void *sub_1005DCC0() = 0;
-	virtual void *sub_1005DCE0() = 0;
-	virtual void *sub_1005DD00() = 0;
-	virtual void *sub_1005DD20() = 0;
-	virtual void *sub_1005DD40() = 0;
-	virtual void *sub_100606A0() = 0;
-	virtual void *sub_10060670() = 0;
-	virtual void *sub_1005DAD0() = 0;
-	virtual void *sub_1005D7B0() = 0;
-	virtual void *sub_1005DD50() = 0;
-	virtual void *sub_1005DD60() = 0;
-	virtual void *sub_1005DD70() = 0;
-	virtual void *sub_1005DDE0() = 0;
-	virtual void *sub_1005DDF0() = 0;
-	virtual void *sub_1005DE00() = 0;
-	virtual void *sub_1005DE10() = 0;
-	virtual void *sub_1005DE20() = 0;
-	virtual bool IsPaused() = 0;
-	virtual void *sub_1005DD90() = 0;
-	virtual void *sub_1005DDA0() = 0;
-	virtual void *sub_1005DE30() = 0;
-	virtual void *sub_1005D900() = 0;
-	virtual void *sub_1005D910() = 0;
-	virtual void *sub_1005D9B0() = 0;
-	virtual void *sub_1005DE40() = 0;
-	virtual void *sub_1005F1C0() = 0;
-	virtual void *sub_1005DE80() = 0;
-	virtual void *sub_1005DE90() = 0;
-	virtual void *sub_1005DEB0() = 0;
-	virtual void *sub_1005CB30() = 0;
-	virtual void *sub_1005CB40() = 0;
-	virtual void *sub_1005DF00() = 0;
-	virtual void *sub_1005DF20() = 0;
-	virtual void *sub_1005CF70() = 0;
-	virtual void *sub_1005D000() = 0;
-	virtual void *sub_1005DED0() = 0;
-	virtual void *sub_1005CBB0() = 0;
-	virtual void* sub_1005CBB0_1() = 0;
-	virtual void* sub_1005CBB0_2() = 0;
-	virtual void *ClientCmd_Unrestricted(const char *szCmdString) = 0;
+	virtual void Unused0() = 0; // 0
+	virtual void Unused1() = 0; // 1
+	virtual void Unused2() = 0; // 2
+	virtual void Unused3() = 0; // 3
+	virtual void Unused4() = 0; // 4
+	virtual void GetScreenSize(int &wide, int &tall) = 0; // 5
+	virtual void Unused6() = 0; // 6
+	virtual void ClientCmd(const char *command) = 0; // 7
+	virtual bool GetPlayerInfo(int index, player_info_t *info) = 0; // 8
+	virtual int GetPlayerForUserID(int userID) = 0; // 9
+	virtual void Unused10() = 0; // 10
+	virtual bool Con_IsVisible() = 0; // 11
+	virtual int GetLocalPlayer() = 0; // 12
+	virtual void Unused13() = 0; // 13
+	virtual void Unused14() = 0; // 14
+	virtual void Unused15() = 0; // 15
+	virtual void Unused16() = 0; // 16
+	virtual void Unused17() = 0; // 17
+	virtual void Unused18() = 0; // 18
+	virtual void GetViewAngles(QAngle &angle) = 0; // 19
+	virtual void SetViewAngles(const QAngle &angle) = 0; // 20
+	virtual void Unused21() = 0; // 21
+	virtual void Unused22() = 0; // 22
+	virtual void Unused23() = 0; // 23
+	virtual void Unused24() = 0; // 24
+	virtual void Unused25() = 0; // 25
+	virtual bool IsInGame() = 0; // 26
+	virtual bool IsConnected() = 0; // 27
+	virtual void Unused28() = 0; // 28
+	virtual void Unused29() = 0; // 29
+	virtual void Unused30() = 0; // 30
+	virtual void Unused31() = 0; // 31
+	virtual void Unused32() = 0; // 32
+	virtual void Unused33() = 0; // 33
+	virtual void Unused34() = 0; // 34
+	virtual void Unused35() = 0; // 35
+	virtual void Unused36() = 0; // 36
+	virtual void Unused37() = 0; // 37
+	virtual void Unused38() = 0; // 38
+	virtual void Unused39() = 0; // 39
+	virtual void Unused40() = 0; // 40
+	virtual void Unused41() = 0; // 41
+	virtual void Unused42() = 0; // 42
+	virtual void Unused43() = 0; // 43
+	virtual void Unused44() = 0; // 44
+	virtual void Unused45() = 0; // 45
+	virtual void Unused46() = 0; // 46
+	virtual void Unused47() = 0; // 47
+	virtual void Unused48() = 0; // 48
+	virtual void Unused49() = 0; // 49
+	virtual void Unused50() = 0; // 50
+	virtual void Unused51() = 0; // 51
+	virtual void Unused52() = 0; // 52
+	virtual void Unused53() = 0; // 53
+	virtual void Unused54() = 0; // 54
+	virtual void Unused55() = 0; // 55
+	virtual void Unused56() = 0; // 56
+	virtual void Unused57() = 0; // 57
+	virtual void Unused58() = 0; // 58
+	virtual void Unused59() = 0; // 59
+	virtual void Unused60() = 0; // 60
+	virtual void Unused61() = 0; // 61
+	virtual void Unused62() = 0; // 62
+	virtual void Unused63() = 0; // 63
+	virtual void Unused64() = 0; // 64
+	virtual void Unused65() = 0; // 65
+	virtual void Unused66() = 0; // 66
+	virtual void Unused67() = 0; // 67
+	virtual void Unused68() = 0; // 68
+	virtual void Unused69() = 0; // 69
+	virtual void Unused70() = 0; // 70
+	virtual void Unused71() = 0; // 71
+	virtual void Unused72() = 0; // 72
+	virtual void Unused73() = 0; // 73
+	virtual void Unused74() = 0; // 74
+	virtual void Unused75() = 0; // 75
+	virtual void Unused76() = 0; // 76
+	virtual void Unused77() = 0; // 77
+	virtual void Unused78() = 0; // 78
+	virtual void Unused79() = 0; // 79
+	virtual void Unused80() = 0; // 80
+	virtual void Unused81() = 0; // 81
+	virtual void Unused82() = 0; // 82
+	virtual void Unused83() = 0; // 83
+	virtual void Unused84() = 0; // 84
+	virtual void Unused85() = 0; // 85
+	virtual void Unused86() = 0; // 86
+	virtual void Unused87() = 0; // 87
+	virtual void Unused88() = 0; // 88
+	virtual void Unused89() = 0; // 89
+	virtual bool IsPaused() = 0; // 90
+	virtual void Unused91() = 0; // 91
+	virtual void Unused92() = 0; // 92
+	virtual void Unused93() = 0; // 93
+	virtual void Unused94() = 0; // 94
+	virtual void Unused95() = 0; // 95
+	virtual void Unused96() = 0; // 96
+	virtual void Unused97() = 0; // 97
+	virtual void Unused98() = 0; // 98
+	virtual void Unused99() = 0; // 99
+	virtual void Unused100() = 0; // 100
+	virtual void Unused101() = 0; // 101
+	virtual void Unused102() = 0; // 102
+	virtual void Unused103() = 0; // 103
+	virtual void Unused104() = 0; // 104
+	virtual void Unused105() = 0; // 105
+	virtual void ClientCmd_Unrestricted(const char *command) = 0; // 106
 };
 
 class IModelInfo
@@ -332,7 +331,7 @@ public:
 		sprintf_s(
 			errorString,
 			sizeof(errorString),
-			"X: %d (%.2f), Y: %d (%.2f), W: %d (%d), H: %d (%d), FOV: %.2f, Viewmodel FOV: %.2f",
+			"X: %d (%d), Y: %d (%d), W: %d (%d), H: %d (%d), FOV: %.2f, Viewmodel FOV: %.2f",
 			x,
 			m_nUnscaledX,
 			y,
@@ -346,36 +345,26 @@ public:
 		return errorString;
 	}
 
-	int32_t x; //0x0000
-	float m_nUnscaledX; //0x0004
-	int32_t y; //0x0008
-	float m_nUnscaledY; //0x000C
-	int32_t width; //0x0010
-	int32_t m_nUnscaledWidth; //0x0014
-	int32_t height; //0x0018
-	int32_t m_nUnscaledHeight; //0x001C
-	char pad_0020[72]; //0x0020
-	float fov; //0x0068
-	float fovViewmodel; //0x006C
-	Vector origin; //0x0070
-	Vector angles; //0x007C
-	float zNear; //0x0088
-	float zFar; //0x008C
-	float zNearViewmodel; //0x0090
-	float zFarViewmodel; //0x0094
-	float m_flAspectRatio; //0x0098
-	float m_flNearBlurDepth; //0x009C
-	float m_flNearFocusDepth; //0x00A0
-	float m_flFarFocusDepth; //0x00A4
-	float m_flFarBlurDepth; //0x00A8
-	float m_flNearBlurRadius; //0x00AC
-	float m_flFarBlurRadius; //0x00B0
-	int m_nDoFQuality; //0x00B4
-	MotionBlurMode_t m_nMotionBlurMode; //0x00B8
-	char pad_00bc[68]; //0x00BC
-	int32_t m_EdgeBlur; //0x0100
-}; //Size: 0x0104
-static_assert(sizeof(CViewSetup) == 0x0104);
+    // Portal's Source SDK 2013 view layout, including the stereo-eye slot.
+    int32_t x, m_nUnscaledX, y, m_nUnscaledY;
+    int32_t width, m_nUnscaledWidth, height, m_eStereoEye, m_nUnscaledHeight;
+    bool m_bOrtho;
+    float m_OrthoLeft, m_OrthoTop, m_OrthoRight, m_OrthoBottom;
+    float fov, fovViewmodel;
+    Vector origin;
+    Vector angles;
+    float zNear, zFar, zNearViewmodel, zFarViewmodel;
+    bool m_bRenderToSubrectOfLargerScreen;
+    float m_flAspectRatio;
+    bool m_bOffCenter;
+    float m_flOffCenterTop, m_flOffCenterBottom, m_flOffCenterLeft, m_flOffCenterRight;
+    bool m_bDoBloomAndToneMapping, m_bCacheFullSceneState, m_bViewToProjectionOverride;
+    VMatrix m_ViewToProjection;
+};
+static_assert(sizeof(CViewSetup) == 0xC8);
+static_assert(offsetof(CViewSetup, fov) == 0x38);
+static_assert(offsetof(CViewSetup, origin) == 0x40);
+static_assert(offsetof(CViewSetup, m_flAspectRatio) == 0x6C);
 
 class IBaseClientDLL
 {
@@ -866,194 +855,203 @@ public:
 	virtual int Release() = 0;
 };
 
+// Source SDK 2013 IMatRenderContext. Keep the overload declaration order
+// because MSVC reverses overloaded entries within each vtable group.
 class IMatRenderContext : public IRefCounted
 {
 public:
-	virtual void BeginRender();
-	virtual void EndRender();
-	virtual void Flush(bool flushHardware = false);
-	virtual void BindLocalCubemap();
-	virtual void SetRenderTarget(ITexture *pTexture);
-	virtual ITexture *GetRenderTarget();
-	virtual void GetRenderTargetDimensions(int& width, int& height) const = 0;
-	virtual void Bind();
-	virtual void BindLightmapPage();
-	virtual void DepthRange();
-	virtual void ClearBuffers(bool bClearColor, bool bClearDepth, bool bClearStencil = false);
-	virtual void ReadPixels();
-	virtual void SetLightingState();
-	virtual void SetLights();
-	virtual void SetAmbientLightCube();
-	virtual void CopyRenderTargetToTexture(ITexture* pTexture);
-	virtual void SetFrameBufferCopyTexture();
-	virtual void GetFrameBufferCopyTexture();
-	virtual void MatrixMode();
-	virtual void PushMatrix();
-	virtual void PopMatrix();
-	virtual void sub_10028460();
-	virtual void sub_10028410();
-	virtual void sub_10028500();
-	virtual void sub_100284B0();
-	virtual void sub_100285E0();
-	virtual void sub_10028590();
-	virtual void sub_1002CE30();
-	virtual void sub_1002CDF0();
-	virtual void sub_10028670();
-	virtual void sub_100286A0();
-	virtual void sub_10028710();
-	virtual void sub_100287F0();
-	virtual void sub_10028850();
-	virtual void sub_100288B0();
-	virtual void sub_10028910();
-	virtual void sub_100276D0();
-	virtual void Viewport(int x, int y, int width, int height);
-	virtual void sub_10016F00();
-	virtual void sub_100173B0();
-	virtual void sub_100173E0();
-	virtual void sub_10027A10();
-	virtual void sub_10027A40();
-	virtual void sub_10027A70();
-	virtual void sub_10023C90();
-	virtual void sub_10023CA0();
-	virtual void sub_10023D40();
-	virtual void sub_10027B60();
-	virtual void sub_10023DE0();
-	virtual void sub_10023E10();
-	virtual void sub_10027AD0();
-	virtual void sub_10027B00();
-	virtual void sub_10027B30();
-	virtual void sub_100279E0();
-	virtual void sub_10014420();
-	virtual void sub_10016F30();
-	virtual void sub_10023EC0();
-	virtual void sub_10014450();
-	virtual void sub_10014480();
-	virtual void sub_100144A0();
-	virtual void sub_100144C0();
-	virtual void sub_100144E0();
-	virtual void sub_10023EB0();
-	virtual void sub_10014510();
-	virtual void sub_10014550();
-	virtual void sub_10014570();
-	virtual void sub_10014590();
-	virtual void sub_100145E0();
-	virtual void sub_10016F60();
-	virtual void sub_10016F80();
-	virtual void sub_10016FB0();
-	virtual void sub_10016FE0();
-	//virtual void sub_10017000();
-	virtual void ClearColor4ub(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-	virtual void sub_100170E0();
-	virtual void sub_100172C0();
-	virtual void sub_10028DF0();
-	virtual void sub_100143C0();
-	virtual void sub_10027C20();
-	virtual void sub_100172F0();
-	virtual void sub_10017320();
-	virtual void sub_10017350();
-	virtual void sub_10027C60();
-	virtual void sub_10017C70();
-	virtual void sub_10027CA0();
-	virtual void sub_10014400();
-	virtual void sub_1002AC30();
-	virtual void sub_10017420();
-	virtual void sub_10027D40();
-	virtual void sub_100148D0();
-	virtual void sub_10017380();
-	virtual void sub_10014630();
-	virtual void sub_10017450();
-	virtual void sub_10017480();
-	virtual void nullsub_22();
-	virtual void sub_1002B990();
-	virtual void sub_1002B990_1();
-	virtual void sub_1002B990_2();
-	virtual void UnlockRenderData();
-	virtual void sub_100290F0();
-	virtual void sub_10029100();
-	virtual void sub_1002A400();
-	virtual void sub_10024150();
-	virtual void GetWindowSize(int &, int &);
-	virtual void DrawScreenSpaceRectangle() = 0;
-	virtual void sub_10027EA0() = 0;
-	virtual void PushRenderTargetAndViewport() = 0;
-	virtual void PushRenderTargetAndViewport(ITexture*) = 0;
-	virtual void PushRenderTargetAndViewport(ITexture*, int, int, int, int) = 0;
-	virtual void PushRenderTargetAndViewport(ITexture*, ITexture*, int, int, int, int) = 0;
-	virtual void PopRenderTargetAndViewport() = 0;
-	virtual void sub_10017610() = 0;
-	virtual void CopyRenderTargetToTextureEx(ITexture*, int, Rect_t*, Rect_t*) = 0;
-	virtual void sub_10028030() = 0;
-	virtual void sub_10028770() = 0;
-	virtual void sub_10017640() = 0;
-	virtual void sub_100176E0() = 0;
-	virtual void sub_10017820() = 0;
-	virtual void sub_10017870() = 0;
-	virtual void sub_100178B0() = 0;
-	virtual void sub_10027620() = 0;
-	virtual void sub_100179A0() = 0;
-	virtual void sub_10017A20() = 0;
-	virtual void sub_10023F80() = 0;
-	virtual void sub_10023EF0() = 0;
-	virtual void sub_10023F70() = 0;
-	virtual void sub_10017A40() = 0;
-	virtual void sub_10014770() = 0;
-	virtual void sub_10025190() = 0;
-	virtual void sub_10017A60() = 0;
-	virtual void sub_10014870() = 0;
-	virtual void sub_10017B10() = 0;
-	virtual void sub_10027D00() = 0;
-	virtual void sub_10023E40() = 0;
-	virtual void sub_10023E80() = 0;
-	virtual void sub_100192A0() = 0;
-	virtual void sub_10017CB0() = 0;
-	virtual void sub_10019310() = 0;
-	virtual void sub_10028970() = 0;
-	virtual void sub_100289A0() = 0;
-	virtual void sub_10028A40() = 0;
-	virtual void sub_10028AE0() = 0;
-	virtual void sub_10023C70() = 0;
-	virtual void sub_1002AB00() = 0;
-	virtual void sub_1002AB30() = 0;
-	virtual void sub_10017F60() = 0;
-	virtual void sub_10014B10() = 0;
-	virtual void sub_100178F0() = 0;
-	virtual void sub_10017C50() = 0;
-	virtual void sub_10027940() = 0;
-	virtual void sub_10017AD0() = 0;
-	virtual void sub_10017D30() = 0;
-	virtual void sub_10017D50() = 0;
-	virtual void nullsub_23() = 0;
-	virtual void sub_100147C0() = 0;
-	virtual void sub_10014810() = 0;
-	virtual void sub_10014860() = 0;
-	virtual void sub_10015060() = 0;
-	virtual void sub_100250F0() = 0;
-	virtual void sub_10027AA0() = 0;
-	virtual void sub_10014350() = 0;
-	virtual void sub_10023C80() = 0;
-	virtual void sub_10014360() = 0;
-	virtual void sub_10017DA0() = 0;
-	virtual void sub_10024560() = 0;
-	virtual void sub_100245B0() = 0;
-	virtual void sub_10024600() = 0;
-	virtual void sub_10024650() = 0;
-	virtual void sub_100246A0() = 0;
-	virtual void sub_10017DF0() = 0;
-	virtual void sub_10017DD0() = 0;
-	virtual void sub_10017E90() = 0;
-	virtual void sub_10017F30() = 0;
-	virtual void sub_10017FD0() = 0;
-	virtual void sub_10018090() = 0;
-	virtual void sub_10018130() = 0;
-	virtual void sub_10014B40() = 0;
-	virtual void sub_10017780() = 0;
-	virtual void sub_10018180() = 0;
-	virtual void sub_10028B00() = 0;
-	virtual void sub_10028B00_1() = 0;
-	virtual void sub_10028B00_2() = 0;
-	virtual void sub_10028B00_3() = 0;
-	virtual void sub_10028B00_4() = 0;
-	virtual void OverrideAlphaWriteEnable(bool bEnable, bool bAlphaWriteEnable) = 0;
+    virtual void BeginRender() = 0;
+    virtual void EndRender() = 0;
+    virtual void Flush(bool flushHardware = false) = 0;
+    virtual void Unused5() = 0;
+    virtual void SetRenderTarget(ITexture *) = 0;
+    virtual ITexture *GetRenderTarget() = 0;
+    virtual void GetRenderTargetDimensions(int &, int &) const = 0;
+    virtual void Unused9() = 0;
+    virtual void Unused10() = 0;
+    virtual void Unused11() = 0;
+    virtual void ClearBuffers(bool, bool, bool stencil = false) = 0;
+    virtual void Unused13() = 0;
+    virtual void Unused14() = 0;
+    virtual void Unused15() = 0;
+    virtual void Unused16() = 0;
+    virtual void CopyRenderTargetToTexture(ITexture *) = 0;
+    virtual void Unused18() = 0;
+    virtual void Unused19() = 0;
+    virtual void Unused20() = 0;
+    virtual void Unused21() = 0;
+    virtual void Unused22() = 0;
+    virtual void Unused23() = 0;
+    virtual void Unused24() = 0;
+    virtual void Unused25() = 0;
+    virtual void Unused26() = 0;
+    virtual void Unused27() = 0;
+    virtual void Unused28() = 0;
+    virtual void Unused29() = 0;
+    virtual void Unused30() = 0;
+    virtual void Unused31() = 0;
+    virtual void Unused32() = 0;
+    virtual void Unused33() = 0;
+    virtual void Unused34() = 0;
+    virtual void Unused35() = 0;
+    virtual void Unused36() = 0;
+    virtual void Unused37() = 0;
+    virtual void Viewport(int, int, int, int) = 0;
+    virtual void Unused39() = 0;
+    virtual void Unused40() = 0;
+    virtual void Unused41() = 0;
+    virtual void Unused42() = 0;
+    virtual void Unused43() = 0;
+    virtual void Unused44() = 0;
+    virtual void Unused45() = 0;
+    virtual void Unused46() = 0;
+    virtual void Unused47() = 0;
+    virtual void Unused48() = 0;
+    virtual void Unused49() = 0;
+    virtual void Unused50() = 0;
+    virtual void Unused51() = 0;
+    virtual void Unused52() = 0;
+    virtual void Unused53() = 0;
+    virtual void Unused54() = 0;
+    virtual void Unused55() = 0;
+    virtual void Unused56() = 0;
+    virtual void Unused57() = 0;
+    virtual void Unused58() = 0;
+    virtual void Unused59() = 0;
+    virtual void Unused60() = 0;
+    virtual void Unused61() = 0;
+    virtual void Unused62() = 0;
+    virtual void Unused63() = 0;
+    virtual void Unused64() = 0;
+    virtual void Unused65() = 0;
+    virtual void Unused66() = 0;
+    virtual void Unused67() = 0;
+    virtual void Unused68() = 0;
+    virtual void Unused69() = 0;
+    virtual void Unused70() = 0;
+    virtual void Unused71() = 0;
+    virtual void Unused72() = 0;
+    virtual void ClearColor4ub(unsigned char, unsigned char, unsigned char, unsigned char) = 0;
+    virtual void Unused74() = 0;
+    virtual void Unused75() = 0;
+    virtual void Unused76() = 0;
+    virtual void Unused77() = 0;
+    virtual void Unused78() = 0;
+    virtual void Unused79() = 0;
+    virtual void Unused80() = 0;
+    virtual void Unused81() = 0;
+    virtual void Unused82() = 0;
+    virtual void Unused83() = 0;
+    virtual void Unused84() = 0;
+    virtual void Unused85() = 0;
+    virtual void Unused86() = 0;
+    virtual void Unused87() = 0;
+    virtual void Unused88() = 0;
+    virtual void Unused89() = 0;
+    virtual void Unused90() = 0;
+    virtual void Unused91() = 0;
+    virtual void Unused92() = 0;
+    virtual void Unused93() = 0;
+    virtual void Unused94() = 0;
+    virtual void Unused95() = 0;
+    virtual void Unused96() = 0;
+    virtual void Unused97() = 0;
+    virtual void Unused98() = 0;
+    virtual void Unused99() = 0;
+    virtual void Unused100() = 0;
+    virtual void Unused101() = 0;
+    virtual void GetWindowSize(int &, int &) = 0;
+    virtual void Unused103() = 0;
+    virtual void Unused104() = 0;
+    virtual void PushRenderTargetAndViewport() = 0;
+    virtual void PushRenderTargetAndViewport(ITexture *) = 0;
+    virtual void PushRenderTargetAndViewport(ITexture *, int, int, int, int) = 0;
+    virtual void PushRenderTargetAndViewport(ITexture *, ITexture *, int, int, int, int) = 0;
+    virtual void PopRenderTargetAndViewport() = 0;
+    virtual void Unused110() = 0;
+    virtual void CopyRenderTargetToTextureEx(ITexture *, int, Rect_t *, Rect_t *) = 0;
+    virtual void Unused112() = 0;
+    virtual void Unused113() = 0;
+    virtual void Unused114() = 0;
+    virtual void Unused115() = 0;
+    virtual void Unused116() = 0;
+    virtual void Unused117() = 0;
+    virtual void Unused118() = 0;
+    virtual void Unused119() = 0;
+    virtual void Unused120() = 0;
+    virtual void Unused121() = 0;
+    virtual void Unused122() = 0;
+    virtual void Unused123() = 0;
+    virtual void Unused124() = 0;
+    virtual void Unused125() = 0;
+    virtual void Unused126() = 0;
+    virtual void Unused127() = 0;
+    virtual void Unused128() = 0;
+    virtual void Unused129() = 0;
+    virtual void Unused130() = 0;
+    virtual void Unused131() = 0;
+    virtual void Unused132() = 0;
+    virtual void Unused133() = 0;
+    virtual void Unused134() = 0;
+    virtual void Unused135() = 0;
+    virtual void Unused136() = 0;
+    virtual void Unused137() = 0;
+    virtual void Unused138() = 0;
+    virtual void Unused139() = 0;
+    virtual void Unused140() = 0;
+    virtual void Unused141() = 0;
+    virtual void Unused142() = 0;
+    virtual void Unused143() = 0;
+    virtual void Unused144() = 0;
+    virtual void Unused145() = 0;
+    virtual void Unused146() = 0;
+    virtual void Unused147() = 0;
+    virtual void Unused148() = 0;
+    virtual void Unused149() = 0;
+    virtual void Unused150() = 0;
+    virtual void Unused151() = 0;
+    virtual void Unused152() = 0;
+    virtual void Unused153() = 0;
+    virtual void Unused154() = 0;
+    virtual void Unused155() = 0;
+    virtual void Unused156() = 0;
+    virtual void Unused157() = 0;
+    virtual void Unused158() = 0;
+    virtual void Unused159() = 0;
+    virtual void Unused160() = 0;
+    virtual void Unused161() = 0;
+    virtual void Unused162() = 0;
+    virtual void Unused163() = 0;
+    virtual void Unused164() = 0;
+    virtual void Unused165() = 0;
+    virtual void Unused166() = 0;
+    virtual void Unused167() = 0;
+    virtual void Unused168() = 0;
+    virtual void Unused169() = 0;
+    virtual void Unused170() = 0;
+    virtual void Unused171() = 0;
+    virtual void Unused172() = 0;
+    virtual void Unused173() = 0;
+    virtual void Unused174() = 0;
+    virtual void Unused175() = 0;
+    virtual void Unused176() = 0;
+    virtual void Unused177() = 0;
+    virtual void Unused178() = 0;
+    virtual void Unused179() = 0;
+    virtual void Unused180() = 0;
+    virtual void Unused181() = 0;
+    virtual void Unused182() = 0;
+    virtual void Unused183() = 0;
+    virtual void Unused184() = 0;
+    virtual void Unused185() = 0;
+    virtual void Unused186() = 0;
+    virtual void Unused187() = 0;
+    virtual void Unused188() = 0;
+    virtual void Unused189() = 0;
+    virtual void Unused190() = 0;
+    virtual void Unused191() = 0;
+    virtual void Unused192() = 0;
+    virtual void OverrideAlphaWriteEnable(bool, bool) = 0;
 };
 
 class CMatRenderContextPtr : public CRefPtr<IMatRenderContext>
@@ -1975,8 +1973,8 @@ public:
 	virtual void InternalCursorMoved(void);
 	virtual void InternalMousePressed(ButtonCode_t);
 	virtual void InternalMouseDoublePressed(ButtonCode_t);
-	virtual void InternalMouseReleased(ButtonCode_t);
 	virtual void InternalMouseWheeled(int);
+	virtual void InternalMouseReleased(ButtonCode_t);
 	virtual void InternalKeyCodePressed(KeyCode);
 	virtual void InternalKeyCodeTyped(KeyCode code);
 	virtual void InternalKeyTyped(void);
@@ -1995,149 +1993,150 @@ public:
 	virtual void IsChildOfModalPanel(void);
 };
 
+// Portal VGUI_Surface030.
 class ISurface
 {
 public:
-	virtual void sub_10012FD0() = 0;
-	virtual void sub_100130F0() = 0;
-	virtual void sub_1000A8A0() = 0;
-	virtual void sub_10010D40() = 0;
-	virtual void sub_10014120() = 0;
-	virtual void sub_10008140() = 0;
-	virtual void sub_10008060() = 0;
-	virtual void sub_10008030() = 0;
-	virtual void sub_10013610() = 0;
-	virtual void sub_10011190() = 0;
-	virtual void sub_10008210() = 0;
-	virtual void sub_100081E0() = 0;
-	virtual void sub_1000C930() = 0;
-	virtual void sub_1000CAB0() = 0;
-	virtual void sub_100083E0() = 0;
-	virtual void sub_1000B840() = 0;
-	virtual void sub_1000B900() = 0;
-	virtual void sub_100087F0() = 0;
-	virtual void sub_10008860() = 0;
-	virtual void sub_10008800() = 0;
-	virtual void sub_100088D0() = 0;
-	virtual void sub_100088F0() = 0;
-	virtual void sub_1000E870() = 0;
-	virtual void sub_10008950() = 0;
-	virtual void sub_1000E4E0() = 0;
-	virtual void sub_10008510() = 0;
-	virtual void sub_100084B0() = 0;
-	virtual void sub_10008530() = 0;
-	virtual void sub_10009A60() = 0;
-	virtual void sub_1000D910() = 0;
-	virtual void sub_100085D0() = 0;
-	virtual void sub_1000D940() = 0;
-	virtual void sub_10009A30() = 0;
-	virtual void sub_10008490() = 0;
-	virtual void sub_10008450() = 0;
-	virtual void sub_1000E890() = 0;
-	virtual void nullsub_28() = 0;
-	virtual void sub_10008EC0() = 0;
-	virtual void sub_10008D40() = 0;
-	virtual void nullsub_29() = 0;
-	virtual void sub_10008D60() = 0;
-	virtual void sub_10008DB0() = 0;
-	virtual void GetScreenSize(int& iWide, int& iTall) = 0;
-	virtual void sub_10013B40() = 0;
-	virtual void nullsub_31() = 0;
-	virtual void sub_10013BC0() = 0;
-	virtual void nullsub_32() = 0;
-	virtual void nullsub_33() = 0;
-	virtual void sub_10008FA0() = 0;
-	virtual void sub_10009A00() = 0;
-	virtual void sub_10009A00_1() = 0;
-	virtual void sub_10009A00_2() = 0;
-	virtual void sub_10009A00_3() = 0;
-	virtual void sub_10009A00_4() = 0;
-	virtual void sub_10009A00_5() = 0;
-	virtual void sub_10009A00_6() = 0;
-	virtual bool IsCursorVisible() = 0;
-	virtual void nullsub_3() = 0;
-	virtual void sub_10005A00() = 0;
-	virtual void sub_1002E170() = 0;
-	virtual void sub_10004550() = 0;
-	virtual void sub_10005C00() = 0;
-	virtual void nullsub_2_2_2() = 0;
-	virtual void sub_1009F2F0() = 0;
-	virtual void sub_100065F0() = 0;
-	virtual void sub_10006610() = 0;
-	virtual void nullsub_2_2_2_2() = 0;
-	virtual void sub_1009F2F0_2() = 0;
-	virtual void sub_10005AB0() = 0;
-	virtual void sub_10005230() = 0;
-	virtual void sub_10005240() = 0;
-	virtual void sub_1000FEF0() = 0;
-	virtual void sub_100052C0() = 0;
-	virtual void sub_100052E0() = 0;
-	virtual void sub_10005300() = 0;
-	virtual void sub_10005320() = 0;
-	virtual void sub_10005350() = 0;
-	virtual void sub_100053A0() = 0;
-	virtual void sub_1009F2F0_3() = 0;
-	virtual void nullsub_4() = 0;
-	virtual void sub_10005B30() = 0;
-	virtual void sub_10010EF0() = 0;
-	virtual void sub_10010F30() = 0;
-	virtual void sub_10005A10() = 0;
-	virtual void sub_10005A60() = 0;
-	virtual void sub_10005BC0() = 0;
-	virtual void sub_1000FA80() = 0;
-	virtual void sub_10010430() = 0;
-	virtual void sub_10010630() = 0;
-	virtual void sub_1000BA90() = 0;
-	virtual void sub_10005CE0() = 0;
-	virtual void sub_10005B90() = 0;
-	virtual void sub_100058B0() = 0;
-	virtual void sub_10006630() = 0;
-	virtual void sub_10010E10() = 0;
-	virtual void sub_10006660() = 0;
-	virtual void sub_10006980() = 0;
-	virtual void sub_1002E170_2() = 0;
-	virtual void sub_10006990() = 0;
-	virtual void sub_100069B0() = 0;
-	virtual void sub_10008190() = 0;
-	virtual void sub_1000A400() = 0;
-	virtual void sub_10004710() = 0;
-	virtual void sub_1000AA10() = 0;
-	virtual void sub_1000AB40() = 0;
-	virtual void sub_1000DDA0() = 0;
-	virtual void sub_10006420() = 0;
-	virtual void sub_10005940() = 0;
-	virtual void sub_10004A70() = 0;
-	virtual void sub_100055F0() = 0;
-	virtual void sub_10007470() = 0;
-	virtual void sub_10007650() = 0;
-	virtual void sub_100069D0() = 0;
-	virtual void sub_100064F0() = 0;
-	virtual void OnScreenSizeChanged(int nOldWidth, int nOldHeight) = 0;
-	virtual void sub_100069E0() = 0;
-	virtual void sub_10007410() = 0;
-	virtual void sub_1000BAC0() = 0;
-	virtual void sub_10005EA0() = 0;
-	virtual void sub_10006A00() = 0;
-	virtual void sub_10004760() = 0;
-	virtual void sub_10009830() = 0;
-	virtual void sub_10006580() = 0;
-	virtual void sub_100054E0() = 0;
-	virtual void sub_10005280() = 0;
-	virtual void sub_10010170() = 0;
-	virtual void sub_10011380() = 0;
-	virtual void sub_100109C0() = 0;
-	virtual void sub_10005400() = 0;
-	virtual void sub_100114A0() = 0;
-	virtual void sub_10005560() = 0;
-	virtual void sub_1000B400() = 0;
-	virtual void sub_10005410() = 0;
-	virtual bool ForceScreenSizeOverride(bool bState, int wide, int tall) = 0;
-	virtual bool ForceScreenPosOffset(bool bState, int x, int y) = 0;
-	virtual void OffsetAbsPos(int& x, int& y) = 0;
-	virtual void SetAbsPosForContext(int id, int x, int y) = 0;
-	virtual void GetAbsPosForContext(int id, int& x, int& y) = 0;
-	virtual void ResetFontCaches() = 0;
-	virtual bool IsScreenSizeOverrideActive() = 0;
+	virtual void Unused0() = 0; // 0
+	virtual void Unused1() = 0; // 1
+	virtual void Unused2() = 0; // 2
+	virtual void Unused3() = 0; // 3
+	virtual void Unused4() = 0; // 4
+	virtual void Unused5() = 0; // 5
+	virtual void Unused6() = 0; // 6
+	virtual void Unused7() = 0; // 7
+	virtual void Unused8() = 0; // 8
+	virtual void Unused9() = 0; // 9
+	virtual void Unused10() = 0; // 10
+	virtual void Unused11() = 0; // 11
+	virtual void Unused12() = 0; // 12
+	virtual void Unused13() = 0; // 13
+	virtual void Unused14() = 0; // 14
+	virtual void Unused15() = 0; // 15
+	virtual void Unused16() = 0; // 16
+	virtual void Unused17() = 0; // 17
+	virtual void Unused18() = 0; // 18
+	virtual void Unused19() = 0; // 19
+	virtual void Unused20() = 0; // 20
+	virtual void Unused21() = 0; // 21
+	virtual void Unused22() = 0; // 22
+	virtual void Unused23() = 0; // 23
+	virtual void Unused24() = 0; // 24
+	virtual void Unused25() = 0; // 25
+	virtual void Unused26() = 0; // 26
+	virtual void Unused27() = 0; // 27
+	virtual void Unused28() = 0; // 28
+	virtual void Unused29() = 0; // 29
+	virtual void Unused30() = 0; // 30
+	virtual void Unused31() = 0; // 31
+	virtual void Unused32() = 0; // 32
+	virtual void Unused33() = 0; // 33
+	virtual void Unused34() = 0; // 34
+	virtual void Unused35() = 0; // 35
+	virtual void Unused36() = 0; // 36
+	virtual void Unused37() = 0; // 37
+	virtual void GetScreenSize(int &wide, int &tall) = 0; // 38
+	virtual void Unused39() = 0; // 39
+	virtual void Unused40() = 0; // 40
+	virtual void Unused41() = 0; // 41
+	virtual void Unused42() = 0; // 42
+	virtual void Unused43() = 0; // 43
+	virtual void Unused44() = 0; // 44
+	virtual void Unused45() = 0; // 45
+	virtual void Unused46() = 0; // 46
+	virtual void Unused47() = 0; // 47
+	virtual void Unused48() = 0; // 48
+	virtual void Unused49() = 0; // 49
+	virtual void Unused50() = 0; // 50
+	virtual void Unused51() = 0; // 51
+	virtual void Unused52() = 0; // 52
+	virtual bool IsCursorVisible() = 0; // 53
+	virtual void Unused54() = 0; // 54
+	virtual void Unused55() = 0; // 55
+	virtual void Unused56() = 0; // 56
+	virtual void Unused57() = 0; // 57
+	virtual void Unused58() = 0; // 58
+	virtual void Unused59() = 0; // 59
+	virtual void Unused60() = 0; // 60
+	virtual void Unused61() = 0; // 61
+	virtual void Unused62() = 0; // 62
+	virtual void Unused63() = 0; // 63
+	virtual void Unused64() = 0; // 64
+	virtual void Unused65() = 0; // 65
+	virtual void Unused66() = 0; // 66
+	virtual void Unused67() = 0; // 67
+	virtual void Unused68() = 0; // 68
+	virtual void Unused69() = 0; // 69
+	virtual void Unused70() = 0; // 70
+	virtual void Unused71() = 0; // 71
+	virtual void Unused72() = 0; // 72
+	virtual void Unused73() = 0; // 73
+	virtual void Unused74() = 0; // 74
+	virtual void Unused75() = 0; // 75
+	virtual void Unused76() = 0; // 76
+	virtual void Unused77() = 0; // 77
+	virtual void Unused78() = 0; // 78
+	virtual void Unused79() = 0; // 79
+	virtual void Unused80() = 0; // 80
+	virtual void Unused81() = 0; // 81
+	virtual void Unused82() = 0; // 82
+	virtual void Unused83() = 0; // 83
+	virtual void Unused84() = 0; // 84
+	virtual void Unused85() = 0; // 85
+	virtual void Unused86() = 0; // 86
+	virtual void Unused87() = 0; // 87
+	virtual void Unused88() = 0; // 88
+	virtual void Unused89() = 0; // 89
+	virtual void Unused90() = 0; // 90
+	virtual void Unused91() = 0; // 91
+	virtual void Unused92() = 0; // 92
+	virtual void Unused93() = 0; // 93
+	virtual void Unused94() = 0; // 94
+	virtual void Unused95() = 0; // 95
+	virtual void Unused96() = 0; // 96
+	virtual void Unused97() = 0; // 97
+	virtual void Unused98() = 0; // 98
+	virtual void Unused99() = 0; // 99
+	virtual void Unused100() = 0; // 100
+	virtual void Unused101() = 0; // 101
+	virtual void Unused102() = 0; // 102
+	virtual void Unused103() = 0; // 103
+	virtual void Unused104() = 0; // 104
+	virtual void Unused105() = 0; // 105
+	virtual void Unused106() = 0; // 106
+	virtual void Unused107() = 0; // 107
+	virtual void Unused108() = 0; // 108
+	virtual void Unused109() = 0; // 109
+	virtual void Unused110() = 0; // 110
+	virtual void OnScreenSizeChanged(int oldWidth, int oldHeight) = 0; // 111
+	virtual void Unused112() = 0; // 112
+	virtual void Unused113() = 0; // 113
+	virtual void Unused114() = 0; // 114
+	virtual void Unused115() = 0; // 115
+	virtual void Unused116() = 0; // 116
+	virtual void Unused117() = 0; // 117
+	virtual void Unused118() = 0; // 118
+	virtual void Unused119() = 0; // 119
+	virtual void Unused120() = 0; // 120
+	virtual void Unused121() = 0; // 121
+	virtual void Unused122() = 0; // 122
+	virtual void Unused123() = 0; // 123
+	virtual void Unused124() = 0; // 124
+	virtual void Unused125() = 0; // 125
+	virtual void Unused126() = 0; // 126
+	virtual void Unused127() = 0; // 127
+	virtual void Unused128() = 0; // 128
+	virtual void Unused129() = 0; // 129
+	virtual void Unused130() = 0; // 130
+	virtual void Unused131() = 0; // 131
+	virtual void Unused132() = 0; // 132
+	virtual bool ForceScreenSizeOverride(bool state, int wide, int tall) = 0; // 133
+	virtual void Unused134() = 0; // 134
+	virtual void Unused135() = 0; // 135
+	virtual void Unused136() = 0; // 136
+	virtual void Unused137() = 0; // 137
+	virtual void Unused138() = 0; // 138
+	virtual bool IsScreenSizeOverrideActive() = 0; // 139
 };
 /*
 		typedef Server_WeaponCSBase *(__thiscall *tGetActiveWep)(void *thisptr);
