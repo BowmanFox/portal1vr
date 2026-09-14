@@ -284,10 +284,38 @@ namespace
 		if (!s_DrawingLocalPlayerBodyDirect) return true;
 		// Align the model's eye midpoint under the center camera, never one
 		// stereo eye. Horizontal correction preserves the animated foot height.
+		Vector offset = s_LocalPlayerBodyDrawOffset;
+		bool hasEyeAttachment = false;
+		// Procedural QC eyes are skinned to the head, so optional eye bones
+		// may no longer be evaluated. Use the model's authored eyes attachment.
+		if (view.modelLength >= 248 && SigScanner::IsReadable(
+			reinterpret_cast<uintptr_t>(view.header), view.modelLength)) {
+			const int attachmentCount = *reinterpret_cast<const int *>(view.header + 240);
+			const int attachmentOffset = *reinterpret_cast<const int *>(view.header + 244);
+			if (attachmentCount > 0 && attachmentCount <= 256 && attachmentOffset >= 248
+				&& attachmentOffset <= view.modelLength - attachmentCount * 92) {
+				for (int i = 0; i < attachmentCount; ++i) {
+					const int at = attachmentOffset + i * 92;
+					const auto *attachment = view.header + at;
+					const int nameOffset = *reinterpret_cast<const int *>(attachment);
+					const int bone = *reinterpret_cast<const int *>(attachment + 8);
+					if (nameOffset <= 0 || nameOffset > view.modelLength - at - 5
+						|| bone < 0 || bone >= view.count
+						|| memcmp(attachment + nameOffset, "eyes", 5)) continue;
+					const auto &local = *reinterpret_cast<const matrix3x4_t *>(attachment + 12);
+					const auto world = HandPose::Concat(source[bone], local);
+					const Vector eyes(world[0][3], world[1][3], world[2][3]);
+					if (std::isfinite(eyes.x) && std::isfinite(eyes.y) && std::isfinite(eyes.z)) {
+						offset = FirstPersonBody::HorizontalCameraOffset(eyes, s_BodyCameraCenter);
+						hasEyeAttachment = true;
+					}
+					break;
+				}
+			}
+		}
 		const int leftEye = FindStudioBone(view, "LeftEye");
 		const int rightEye = FindStudioBone(view, "RightEye");
-		Vector offset = s_LocalPlayerBodyDrawOffset;
-		if (leftEye >= 0 && rightEye >= 0) {
+		if (!hasEyeAttachment && leftEye >= 0 && rightEye >= 0) {
 			const Vector eyes((source[leftEye][0][3] + source[rightEye][0][3]) * 0.5f,
 				(source[leftEye][1][3] + source[rightEye][1][3]) * 0.5f,
 				(source[leftEye][2][3] + source[rightEye][2][3]) * 0.5f);
@@ -302,7 +330,7 @@ namespace
 	}
 
 	bool BuildFirstPersonBodyBones(void *state, const matrix3x4_t *source,
-		matrix3x4_t *result, const ModelRenderInfo_t &info)
+		matrix3x4_t *result, const ModelRenderInfo_t &)
 	{
 		StudioBodyView view;
 		if (!source || !result || !GetStudioBodyView(state, view)
@@ -316,18 +344,11 @@ namespace
 			parents[i] = *reinterpret_cast<const int *>(bone + 4);
 		}
 
-		int hips = FindStudioBone(view, "hips");
-		if (hips < 0)
-		hips = FindStudioBone(view, "pelvis");
-		if (hips < 0)
-		hips = 0;
-
 		int hiddenRoots[3]{};
 		int hiddenRootCount = 0;
-		const int upperTorso = FindStudioBone(view, "spine_mid");
-		if (upperTorso >= 0)
-			hiddenRoots[hiddenRootCount++] = upperTorso;
-		else for (const char *candidate : {"neck", "clavicle_L", "clavicle_R"})
+		// Keep the chest and upper torso visible when looking down. Hide only
+		// the head and untracked arms, closing each at its own attachment.
+		for (const char *candidate : {"neck", "clavicle_L", "clavicle_R"})
 		{
 			const int root = FindStudioBone(view, candidate);
 			if (root >= 0 && hiddenRootCount < 3)
@@ -337,10 +358,6 @@ namespace
 		if (hiddenRootCount == 0)
 			return s_DrawingLocalPlayerBodyDirect
 				&& s_LocalPlayerBodyDrawOffset.LengthSqr() > 0.0001f;
-
-		Vector pivot = info.origin;
-		if (hips >= 0 && hips < view.count)
-			pivot = {result[hips][0][3], result[hips][1][3], result[hips][2][3]};
 
 		FirstPersonBody::CollapseBranchesAtRoots(result, parents, view.count,
 			hiddenRoots, hiddenRootCount);
@@ -1226,10 +1243,12 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     for (int row = 0; row < 3; ++row) source[row][3] = reference[8][row][3];
                     const auto target = HandPose::Frame(-m_VR->m_RightControllerRight,
                         m_VR->m_RightControllerUp, m_VR->m_RightControllerForward, rightPosition);
-                    for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], reference[8], rightTarget);
+                    // The gun model now contains an anatomical wrist frame
+                    // fitted to Portal's authored grip, independently of bare hands.
+                    for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
                     const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
-                    HandPose::ApplyFingerCurlChain(reference, tracked, m_VR->m_RightFingerCurl, 0, 8, false);
+                    HandPose::ApplyGunGrip(reference, tracked, m_VR->m_RightFingerCurl);
                 } else {
                     const auto leftTarget = HandPose::ControllerHandFrame(
                         m_VR->m_LeftHandForward, m_VR->m_LeftControllerRight,

@@ -150,6 +150,22 @@ static void CheckHandAttachment() {
     for(int i=0;i<43;++i)for(int r=0;r<3;++r)for(int c=0;c<4;++c)
         assert(std::isfinite(posed[i][r][c]));
 
+    // A resting gun grip must keep contact, while the trigger changes only
+    // the index chain. Neither input can displace the wrist or gun mechanism.
+    matrix3x4_t gunBind[45], resting[45], triggered[45];
+    for (int i=0;i<45;++i) gunBind[i] = bind[i < 43 ? i : 0];
+    memcpy(resting,gunBind,sizeof(gunBind));
+    memcpy(triggered,gunBind,sizeof(gunBind));
+    HandPose::ApplyGunGrip(gunBind,resting,open);
+    const float triggerOnly[5]={0,1,0,0,0};
+    HandPose::ApplyGunGrip(gunBind,triggered,triggerOnly);
+    assert(fabs(resting[16][2][3]-gunBind[16][2][3]) > 0.1f);
+    assert(fabs(triggered[19][2][3]-resting[19][2][3]) > 0.1f);
+    for (int i=0;i<45;++i) {
+        if (i < 18 || i > 20) assert(!memcmp(&resting[i],&triggered[i],sizeof(matrix3x4_t)));
+        if (i <= 8 || i >= 24) assert(!memcmp(&resting[i],&gunBind[i],sizeof(matrix3x4_t)));
+    }
+
     matrix3x4_t gun[45];
     for (auto &bone:gun) bone = source;
     gun[8] = HandPose::Frame({1,0,0},{0,1,0},{0,0,1},{1,10,3});

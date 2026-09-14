@@ -178,6 +178,21 @@ inline void ApplyFingerCurl(const matrix3x4_t *bind, matrix3x4_t *result,
     ApplyFingerCurlChain(bind, result, rightCurl, 19, 27, false);
 }
 
+inline void ApplyGunGrip(const matrix3x4_t *bind, matrix3x4_t *result,
+    const float *curl)
+{
+    // Retain contact with the gun handle when Pico reports an open hand.
+    // The index still has most of its range for trigger motion.
+    const float restingGrip[5] = {0.55f, 0.45f, 0.75f, 0.80f, 0.80f};
+    float grip[5];
+    for (int i = 0; i < 5; ++i) {
+        const float input = std::isfinite(curl[i])
+            ? fmaxf(0.0f, fminf(1.0f, curl[i])) : 0.0f;
+        grip[i] = restingGrip[i] + (1.0f - restingGrip[i]) * input;
+    }
+    ApplyFingerCurlChain(bind, result, grip, 0, 8, false);
+}
+
 inline void StraightenGunWrist(matrix3x4_t *bones) {
     // The stock first-person pose bends the wrist about 50 degrees. Keep the
     // hand and gun fixed and rotate the forearm chain around the wrist joint.
