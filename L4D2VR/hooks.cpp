@@ -8,6 +8,7 @@
 #include "portal1.h"
 #include "debuglog.h"
 #include "handpose.h"
+#include "cameracollision.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -360,6 +361,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	}
 
 	m_VR->m_SetupOrigin = position;
+	m_VR->UpdateCameraCollision(position);
 
 	Vector hmdAngle = m_VR->GetViewAngle();
 	m_Game->SetViewAngles(QAngle(hmdAngle.x, hmdAngle.y, hmdAngle.z));
@@ -375,7 +377,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	setup.fov = m_VR->m_Fov;
 	setup.fovViewmodel = m_VR->m_Fov;
 	setup.m_flAspectRatio = m_VR->m_Aspect;
-	setup.zNear = 6;
+	setup.zNear = CameraCollision::NearClip;
 	setup.zNearViewmodel = 2;
 	setup.angles = hmdAngle;
 

@@ -236,6 +236,7 @@ struct Ray_t
 		VectorSubtract(maxs, mins, m_Extents);
 		m_Extents *= 0.5f;
 		m_IsRay = (m_Extents.LengthSqr() < 1e-6);
+		m_pWorldAxisTransform = nullptr;
 
 		// Offset m_Start to be in the center of the box...
 		VectorAdd(mins, maxs, m_StartOffset);

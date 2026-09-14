@@ -92,6 +92,8 @@ public:
 
 	Vector m_Center = { 0,0,0 };
 	Vector m_SetupOrigin = { 0,0,0 };
+	Vector m_CameraCollisionOffset = { 0,0,0 };
+	bool m_CameraBlocked = false;
 
 	float m_HeightOffset = 0.0;
 	bool m_RoomscaleActive = false;
@@ -238,6 +240,7 @@ public:
 	void UpdateTracking();
 	Vector GetViewAngle();
 	Vector GetViewOrigin(Vector setupOrigin);
+	void UpdateCameraCollision(Vector setupOrigin);
 	Vector GetViewOriginLeft(Vector setupOrigin);
 	Vector GetViewOriginRight(Vector setupOrigin);
 	bool PressedDigitalAction(vr::VRActionHandle_t &actionHandle, bool checkIfActionChanged = false);

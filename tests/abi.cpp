@@ -5,6 +5,42 @@
 #include "sdk/trace.h"
 #include "sigscanner.h"
 #include "handpose.h"
+#include "cameracollision.h"
+#include <limits>
+
+static void CheckCameraCollision() {
+    static_assert(sizeof(Ray_t) == 80);
+    static_assert(offsetof(Ray_t, m_pWorldAxisTransform) == 64);
+    static_assert(sizeof(CGameTrace) == 84);
+    static_assert(offsetof(CGameTrace, fraction) == 44);
+    static_assert(offsetof(CGameTrace, startsolid) == 55);
+    Ray_t hull;
+    memset(&hull, 0xcc, sizeof(hull));
+    hull.Init({0,0,0},{20,0,0},{-3,-3,-3},{3,3,3});
+    assert(hull.m_pWorldAxisTransform == nullptr && !hull.m_IsRay && hull.m_IsSwept);
+    assert(hull.m_Extents.x == 3 && hull.m_StartOffset.LengthSqr() == 0);
+
+    const Vector start(0,0,0), desired(20,0,0);
+    const float radius = CameraCollision::HullRadius(2.8f,104.0f,1.0f);
+    assert(radius > 3.0f && radius < 5.0f);
+    // A solid wall at x=10 must stop both eyes and all near-plane corners.
+    const float hitFraction = (10.0f-radius)/20.0f;
+    const auto safe = CameraCollision::Constrain(start,desired,hitFraction,false,false);
+    assert(safe.x > 0 && safe.x + radius < 10.0f && safe.y == 0 && safe.z == 0);
+    const auto repeated = CameraCollision::Constrain(start,desired,hitFraction,false,false);
+    assert((safe-repeated).LengthSqr() == 0);
+    // Leaning back and engine teleports must recover immediately without drift.
+    assert((CameraCollision::Constrain(start,{2,0,0},1,false,false)-Vector(2,0,0)).LengthSqr() == 0);
+    assert((CameraCollision::Constrain({100,0,0},{105,0,0},1,false,false)-Vector(105,0,0)).LengthSqr() == 0);
+    assert(CameraCollision::Constrain(start,desired,0.5f,true,false).LengthSqr() == 0);
+    assert(CameraCollision::Constrain(start,desired,0.5f,false,true).LengthSqr() == 0);
+    assert(CameraCollision::Constrain(start,desired,std::numeric_limits<float>::quiet_NaN(),false,false).LengthSqr() == 0);
+    assert(CameraCollision::Constrain(start,start,0,false,false).LengthSqr() == 0);
+    const auto floor = CameraCollision::Constrain(start,{0,0,-20},0.25f,false,false);
+    assert(floor.z > -5.0f && floor.z < 0.0f);
+    // Wider IPD and near-plane corners require a correspondingly larger hull.
+    assert(CameraCollision::HullRadius(6.0f,104.0f,1.0f) > radius + 1.5f);
+}
 
 static void CheckHandAttachment() {
     assert(HandPose::Identify("weapons/V_hands.mdl",43) == HandPose::Model::Hands);
@@ -66,6 +102,7 @@ static void __fastcall PushTarget(void *self, void *, ITexture *target, int x, i
 static void __fastcall PopTarget(void *self, void *) { assert(self == expectedThis); }
 int main() {
     CheckHandAttachment();
+    CheckCameraCollision();
     static_assert(sizeof(void *) == 4);
     static_assert(sizeof(CViewSetup) == 0xc8);
     static_assert(offsetof(CViewSetup, fov) == 0x38);
@@ -99,5 +136,5 @@ int main() {
     void *guard = VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_NOACCESS);
     assert(guard && !SigScanner::GetVirtualFunction(guard,0));
     VirtualFree(guard,0,MEM_RELEASE);
-    puts("Portal ABI, trace, and hand attachment regression checks passed");
+    puts("Portal ABI, trace, hand attachment, and camera collision regression checks passed");
 }

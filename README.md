@@ -34,6 +34,8 @@ Choose your preferred display resolution in Portal's video options, then load a 
 - Use Portal's x86 engine interfaces and camera structure instead of Portal 2's incompatible layouts.
 - Resolve client objects through checked RTTI and validate optional hook signatures.
 - Preserve the desktop camera, render each eye separately, and update the engine's view angles from the headset.
+- Preserve the monitor resolution during D3D device resets. Eye textures have their own resolution; applying that resolution to the fullscreen desktop could freeze rendering after a focus change.
+- Sweep a camera hull from the player's eye position to the room-scale headset position. Solid walls, doors, glass, and props stop the view before either eye or its near plane crosses the surface. Both hands receive the same correction, and leaning back restores the normal tracking position without moving the tracking origin.
 - Refresh the submitted eye surfaces when Portal reallocates render targets on map load. The old surfaces produced a black headset image even though SteamVR accepted them.
 - Install the action manifest and controller bindings correctly. Guard missing controller poses and use the correct input and cursor interfaces.
 - Hook Portal 1's eight-argument, float-returning `TraceFirePortal` so placement follows the controller instead of head aim.
@@ -50,6 +52,8 @@ The tester also confirmed controller-directed portal placement and independent a
 
 The gun-hand grip correction is 2.5 Source units backward and 1 unit left. `ViewmodelPosCustomOffsetX/Y/Z` add forward/right/up adjustments in Source units; at the default scale, one unit is about 2.3 cm. Restart Portal after changing configuration.
 
+The camera-collision update passes the Release x86 build and regression checks and has been installed for Pico testing. Live wall-contact/recovery and passage through active portals with this update still need headset verification.
+
 ## Build
 
 Install Visual Studio 2022 C++ build tools with the Windows SDK, and Git. Clone this repository recursively, then:
@@ -61,7 +65,7 @@ Install Visual Studio 2022 C++ build tools with the Windows SDK, and Git. Clone 
 
 `build.ps1` applies `patches/dxvk-portal-startup.patch` to the pinned DXVK submodule before building Release x86. If using the Visual Studio solution directly, first run `patches/apply-dxvk-patch.ps1` and select x86 and your installed toolset. The patch is stored in the parent repository so the DXVK fixes survive a fresh clone.
 
-From an x86 Native Tools Command Prompt, run `powershell -File tests/run.ps1` for the interface-layout, calling-convention, trace-filter, model-name, wrist-transform, and independent-arm regression checks.
+From an x86 Native Tools Command Prompt, run `powershell -File tests/run.ps1` for the interface-layout, calling-convention, trace-filter, model-name, wrist-transform, independent-arm, and camera-collision regression checks. Camera checks cover the swept-hull layout, eye/near-plane clearance, leaning back, solid starts, floor contact, and resetting after an engine teleport.
 
 For render debugging only, add `-portalvr-debug-textures`. It saves left/right/desktop BMP images at three early frame counts in the Portal directory. Normal launches do not perform these GPU readbacks. Runtime diagnostics are in `portalvr.log`.
 

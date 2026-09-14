@@ -1,5 +1,5 @@
 diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
-index b4bbd4ae..7056a99a 100644
+index b4bbd4ae..8762a4a5 100644
 --- a/src/d3d9/d3d9_device.cpp
 +++ b/src/d3d9/d3d9_device.cpp
 @@ -26,6 +26,7 @@
@@ -10,7 +10,21 @@ index b4bbd4ae..7056a99a 100644
  #include "L4D2VR/sdk/sdk.h"
  #include "d3d9_vr.h"
  
-@@ -528,25 +529,25 @@ namespace dxvk {
+@@ -379,11 +380,8 @@ namespace dxvk {
+ 
+ 
+   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::Reset(D3DPRESENT_PARAMETERS* pPresentationParameters) {
+-    if (g_Game && g_Game->m_VR)
+-    {
+-        pPresentationParameters->BackBufferWidth = g_Game->m_VR->m_RenderWidth;
+-        pPresentationParameters->BackBufferHeight = g_Game->m_VR->m_RenderHeight;
+-    }
++    // Keep the desktop mode requested by Source. VR uses separate eye targets;
++    // replacing this with the headset resolution breaks fullscreen resets.
+ 
+     D3D9DeviceLock lock = LockDevice();
+ 
+@@ -528,25 +526,25 @@ namespace dxvk {
            if (texID == VR::Texture_LeftEye)
            {
                textureTarget = &g_Game->m_VR->m_VKLeftEye;
@@ -40,7 +54,7 @@ index b4bbd4ae..7056a99a 100644
                g_D3DVR9->GetVRDesc(g_Game->m_VR->m_D9BlankSurface, &texDesc);
            }
  
-@@ -1313,6 +1314,30 @@ namespace dxvk {
+@@ -1313,6 +1311,30 @@ namespace dxvk {
      if (unlikely(rt != nullptr && !(texInfo->Desc()->Usage & D3DUSAGE_RENDERTARGET)))
        return D3DERR_INVALIDCALL;
  
@@ -71,7 +85,7 @@ index b4bbd4ae..7056a99a 100644
      if (RenderTargetIndex == 0) {
        auto rtSize = rt->GetSurfaceExtent();
  
-@@ -1683,13 +1708,10 @@ namespace dxvk {
+@@ -1683,13 +1705,10 @@ namespace dxvk {
  
    HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetViewport(const D3DVIEWPORT9* pViewport) {
      
@@ -89,7 +103,7 @@ index b4bbd4ae..7056a99a 100644
        
      D3D9DeviceLock lock = LockDevice();
  
-@@ -3547,17 +3569,47 @@ namespace dxvk {
+@@ -3547,17 +3566,47 @@ namespace dxvk {
      pDirtyRegion,
      dwFlags);
  

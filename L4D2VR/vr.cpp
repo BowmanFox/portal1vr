@@ -16,6 +16,7 @@
 #include <cstring>
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include "debuglog.h"
+#include "cameracollision.h"
 
 namespace
 {
@@ -306,6 +307,8 @@ void VR::Update()
         // Only force a texture rebuild when transitioning out of gameplay.
         if (!inGame)
         {
+            m_CameraCollisionOffset = { 0, 0, 0 };
+            m_CameraBlocked = false;
             m_Game->m_CachedArmsModel = false;
             if (wasInGame)
                 m_CreatedVRTextures = false;
@@ -1047,7 +1050,7 @@ Vector VR::GetRightControllerAbsPos(Vector eyePosition)
     if (m_6DOF)
         position += m_HmdPosRelative;
 
-    return position;
+    return position + m_CameraCollisionOffset;
 }
 
 Vector VR::GetRecommendedViewmodelAbsPos(Vector eyePosition)
@@ -1277,7 +1280,42 @@ Vector VR::GetViewOrigin(Vector setupOrigin)
     if (m_6DOF)
         center += m_HmdPosRelative;
 
-    return center + (m_HmdForward * -(m_EyeZ * m_VRScale));
+    return center + (m_HmdForward * -(m_EyeZ * m_VRScale)) + m_CameraCollisionOffset;
+}
+
+void VR::UpdateCameraCollision(Vector setupOrigin)
+{
+    // Always solve from the engine's current player eye position. Never move
+    // the tracking origin: leaning back, respawning, or portalling must recover.
+    m_CameraCollisionOffset = { 0, 0, 0 };
+    auto* player = m_Game->GetLocalPortalPlayer();
+    if (!player)
+    {
+        m_CameraBlocked = false;
+        return;
+    }
+
+    const Vector desired = GetViewOrigin(setupOrigin);
+    const float radius = CameraCollision::HullRadius(m_Ipd * m_IpdScale * m_VRScale, m_Fov, m_Aspect);
+    const Vector extent(radius, radius, radius);
+    Ray_t ray{};
+    ray.Init(setupOrigin, desired, extent * -1.0f, extent);
+    CGameTrace trace;
+    trace.fraction = 1.0f;
+    trace.startsolid = trace.allsolid = false;
+    CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity*>(player), 0);
+    constexpr unsigned mask = CONTENTS_SOLID | CONTENTS_WINDOW | CONTENTS_GRATE | CONTENTS_MOVEABLE;
+    if (!m_Game->TraceRay(ray, mask, &filter, &trace))
+        return;
+
+    const Vector safe = CameraCollision::Constrain(setupOrigin, desired, trace.fraction, trace.startsolid, trace.allsolid);
+    m_CameraCollisionOffset = safe - desired;
+    const bool blocked = m_CameraCollisionOffset.LengthSqr() > 0.0001f;
+    if (blocked != m_CameraBlocked)
+        PortalVrLog("Head collision blocked=%d fraction=%f radius=%f correction=%f,%f,%f startsolid=%d allsolid=%d",
+            blocked, trace.fraction, radius, m_CameraCollisionOffset.x, m_CameraCollisionOffset.y,
+            m_CameraCollisionOffset.z, trace.startsolid, trace.allsolid);
+    m_CameraBlocked = blocked;
 }
 
 Vector VR::GetViewOriginLeft(Vector setupOrigin)
