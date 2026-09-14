@@ -10,15 +10,22 @@
 
 static void CheckCameraCollision() {
     static_assert(sizeof(Ray_t) == 80);
-    static_assert(offsetof(Ray_t, m_pWorldAxisTransform) == 64);
+    static_assert(offsetof(Ray_t, m_IsRay) == 64);
+    static_assert(offsetof(Ray_t, m_IsSwept) == 65);
     static_assert(sizeof(CGameTrace) == 84);
     static_assert(offsetof(CGameTrace, fraction) == 44);
     static_assert(offsetof(CGameTrace, startsolid) == 55);
     Ray_t hull;
     memset(&hull, 0xcc, sizeof(hull));
     hull.Init({0,0,0},{20,0,0},{-3,-3,-3},{3,3,3});
-    assert(hull.m_pWorldAxisTransform == nullptr && !hull.m_IsRay && hull.m_IsSwept);
+    // Read the exact bytes consumed by Portal's engine.dll, not just our fields.
+    const auto* engineRayBytes = reinterpret_cast<const unsigned char*>(&hull);
+    assert(engineRayBytes[64] == 0 && engineRayBytes[65] == 1);
     assert(hull.m_Extents.x == 3 && hull.m_StartOffset.LengthSqr() == 0);
+    hull.Init({0,0,0},{20,0,0});
+    assert(engineRayBytes[64] == 1 && engineRayBytes[65] == 1);
+    hull.Init({0,0,0},{0,0,0},{-3,-3,-3},{3,3,3});
+    assert(engineRayBytes[64] == 0 && engineRayBytes[65] == 0);
 
     const Vector start(0,0,0), desired(20,0,0);
     const float radius = CameraCollision::HullRadius(2.8f,104.0f,1.0f);

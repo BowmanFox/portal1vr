@@ -1306,7 +1306,29 @@ void VR::UpdateCameraCollision(Vector setupOrigin)
     CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity*>(player), 0);
     constexpr unsigned mask = CONTENTS_SOLID | CONTENTS_WINDOW | CONTENTS_GRATE | CONTENTS_MOVEABLE;
     if (!m_Game->TraceRay(ray, mask, &filter, &trace))
+    {
+        m_CameraBlocked = false;
         return;
+    }
+
+    // An actual engine trace catches ABI errors that pure geometry tests cannot.
+    static const bool debugCollision = strstr(GetCommandLineA(), "-portalvr-debug-collision") != nullptr;
+    static bool loggedProbe = false;
+    if (debugCollision && !loggedProbe)
+    {
+        Ray_t floorRay{};
+        floorRay.Init(setupOrigin, setupOrigin - Vector(0, 0, 4096), extent * -1.0f, extent);
+        CGameTrace floorTrace;
+        if (m_Game->TraceRay(floorRay, mask, &filter, &floorTrace))
+        {
+            PortalVrLog("Collision engine probe fraction=%f startsolid=%d allsolid=%d start=%f,%f,%f end=%f,%f,%f rayFlags=%d,%d",
+                floorTrace.fraction, floorTrace.startsolid, floorTrace.allsolid,
+                setupOrigin.x, setupOrigin.y, setupOrigin.z,
+                floorTrace.endpos.x, floorTrace.endpos.y, floorTrace.endpos.z,
+                floorRay.m_IsRay, floorRay.m_IsSwept);
+            loggedProbe = true;
+        }
+    }
 
     const Vector safe = CameraCollision::Constrain(setupOrigin, desired, trace.fraction, trace.startsolid, trace.allsolid);
     m_CameraCollisionOffset = safe - desired;

@@ -205,7 +205,8 @@ struct Ray_t
 	VectorAligned  m_Delta;	// direction + length of the ray
 	VectorAligned  m_StartOffset;	// Add this to m_Start to get the actual ray start
 	VectorAligned  m_Extents;	// Describes an axis aligned box extruded along a ray
-	const matrix3x4_t *m_pWorldAxisTransform;
+	// Portal 1 / EngineTraceClient003 has no world-axis-transform pointer.
+	// The engine reads these flags at bytes 64 and 65, not Portal 2's 68/69.
 	bool	m_IsRay;	// are the extents zero?
 	bool	m_IsSwept;	// is delta != 0?
 
@@ -218,8 +219,6 @@ struct Ray_t
 
 		VectorClear(m_Extents); 
 		m_IsRay = true;
-
-		m_pWorldAxisTransform = 0;
 
 		// Offset m_Start to be in the center of the box...
 		VectorClear(m_StartOffset);
@@ -236,7 +235,6 @@ struct Ray_t
 		VectorSubtract(maxs, mins, m_Extents);
 		m_Extents *= 0.5f;
 		m_IsRay = (m_Extents.LengthSqr() < 1e-6);
-		m_pWorldAxisTransform = nullptr;
 
 		// Offset m_Start to be in the center of the box...
 		VectorAdd(mins, maxs, m_StartOffset);
@@ -267,6 +265,8 @@ private:
 };
 
 typedef CGameTrace trace_t;
+static_assert(offsetof(Ray_t, m_IsRay) == 64, "Portal 1 ray flag ABI");
+static_assert(offsetof(Ray_t, m_IsSwept) == 65, "Portal 1 swept flag ABI");
 class IEngineTrace
 {
 public:
