@@ -13,6 +13,7 @@
 #include <thread>
 #include <type_traits>
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include "debuglog.h"
@@ -466,7 +467,8 @@ void VR::SubmitVRTextures()
 
 void VR::GetPoseData(vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut)
 {
-    if (poseRaw.bPoseIsValid) 
+    poseOut.isValid = poseRaw.bPoseIsValid && poseRaw.bDeviceIsConnected;
+    if (poseOut.isValid)
     {
         vr::HmdMatrix34_t mat = poseRaw.mDeviceToAbsoluteTracking;
         Vector pos;
@@ -598,36 +600,21 @@ void VR::UpdatePosesAndActions()
     actionSets[1].ulActionSet = m_BaseActionSet;
     m_Input->UpdateActionState(actionSets, sizeof(vr::VRActiveActionSet_t), m_BaseActionSet ? 2 : 1);
 
-	// SteamVR can provide finger curl even when the controller has no full
-	// skeletal tracking. Keep the last good pose and use a relaxed fallback so
-	// custom hands never render as board-flat fists on runtimes without it.
+	// Presence comes from the action state, never from curl magnitude: zero
+	// is a valid fully open hand, including Pico's estimated skeleton stream.
 	auto updateFingerSummary = [this](vr::VRActionHandle_t action, float *curl, bool &valid) {
-		static bool reportedMissing = false;
-		if (!action) { valid = false; if (!reportedMissing) { PortalVrLog("Finger skeleton action unavailable; using relaxed pose"); reportedMissing = true; } return; }
+		vr::InputSkeletalActionData_t state{};
 		vr::VRSkeletalSummaryData_t summary{};
-		const auto error = m_Input->GetSkeletalSummaryData(action, vr::VRSummaryType_FromDevice, &summary);
-		if (error != vr::VRInputError_None) { valid = false; if (!reportedMissing) { PortalVrLog("Finger skeleton data unavailable error=%d; using relaxed pose", error); reportedMissing = true; } return; }
-		float sampledCurl[5]{};
-		bool anyCurl = false;
+		valid = action && m_Input->GetSkeletalActionData(action, &state, sizeof(state)) == vr::VRInputError_None
+			&& state.bActive
+			&& m_Input->GetSkeletalSummaryData(action, vr::VRSummaryType_FromDevice, &summary) == vr::VRInputError_None;
+		for (int i = 0; i < 5 && valid; ++i) valid = std::isfinite(summary.flFingerCurl[i]);
+		static const float relaxed[5] = {0.15f, 0.20f, 0.25f, 0.25f, 0.25f};
 		for (int i = 0; i < 5; ++i)
-		{
-			sampledCurl[i] = std::clamp(summary.flFingerCurl[i], 0.0f, 1.0f);
-			anyCurl = anyCurl || sampledCurl[i] > 0.02f;
-		}
-		// Pico's compatibility layer can return a successful all-zero summary
-		// even though it has no skeletal stream. Keep the relaxed fallback in
-		// that case instead of turning every finger into a board-flat pose.
-		if (!anyCurl) {
-			valid = false;
-			if (!reportedMissing) { PortalVrLog("Finger skeleton returned zero curl; using relaxed pose"); reportedMissing = true; }
-			return;
-		}
-		for (int i = 0; i < 5; ++i) curl[i] = sampledCurl[i];
-		valid = true;
-		if (!reportedMissing) { PortalVrLog("Finger skeleton curl=%.2f,%.2f,%.2f,%.2f,%.2f", curl[0], curl[1], curl[2], curl[3], curl[4]); reportedMissing = true; }
+			curl[i] = valid ? std::clamp(summary.flFingerCurl[i], 0.0f, 1.0f) : relaxed[i];
 	};
-	updateFingerSummary(m_ActionSkeletonLeft, m_LeftFingerCurl, m_LeftSkeletonValid);
-	updateFingerSummary(m_ActionSkeletonRight, m_RightFingerCurl, m_RightSkeletonValid);
+	updateFingerSummary(m_LeftHanded ? m_ActionSkeletonRight : m_ActionSkeletonLeft, m_LeftFingerCurl, m_LeftSkeletonValid);
+	updateFingerSummary(m_LeftHanded ? m_ActionSkeletonLeft : m_ActionSkeletonRight, m_RightFingerCurl, m_RightSkeletonValid);
 }
 
 void VR::GetViewParameters() 
@@ -863,6 +850,8 @@ void VR::ProcessInput()
 
         // Wrap from 0 to 360
         m_RotationOffset.y -= 360 * std::floor(m_RotationOffset.y / 360);
+		if (turnAngle != 0.0f)
+			UpdateHMDAngles();
     }
 
     if (PressedDigitalAction(m_ActionPrimaryAttack))
@@ -901,13 +890,21 @@ void VR::ProcessInput()
         m_Game->ClientCmd_Unrestricted("-duck");
     }
 
-    if (PressedDigitalAction(m_ActionUse))
+    // Keep the normal Source input state in sync, but only emit the console
+    // command on an edge. CreateMove also mirrors this state into IN_USE so
+    // the pickup controller sees a stable button during the same tick.
+    const bool useHeld = PressedDigitalAction(m_ActionUse);
+    // Publish the controller pose as soon as the action state is sampled. The
+    // server-side grab callbacks can run before the next CreateMove callback;
+    // keeping this snapshot here prevents that first pickup tick from falling
+    // back to the HMD pose.
+    m_GrabUseHeld = useHeld;
+    m_GrabControllerPos = GetRightControllerAbsPos();
+    m_GrabControllerAng = GetRightControllerAbsAngle();
+    if (useHeld != m_UseCommandHeld)
     {
-        m_Game->ClientCmd_Unrestricted("+use");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-use");
+        m_Game->ClientCmd_Unrestricted(useHeld ? "+use" : "-use");
+        m_UseCommandHeld = useHeld;
     }
 
     if (PressedDigitalAction(m_ActionReload))
@@ -1637,7 +1634,14 @@ try
 
     if constexpr (std::is_same_v<T, bool>)
     {
-        return configValue == "true";
+        // Values are read up to the optional '#' comment delimiter, so a
+        // documented setting can contain trailing whitespace.  Accept the
+        // numeric form as well because it is convenient when editing the
+        // config from scripts.
+        std::string normalized = configValue;
+        normalized.erase(std::remove_if(normalized.begin(), normalized.end(),
+            [](unsigned char character) { return std::isspace(character) != 0; }), normalized.end());
+        return normalized == "true" || normalized == "1";
     }
     else if constexpr(std::is_floating_point_v<T>)
     {
@@ -1720,6 +1724,8 @@ void VR::ParseConfigFile()
     parseOrDefault("HudSize", m_HudSize, 4.0f);
     parseOrDefault("HudAlwaysVisible", m_HudAlwaysVisible, false);*/
     parseOrDefault("AimMode", m_AimMode, 2);
+    parseOrDefault("FirstPersonBody", m_FirstPersonBody, true);
+    parseOrDefault("FirstPersonBodyHideUpper", m_FirstPersonBodyHideUpper, true);
     parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, 0);
     parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);

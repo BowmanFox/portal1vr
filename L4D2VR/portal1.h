@@ -50,8 +50,27 @@ inline constexpr int kSinglePlayerLocalIndex = 1;
 
 namespace VTableIndex
 {
+// Server IHandleEntity::GetRefEHandle; verified in both CBasePlayer and
+// CPortal_Player (server.dll 0x67578384). The entry index uses 12 bits.
+inline constexpr size_t kServerEntity_GetRefEHandle = 2;
 inline constexpr size_t kViewRender_RenderView = 6;
 inline constexpr size_t kClientMode_CreateMove = 22;
 inline constexpr size_t kClientMode_GetViewModelFOV = 33;
+inline constexpr size_t kClientRenderable_GetModel = 9;
+inline constexpr size_t kClientRenderable_DrawModel = 10;
+inline constexpr size_t kClientRenderable_GetRenderOrigin = 1;
+inline constexpr size_t kClientRenderable_GetRenderAngles = 2;
+// Portal 1's CPortal_Player inherits these CBasePlayer implementations. They
+// are the accessors used by the pickup trace and CGrabController.
+inline constexpr size_t kPortalPlayer_EyePosition = 130;
+inline constexpr size_t kPortalPlayer_EyeAngles = 131;
+inline constexpr size_t kPortalPlayer_WeaponShootPosition = 267;
+}
+
+namespace ServerFunction
+{
+// Verified Portal 1 server.dll RVAs for the current Steam build.
+inline constexpr uintptr_t kGrabController_ComputeError = 0x45F740;
+inline constexpr uintptr_t kGrabController_UpdateObject = 0x468300;
 }
 }

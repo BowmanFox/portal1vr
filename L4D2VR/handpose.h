@@ -1,5 +1,6 @@
 #pragma once
 #include "sdk/vector.h"
+#include <cmath>
 #include <cstring>
 
 namespace HandPose {
@@ -51,15 +52,12 @@ inline matrix3x4_t Concat(const matrix3x4_t& parent, const matrix3x4_t& local)
     return result;
 }
 
-// The Source controller basis is left-handed (AngleVectors' right axis is
-// negated).  The hand mesh uses +X along the fingers, +Z toward the back of
-// the hand, and must remain a proper rigid frame for correct skin lighting.
-// Mirror the lateral axis for the left hand while keeping each palm aligned
-// with its own controller instead of turning both hands into edge-on chops.
+// The rebuilt mesh uses +X toward the fingers and +Y toward the thumb.
+// Flip both lateral axes around forward so the palms face the controller grip.
 inline matrix3x4_t ControllerHandFrame(const Vector& forward, const Vector& right,
     const Vector& up, const Vector& position, bool left)
 {
-    return Frame(forward, left ? -right : right, left ? up : -up, position);
+    return Frame(forward, left ? right : -right, left ? -up : up, position);
 }
 
 inline matrix3x4_t InverseRigid(const matrix3x4_t& matrix) {
@@ -82,6 +80,31 @@ inline void AlignBareArms(const matrix3x4_t *bones, matrix3x4_t *result,
     for (int i = 24; i < 43; ++i) result[i] = Reanchor(bones[i], bones[27], rightTarget);
 }
 
+// Build an active rotation around an arbitrary axis.  Finger joints in the
+// custom VPK do not all use the wrist's canonical Y axis; using one fixed
+// matrix makes the index through pinky twist sideways and makes the thumb
+// curl into the palm.  The columns match matrix3x4_t's local X/Y/Z axes.
+inline matrix3x4_t RotateAroundAxis(Vector axis, float radians)
+{
+    const float lengthSqr = axis.LengthSqr();
+    if (lengthSqr <= 1e-8f)
+        return Frame({1,0,0}, {0,1,0}, {0,0,1}, {0,0,0});
+
+    axis *= 1.0f / sqrtf(lengthSqr);
+    const float x = axis.x;
+    const float y = axis.y;
+    const float z = axis.z;
+    const float c = cosf(radians);
+    const float s = sinf(radians);
+    const float t = 1.0f - c;
+
+    return Frame(
+        {t*x*x + c,     t*x*y + s*z, t*x*z - s*y},
+        {t*x*y - s*z,   t*y*y + c,   t*y*z + s*x},
+        {t*x*z + s*y,   t*y*z - s*x, t*z*z + c},
+        {0,0,0});
+}
+
 inline matrix3x4_t FingerBend(float radians)
 {
     // The custom VPK finger bones run down local +X.  Local +Z is the back of
@@ -89,42 +112,60 @@ inline matrix3x4_t FingerBend(float radians)
     // the fingers sideways and produces the user's karate-chop pose.  Positive
     // Y rotation sends +X toward the palm (-Z); the mirrored wrist frame makes
     // the same local pose correct for both hands.
-    const float c = cosf(radians), s = sinf(radians);
-    return Frame({c,0,-s}, {0,1,0}, {s,0,c}, {0,0,0});
+    return RotateAroundAxis({0,1,0}, radians);
+}
+
+// A skeletal joint rotates at its own origin. Applying the active rotation
+// to the full parent-to-child matrix also rotates the child translation around
+// its parent, which makes every knuckle orbit the wrist and collapses the
+// fingers into one stack. Rotate only the basis and retain the authored joint
+// position.
+inline matrix3x4_t RotateJoint(const matrix3x4_t& local, const Vector& axis,
+    float radians)
+{
+    matrix3x4_t result = Concat(RotateAroundAxis(axis, radians), local);
+    for (int row = 0; row < 3; ++row)
+        result[row][3] = local[row][3];
+    return result;
 }
 
 inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
-    const float *curl, int offset, int wrist)
+    const float *curl, int offset, int wrist, bool left = true)
 {
-    // Valve's hand skeleton uses thumb, index, middle, ring, pinky chains.
-    // Each chain has three bones in the custom VPK model.  Curling the local
-    // parent-to-child frame bends the mesh while preserving its authored UVs.
     static const int chains[5][3] = {
         {21,22,23}, {18,19,20}, {15,16,17}, {12,13,14}, {9,10,11}
     };
-    // Distribute the tracked curl down the three segments. Applying the same
-    // angle at every joint folds the custom mesh into a thick stack of lobes;
-    // a real finger bends most at the knuckle and progressively less toward
-    // the fingertip.
-    static const float segmentWeight[3] = {0.55f, 0.30f, 0.15f};
+    const Vector forward(bind[wrist][0][0], bind[wrist][1][0], bind[wrist][2][0]);
+    const Vector palm = Vector(bind[wrist][0][2], bind[wrist][1][2], bind[wrist][2][2])
+        * (left ? 1.0f : -1.0f);
+    const float flexion[3] = {0.90f, 1.00f, 0.65f};
+    const float thumbFlexion[3] = {0.20f, 0.45f, 0.30f};
     for (int finger = 0; finger < 5; ++finger) {
-        // Both authored hand chains use the same local curl sign; their
-        // mirrored wrist frames already account for left/right orientation.
-        // The Pico compatibility layer reports a normalized curl value, while
-        // this model's authored bind pose is almost fully open.  The previous
-        // small multiplier only moved each joint a few degrees, which read as
-        // four rigid, parallel fingers.  Use a useful range for the full
-        // 0..1 input and let the segment weights keep the knuckle dominant.
-        const float totalCurl = curl[finger] * (finger == 0 ? 0.78f : 1.05f);
+        // Zero is an open hand. Invalid input cannot enter the bone palette.
+        const float amount = std::isfinite(curl[finger])
+            ? fmaxf(0.0f, fminf(1.0f, curl[finger])) : 0.0f;
         int parent = wrist;
         for (int segment = 0; segment < 3; ++segment) {
             const int bone = chains[finger][segment] + offset;
-            const auto local = Concat(InverseRigid(bind[parent]), bind[bone]);
-            // Source's viewmodel matrices use the parent-frame convention:
-            // pre-multiplying rotates the segment and advances the next joint
-            // along that rotated segment. Keep the per-segment weights small
-            // enough that the authored mesh remains fully visible.
-            result[bone] = Concat(result[parent], Concat(FingerBend(totalCurl * segmentWeight[segment]), local));
+            const int from = segment < 2 ? bone : parent;
+            const int to = segment < 2 ? chains[finger][segment + 1] + offset : bone;
+            const Vector direction(bind[to][0][3] - bind[from][0][3],
+                bind[to][1][3] - bind[from][1][3], bind[to][2][3] - bind[from][2][3]);
+            // Derive the hinge from anatomical joint positions, independently
+            // of the model's bone roll. The thumb wraps toward the fingers
+            // in the palm plane, staying outside the curled finger volume.
+            const Vector toward = finger == 0 ? forward : palm;
+            const Vector axis(direction.y*toward.z - direction.z*toward.y,
+                direction.z*toward.x - direction.x*toward.z,
+                direction.x*toward.y - direction.y*toward.x);
+            const auto inverseParent = InverseRigid(bind[parent]);
+            const Vector localAxis(
+                inverseParent[0][0]*axis.x + inverseParent[0][1]*axis.y + inverseParent[0][2]*axis.z,
+                inverseParent[1][0]*axis.x + inverseParent[1][1]*axis.y + inverseParent[1][2]*axis.z,
+                inverseParent[2][0]*axis.x + inverseParent[2][1]*axis.y + inverseParent[2][2]*axis.z);
+            const auto local = Concat(inverseParent, bind[bone]);
+            result[bone] = Concat(result[parent], RotateJoint(local, localAxis,
+                amount * (finger == 0 ? thumbFlexion[segment] : flexion[segment])));
             parent = bone;
         }
     }
@@ -133,8 +174,8 @@ inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
 inline void ApplyFingerCurl(const matrix3x4_t *bind, matrix3x4_t *result,
     const float *leftCurl, const float *rightCurl)
 {
-    ApplyFingerCurlChain(bind, result, leftCurl, 0, 8);
-    ApplyFingerCurlChain(bind, result, rightCurl, 19, 27);
+    ApplyFingerCurlChain(bind, result, leftCurl, 0, 8, true);
+    ApplyFingerCurlChain(bind, result, rightCurl, 19, 27, false);
 }
 
 inline void StraightenGunWrist(matrix3x4_t *bones) {

@@ -5,6 +5,7 @@
 #include "sdk/trace.h"
 #include "sigscanner.h"
 #include "handpose.h"
+#include "firstpersonbody.h"
 #include "cameracollision.h"
 #include <limits>
 
@@ -83,23 +84,71 @@ static void CheckHandAttachment() {
     assert(!memcmp(&rightMoved[27],&target,sizeof(target)));
     assert(!memcmp(&leftMoved[8],&target,sizeof(target)));
 
-    // Controller hand frames keep the Source left-handed controller basis
-    // rigid while mirroring the lateral axis.  This prevents edge-on palms
-    // and keeps each hand's fingers aligned with its own controller.
+    // Controller hand frames preserve the custom V_hands wrist frame while
+    // mirroring the lateral axis for the opposite hand.
     const auto rightFrame = HandPose::ControllerHandFrame(
         {1,0,0}, {0,-1,0}, {0,0,1}, {2,3,4}, false);
     const auto leftFrame = HandPose::ControllerHandFrame(
         {1,0,0}, {0,-1,0}, {0,0,1}, {5,6,7}, true);
-    assert(rightFrame[0][0] == 1 && rightFrame[1][1] == -1 && rightFrame[2][2] == -1);
-    assert(leftFrame[0][0] == 1 && leftFrame[1][1] == 1 && leftFrame[2][2] == 1);
+    assert(rightFrame[0][0] == 1 && rightFrame[1][1] == 1 && rightFrame[2][2] == 1);
+    assert(leftFrame[0][0] == 1 && leftFrame[1][1] == -1 && leftFrame[2][2] == -1);
     assert(rightFrame[0][3] == 2 && leftFrame[1][3] == 6);
+    assert(!FirstPersonBody::LookingDown(0));
+    assert(!FirstPersonBody::LookingDown(-45));
+    assert(!FirstPersonBody::LookingDown(29));
+    assert(FirstPersonBody::LookingDown(45));
+    assert(FirstPersonBody::LookingDown(90));
 
     // Custom VPK fingers extend along +X and hinge around local +Y, so curl
     // must rotate in the local X/Z plane toward the palm.
     const auto curlFrame = HandPose::FingerBend(0.5f);
     assert(fabs(curlFrame[0][1]) < 0.0001f && fabs(curlFrame[2][1]) < 0.0001f);
     assert(fabs(curlFrame[1][1] - 1.0f) < 0.0001f);
-    assert(fabs(curlFrame[0][2]) > 0.1f && fabs(curlFrame[2][0]) > 0.1f);
+    assert(curlFrame[0][2] > 0.1f && curlFrame[2][0] < -0.1f);
+
+    // The arbitrary-axis path must preserve its hinge axis.  This catches a
+    // column/row transpose that would make a valid thumb axis bend sideways.
+    const auto zHinge = HandPose::RotateAroundAxis({0,0,3}, 0.5f);
+    assert(fabs(zHinge[0][2]) < 0.0001f && fabs(zHinge[1][2]) < 0.0001f);
+    assert(fabs(zHinge[2][2] - 1.0f) < 0.0001f);
+    assert(fabs(zHinge[0][0]) > 0.1f && fabs(zHinge[1][0]) > 0.1f);
+
+    // Anatomical joints keep their base and lengths, regardless of bone roll.
+    matrix3x4_t bind[43], posed[43];
+    for (auto &bone : bind)
+        bone = HandPose::Frame({1,0,0}, {0,1,0}, {0,0,1}, {0,0,0});
+    for (int side=0;side<2;++side) {
+        const int offset=side*19;
+        for(int root : {9,12,15,18,21}) {
+            for(int joint=0;joint<3;++joint) {
+                bind[root+joint+offset]=HandPose::RotateAroundAxis({1,0,0},0.8f);
+                bind[root+joint+offset][0][3]=float(2+joint);
+                bind[root+joint+offset][1][3]=float(root-15)*0.3f;
+            }
+        }
+    }
+    memcpy(posed,bind,sizeof(bind));
+    const float open[5]={0,0,0,0,0},closed[5]={1,1,1,1,1};
+    HandPose::ApplyFingerCurl(bind,posed,open,open);
+    for(int i=0;i<43;++i)for(int r=0;r<3;++r)for(int c=0;c<4;++c)
+        assert(fabs(posed[i][r][c]-bind[i][r][c])<0.00001f);
+    HandPose::ApplyFingerCurl(bind,posed,closed,closed);
+    for(int side=0;side<2;++side)for(int root : {9,12,15,18,21}) {
+        const int offset=side*19;
+        for(int r=0;r<3;++r)assert(fabs(posed[root+offset][r][3]-bind[root+offset][r][3])<0.0001f);
+        for(int j=1;j<3;++j) {
+            Vector distance(posed[root+j+offset][0][3]-posed[root+j-1+offset][0][3],
+                posed[root+j+offset][1][3]-posed[root+j-1+offset][1][3],
+                posed[root+j+offset][2][3]-posed[root+j-1+offset][2][3]);
+            assert(fabs(distance.LengthSqr()-1)<0.0001f);
+        }
+    }
+    assert(posed[19][2][3]>0.5f && posed[38][2][3]<-0.5f);
+    const float invalid[5]={NAN,0,0,0,0};
+    memcpy(posed,bind,sizeof(bind));
+    HandPose::ApplyFingerCurl(bind,posed,invalid,invalid);
+    for(int i=0;i<43;++i)for(int r=0;r<3;++r)for(int c=0;c<4;++c)
+        assert(std::isfinite(posed[i][r][c]));
 
     matrix3x4_t gun[45];
     for (auto &bone:gun) bone = source;
@@ -115,6 +164,48 @@ static void CheckHandAttachment() {
     }
 }
 
+static void CheckFirstPersonBody() {
+    static_assert(FirstPersonBody::MaxBones >= 95);
+    const auto shift=FirstPersonBody::HorizontalCameraOffset({10,20,62},{15,18,45});
+    assert(shift.x==5 && shift.y==-2 && shift.z==0); // crouch never lifts the floor
+    const auto secondEye=FirstPersonBody::HorizontalCameraOffset({10,20,62},{15,18,45});
+    assert((shift-secondEye).LengthSqr()==0);
+
+    // root -> hips -> upper body -> upper child, with a separate leg branch.
+    const int parents[6] = {-1, 0, 1, 2, 1, 4};
+    matrix3x4_t bones[6];
+    for (int i=0; i<6; ++i)
+        bones[i] = HandPose::Frame({1,0,0}, {0,1,0}, {0,0,1}, {float(i), 2, 3});
+    const auto hips = bones[1];
+    const auto leg = bones[4];
+
+    FirstPersonBody::CollapseUpperBody(bones, parents, 6, 2, 1, {10,20,30});
+    assert(FirstPersonBody::IsDescendant(parents, 6, 2, 2));
+    assert(FirstPersonBody::IsDescendant(parents, 6, 3, 2));
+    assert(!FirstPersonBody::IsDescendant(parents, 6, 4, 2));
+    assert(!memcmp(&bones[1], &hips, sizeof(hips)));
+    assert(!memcmp(&bones[4], &leg, sizeof(leg)));
+    assert(bones[2][0][0] == 0 && bones[2][1][1] == 0 && bones[2][2][2] == 0);
+    assert(bones[2][0][3] == 10 && bones[2][1][3] == 20 && bones[2][2][3] == 30);
+    assert(!memcmp(&bones[2], &bones[3], sizeof(bones[2])));
+
+    matrix3x4_t branches[6];
+    for (int i=0; i<6; ++i)
+        branches[i] = HandPose::Frame({1,0,0}, {0,1,0}, {0,0,1}, {float(i), 4, 5});
+    const auto branchesHips = branches[1];
+    const int hiddenRoots[2] = {2, 4};
+    matrix3x4_t atRoots[6]; memcpy(atRoots, branches, sizeof(atRoots));
+    FirstPersonBody::CollapseBranchesAtRoots(atRoots, parents, 6, hiddenRoots, 2);
+    for(int root : hiddenRoots)for(int r=0;r<3;++r)
+        assert(atRoots[root][r][3]==branches[root][r][3]);
+    FirstPersonBody::CollapseBranches(branches, parents, 6, hiddenRoots, 2, 1, {7,8,9});
+    assert(!memcmp(&branches[1], &branchesHips, sizeof(branchesHips)));
+    assert(!memcmp(&branches[2], &branches[3], sizeof(branches[2])));
+    assert(!memcmp(&branches[4], &branches[5], sizeof(branches[4])));
+    assert(branches[2][0][3] == 7 && branches[2][1][3] == 8 && branches[2][2][3] == 9);
+    assert(branches[2][0][0] == 0 && branches[4][1][1] == 0);
+}
+
 static void *expectedThis;
 static bool __fastcall InGame(void *self, void *) { assert(self == expectedThis); return true; }
 static void __fastcall GetAngles(void *self, void *, QAngle &out) { assert(self == expectedThis); out = {1,2,3}; }
@@ -127,6 +218,7 @@ static void __fastcall PushTarget(void *self, void *, ITexture *target, int x, i
 static void __fastcall PopTarget(void *self, void *) { assert(self == expectedThis); }
 int main() {
     CheckHandAttachment();
+    CheckFirstPersonBody();
     CheckCameraCollision();
     static_assert(sizeof(void *) == 4);
     static_assert(sizeof(CViewSetup) == 0xc8);
@@ -161,5 +253,5 @@ int main() {
     void *guard = VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_NOACCESS);
     assert(guard && !SigScanner::GetVirtualFunction(guard,0));
     VirtualFree(guard,0,MEM_RELEASE);
-    puts("Portal ABI, trace, hand attachment, and camera collision regression checks passed");
+    puts("Portal ABI, trace, hand attachment, first-person body, and camera collision regression checks passed");
 }

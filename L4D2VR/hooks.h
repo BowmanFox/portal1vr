@@ -98,7 +98,6 @@ typedef int(__cdecl *tAdjustEngineViewport)(int &x, int &y, int &width, int &hei
 typedef void(__thiscall *tViewport)(void *thisptr, int x, int y, int width, int height);
 typedef void(__thiscall *tGetViewport)(void *thisptr, int &x, int &y, int &width, int &height);
 typedef int(__thiscall *tGetPrimaryAttackActivity)(void *thisptr, void *meleeInfo);
-typedef Vector *(__thiscall *tEyePosition)(void *thisptr, Vector *eyePos);
 typedef void(__thiscall *tDrawModelExecute)(void *thisptr, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld);
 typedef void(__thiscall *tPushRenderTargetAndViewport)(void *thisptr, ITexture *pTexture, ITexture *pDepthTexture, int nViewX, int nViewY, int nViewW, int nViewH);
 typedef void(__thiscall *tPopRenderTargetAndViewport)(void *thisptr);
@@ -127,13 +126,18 @@ typedef void(__cdecl* tGetHudSize)(int& w, int& h);
 typedef void(__thiscall* tSetBounds)(void* thisptr, int x, int y, int w, int h);
 typedef void(__thiscall* tSetSize)(void* thisptr, int wide, int tall);
 typedef void(__thiscall* tGetScreenSize)(void* thisptr, int& wide, int& tall);
-typedef void(__thiscall* tPush2DView)(void* thisptr, IMatRenderContext* pRenderContext, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes);
+typedef tPush3DView tPush2DView;
+typedef void(__thiscall* tPopView)(void* thisptr, void* frustumPlanes);
 typedef void(__thiscall* tRender)(void* thisptr, vrect_t* rect);
 typedef void(__thiscall* tGetClipRect)(void* thisptr, int& x0, int& y0, int& x1, int& y1);
 
+// These two Portal 1 player accessors return small structs through a hidden
+// output pointer on the x86 build. Keep the ABI explicit instead of modeling
+// them as C++ by-value returns.
+typedef Vector* (__thiscall* tEyePosition)(void* thisptr, Vector* eyePos);
 typedef Vector* (__thiscall* tWeapon_ShootPosition)(void* thisptr, Vector* shootPos);
-typedef double(__thiscall* tComputeError)(void* thisptr);
-typedef bool(__thiscall* tUpdateObject)(void* thisptr, void* pPlayer, float flError, bool bIsTeleport);
+typedef float(__thiscall* tComputeError)(void* thisptr);
+typedef bool(__thiscall* tUpdateObject)(void* thisptr, void* pPlayer, float flError);
 typedef bool(__thiscall* tUpdateObjectVM)(void* thisptr, void* pPlayer, float flError);
 typedef void(__thiscall* tRotateObject)(void* thisptr, void* pPlayer, float fRotAboutUp, float fRotAboutRight, bool bUseWorldUpInsteadOfPlayerUp);
 typedef QAngle&(__thiscall* tEyeAngles)(void* thisptr);
@@ -181,7 +185,6 @@ public:
 	static Hook<tViewport> hkViewport;
 	static Hook<tGetViewport> hkGetViewport;
 	static Hook<tGetPrimaryAttackActivity> hkGetPrimaryAttackActivity;
-	static Hook<tEyePosition> hkEyePosition;
 	static Hook<tDrawModelExecute> hkDrawModelExecute;
 	static Hook<tPushRenderTargetAndViewport> hkPushRenderTargetAndViewport;
 	static Hook<tPopRenderTargetAndViewport> hkPopRenderTargetAndViewport;
@@ -189,6 +192,7 @@ public:
 	static Hook<tIsSplitScreen> hkIsSplitScreen;
 	static Hook<tPrePushRenderTarget> hkPrePushRenderTarget;
 	static Hook<tGetFullScreenTexture> hkGetFullScreenTexture;
+	static Hook<tEyePosition> hkEyePosition;
 	static Hook<tWeapon_ShootPosition> hkWeapon_ShootPosition;
 	static Hook<tTraceFirePortal> hkTraceFirePortal;
 
@@ -205,6 +209,7 @@ public:
 	static Hook<tSetBounds> hkSetBounds;
 	static Hook<tGetScreenSize> hkGetScreenSize;
 	static Hook<tPush2DView> hkPush2DView;
+	static Hook<tPopView> hkPopView;
 	static Hook<tRender> hkRender;
 	static Hook<tGetClipRect> hkGetClipRect;
 	static Hook<tGetHudSize> hkGetHudSize;
@@ -261,7 +266,6 @@ public:
 	static int __fastcall dPrimaryAttackServer(void *ecx, void *edx);
 	static void __fastcall dItemPostFrameServer(void *ecx, void *edx);
 	static int __fastcall dGetPrimaryAttackActivity(void *ecx, void *edx, void* meleeInfo);
-	static Vector *__fastcall dEyePosition(void *ecx, void *edx, Vector *eyePos);
 	static void __fastcall dDrawModelExecute(void *ecx, void* edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld);
 	static void __fastcall dPushRenderTargetAndViewport(void *ecx, void *edx, ITexture *pTexture, ITexture *pDepthTexture, int nViewX, int nViewY, int nViewW, int nViewH);
 	static void __fastcall dPopRenderTargetAndViewport(void *ecx, void *edx);
@@ -290,15 +294,17 @@ public:
 	static void dVGUI_UpdateScreenSpaceBounds(int nNumSplits, int sx, int sy, int sw, int sh);
 	static void dVGui_GetTrueScreenSize(int &w, int &h);
 
-	static void __fastcall dPush2DView(void* ecx, void* edx, IMatRenderContext* pRenderContext, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes);
+	static void __fastcall dPush2DView(void* ecx, void* edx, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes);
+	static void __fastcall dPopView(void* ecx, void* edx, void* frustumPlanes);
 	static void __fastcall dRender(void* ecx, void* edx, vrect_t* rect);
 	static bool ScreenTransform(const Vector& point, Vector* pScreen, int width, int height);
 	static void __fastcall dGetClipRect(void* ecx, void* edx, int& x0, int& y0, int& x1, int& y1);
 
 	// Grabbable objects
 	static Vector* __fastcall dWeapon_ShootPosition(void* ecx, void* edx, Vector* shootPos);
-	static double __fastcall dComputeError(void* ecx, void* edx);
-	static bool __fastcall dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError, bool bIsTeleport = false);
+	static Vector* __fastcall dEyePosition(void* ecx, void* edx, Vector* eyePos);
+	static float __fastcall dComputeError(void* ecx, void* edx);
+	static bool __fastcall dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError);
 	static bool __fastcall dUpdateObjectVM(void* ecx, void* edx, void* pPlayer, float flError);
 	static void __fastcall dRotateObject(void* ecx, void* edx, void* pPlayer, float fRotAboutUp, float fRotAboutRight, bool bUseWorldUpInsteadOfPlayerUp);
 	static QAngle& __fastcall dEyeAngles(void* ecx, void* edx);
@@ -323,7 +329,6 @@ public:
 	static tUTIL_Portal_FirstAlongRay UTIL_Portal_FirstAlongRay;
 	static tUTIL_IntersectRayWithPortal UTIL_IntersectRayWithPortal;
 	static tUTIL_Portal_AngleTransform UTIL_Portal_AngleTransform;
-	static tEntindex EntityIndex;
 	static tGetOwner GetOwner;
 	static tGetFullScreenTexture GetFullScreenTexture;
 };

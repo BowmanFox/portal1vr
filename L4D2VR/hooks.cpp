@@ -8,6 +8,7 @@
 #include "portal1.h"
 #include "debuglog.h"
 #include "handpose.h"
+#include "firstpersonbody.h"
 #include "cameracollision.h"
 #include <iostream>
 
@@ -24,6 +25,38 @@ Hook<tEndFrame> Hooks::hkEndFrame = {};
 Hook<tCalcViewModelView> Hooks::hkCalcViewModelView = {};
 Hook<tCreateViewModel> Hooks::hkCreateViewModel = {};
 static void *s_LeftArmRenderable = nullptr;
+static void *s_LocalPlayerEntity = nullptr;
+static void *s_LocalPlayerRenderable = nullptr;
+static bool s_DrawingLocalPlayerBodyDirect = false;
+static bool s_ActiveFirstPersonBodyPass = false;
+static bool s_InlineBodyDrawEligible = false;
+static bool s_BodyDrawTriggered = false;
+static bool s_HasLocalPlayerBodyTransform = false;
+static Vector s_LocalPlayerBodyOrigin = {0, 0, 0};
+static QAngle s_LocalPlayerBodyAngles = {0, 0, 0};
+static Vector s_LocalPlayerBodyDrawOffset = {0, 0, 0};
+static struct { Vector origin, angles; float zNear, fov; } s_BodyExpectedView{};
+static Vector s_BodyCameraCenter = {0, 0, 0};
+static std::vector<bool> s_BodyViewStack;
+
+static void ExpectBodyView(const CViewSetup &view)
+{
+    s_BodyExpectedView.origin = view.origin;
+    s_BodyExpectedView.angles = view.angles;
+    s_BodyExpectedView.zNear = view.zNear;
+    s_BodyExpectedView.fov = view.fov;
+}
+
+static bool IsBodyWorldView(const CViewSetup &view, ITexture *target, ITexture *depth)
+{
+    return s_InlineBodyDrawEligible && !depth
+        && (!target || target == Hooks::m_ActiveEyeTexture)
+        && !view.m_bOrtho
+        && (view.origin - s_BodyExpectedView.origin).LengthSqr() < 0.0001f
+        && (view.angles - s_BodyExpectedView.angles).LengthSqr() < 0.0001f
+        && fabsf(view.zNear - s_BodyExpectedView.zNear) < 0.001f
+        && fabsf(view.fov - s_BodyExpectedView.fov) < 0.001f;
+}
 Hook<tProcessUsercmds> Hooks::hkProcessUsercmds = {};
 Hook<tReadUsercmd> Hooks::hkReadUsercmd = {};
 Hook<tWriteUsercmdDeltaToBuffer> Hooks::hkWriteUsercmdDeltaToBuffer = {};
@@ -32,7 +65,6 @@ Hook<tAdjustEngineViewport> Hooks::hkAdjustEngineViewport = {};
 Hook<tViewport> Hooks::hkViewport = {};
 Hook<tGetViewport> Hooks::hkGetViewport = {};
 Hook<tGetPrimaryAttackActivity> Hooks::hkGetPrimaryAttackActivity = {};
-Hook<tEyePosition> Hooks::hkEyePosition = {};
 Hook<tDrawModelExecute> Hooks::hkDrawModelExecute = {};
 Hook<tPushRenderTargetAndViewport> Hooks::hkPushRenderTargetAndViewport = {};
 Hook<tPopRenderTargetAndViewport> Hooks::hkPopRenderTargetAndViewport = {};
@@ -40,6 +72,7 @@ Hook<tVgui_Paint> Hooks::hkVgui_Paint = {};
 Hook<tIsSplitScreen> Hooks::hkIsSplitScreen = {};
 Hook<tPrePushRenderTarget> Hooks::hkPrePushRenderTarget = {};
 Hook<tGetFullScreenTexture> Hooks::hkGetFullScreenTexture = {};
+Hook<tEyePosition> Hooks::hkEyePosition = {};
 Hook<tWeapon_ShootPosition> Hooks::hkWeapon_ShootPosition = {};
 Hook<tTraceFirePortal> Hooks::hkTraceFirePortal = {};
 
@@ -54,6 +87,7 @@ Hook<tVGui_GetTrueScreenSize> Hooks::hkVGui_GetTrueScreenSize = {};
 Hook<tSetBounds> Hooks::hkSetBounds = {};
 Hook<tGetScreenSize> Hooks::hkGetScreenSize = {};
 Hook<tPush2DView> Hooks::hkPush2DView = {};
+Hook<tPopView> Hooks::hkPopView = {};
 Hook<tRender> Hooks::hkRender = {};
 Hook<tGetClipRect> Hooks::hkGetClipRect = {};
 Hook<tGetHudSize> Hooks::hkGetHudSize = {};
@@ -85,12 +119,21 @@ tPrecacheParticleSystem Hooks::PrecacheParticleSystem = nullptr;
 tUTIL_Portal_FirstAlongRay Hooks::UTIL_Portal_FirstAlongRay = nullptr;
 tUTIL_IntersectRayWithPortal Hooks::UTIL_IntersectRayWithPortal = nullptr;
 tUTIL_Portal_AngleTransform Hooks::UTIL_Portal_AngleTransform = nullptr;
-tEntindex Hooks::EntityIndex = nullptr;
 tGetOwner Hooks::GetOwner = nullptr;
 tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	int ServerEntityIndex(void *entity)
+	{
+		const uintptr_t target = SigScanner::GetVirtualFunction(entity,
+			Portal1::VTableIndex::kServerEntity_GetRefEHandle);
+		if (!target) return -1;
+		using GetHandleFn = const unsigned int &(__thiscall *)(void *);
+		const unsigned int handle = reinterpret_cast<GetHandleFn>(target)(entity);
+		return handle == 0xffffffffu ? -1 : static_cast<int>(handle & 0xfffu);
+	}
+
 	constexpr bool kEnableAllHooks = true;
 	constexpr bool kEnableClientModeHooks = true;
 
@@ -116,6 +159,318 @@ namespace
 	{
 		if (hook.isCreated())
 			hook.enableHook();
+	}
+
+	uintptr_t FindPortalPlayerFunction(size_t index)
+	{
+		// CPortal_Player owns the complete object vtable in Portal 1, but the
+		// two accessors used by the pickup code are inherited from CBasePlayer.
+		// Try the derived table first and retain the base-table fallback for
+		// builds whose RTTI is stripped or laid out differently.
+		for (const char *typeName : { ".?AVCPortal_Player@@", ".?AVCBasePlayer@@" })
+		{
+			const uintptr_t function = SigScanner::FindRttiVtableFunction(
+				"server.dll", typeName, index);
+			if (function)
+				return function;
+		}
+		return 0;
+	}
+
+	struct StudioBodyView
+	{
+		const unsigned char *header = nullptr;
+		int count = 0;
+		int boneOffset = 0;
+		int modelLength = 0;
+	};
+
+	bool GetStudioBodyView(void *state, StudioBodyView &view)
+	{
+		if (!state || !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(state), sizeof(void *)))
+			return false;
+
+		const auto *header = *reinterpret_cast<const unsigned char * const *>(state);
+		if (!header || !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(header), 164))
+			return false;
+
+		const int modelLength = *reinterpret_cast<const int *>(header + 76);
+		const int count = *reinterpret_cast<const int *>(header + 156);
+		const int boneOffset = *reinterpret_cast<const int *>(header + 160);
+		if (modelLength <= 0 || count <= 0 || count > FirstPersonBody::MaxBones
+			|| boneOffset < 164 || boneOffset > modelLength
+			|| modelLength - boneOffset < count * 216
+			|| !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(header + boneOffset), count * 216))
+			return false;
+
+		view.header = header;
+		view.count = count;
+		view.boneOffset = boneOffset;
+		view.modelLength = modelLength;
+		return true;
+	}
+
+	const char *GetStudioBoneName(const StudioBodyView &view, int index)
+	{
+		if (index < 0 || index >= view.count)
+			return nullptr;
+
+		const auto *bone = view.header + view.boneOffset + index * 216;
+		const int nameOffset = *reinterpret_cast<const int *>(bone);
+		if (nameOffset <= 0 || nameOffset >= view.modelLength - (bone - view.header))
+			return nullptr;
+
+		const auto *name = bone + nameOffset;
+		return SigScanner::IsReadable(reinterpret_cast<uintptr_t>(name), 1)
+			? reinterpret_cast<const char *>(name) : nullptr;
+	}
+
+	int FindStudioBone(const StudioBodyView &view, const char *wanted)
+	{
+		if (!wanted)
+			return -1;
+
+		for (int i = 0; i < view.count; ++i)
+		{
+			const char *name = GetStudioBoneName(view, i);
+			if (name && !_stricmp(name, wanted))
+				return i;
+		}
+
+		return -1;
+	}
+
+	bool IsPlayerModelName(const char *name)
+	{
+		if (!name)
+			return false;
+
+		if (!_strnicmp(name, "models/", 7))
+			name += 7;
+
+		// This intentionally accepts any player model, including the custom
+		// Chell model supplied by the VPK.  It does not replace or rewrite the
+		// model; it only identifies the local player's normal draw call.
+		return !_strnicmp(name, "player/", 7);
+	}
+
+	bool IsLocalPlayerBody(const ModelRenderInfo_t &info)
+	{
+		if (!Hooks::m_Game || !Hooks::m_VR || !s_ActiveFirstPersonBodyPass
+			|| !Hooks::m_VR->m_IsVREnabled || !Hooks::m_VR->m_FirstPersonBody
+			|| !s_DrawingLocalPlayerBodyDirect || !info.pModel)
+			return false;
+
+		IModelInfo *modelInfo = Hooks::m_Game->GetModelInfo();
+		const char *modelName = modelInfo ? modelInfo->GetModelName(info.pModel) : nullptr;
+		if (!IsPlayerModelName(modelName))
+			return false;
+
+		const int localIndex = Hooks::m_Game->GetLocalPlayerIndex();
+		return (localIndex > 0 && info.entity_index == localIndex)
+			|| info.pRenderable == s_LocalPlayerRenderable
+			|| info.pRenderable == s_LocalPlayerEntity;
+	}
+
+	bool TranslateFirstPersonBodyBones(void *state, const matrix3x4_t *source,
+		matrix3x4_t *result)
+	{
+		StudioBodyView view;
+		if (!source || !result || !GetStudioBodyView(state, view)
+			|| !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(source), view.count * sizeof(matrix3x4_t)))
+			return false;
+
+		memcpy(result, source, view.count * sizeof(matrix3x4_t));
+		if (!s_DrawingLocalPlayerBodyDirect) return true;
+		// Align the model's eye midpoint under the center camera, never one
+		// stereo eye. Horizontal correction preserves the animated foot height.
+		const int leftEye = FindStudioBone(view, "LeftEye");
+		const int rightEye = FindStudioBone(view, "RightEye");
+		Vector offset = s_LocalPlayerBodyDrawOffset;
+		if (leftEye >= 0 && rightEye >= 0) {
+			const Vector eyes((source[leftEye][0][3] + source[rightEye][0][3]) * 0.5f,
+				(source[leftEye][1][3] + source[rightEye][1][3]) * 0.5f,
+				(source[leftEye][2][3] + source[rightEye][2][3]) * 0.5f);
+			offset = FirstPersonBody::HorizontalCameraOffset(eyes, s_BodyCameraCenter);
+		}
+		for (int i = 0; i < view.count; ++i) {
+			result[i][0][3] += offset.x;
+			result[i][1][3] += offset.y;
+		}
+
+		return true;
+	}
+
+	bool BuildFirstPersonBodyBones(void *state, const matrix3x4_t *source,
+		matrix3x4_t *result, const ModelRenderInfo_t &info)
+	{
+		StudioBodyView view;
+		if (!source || !result || !GetStudioBodyView(state, view)
+			|| !TranslateFirstPersonBodyBones(state, source, result))
+			return false;
+
+		int parents[FirstPersonBody::MaxBones]{};
+		for (int i = 0; i < view.count; ++i)
+		{
+			const auto *bone = view.header + view.boneOffset + i * 216;
+			parents[i] = *reinterpret_cast<const int *>(bone + 4);
+		}
+
+		int hips = FindStudioBone(view, "hips");
+		if (hips < 0)
+		hips = FindStudioBone(view, "pelvis");
+		if (hips < 0)
+		hips = 0;
+
+		int hiddenRoots[3]{};
+		int hiddenRootCount = 0;
+		const int upperTorso = FindStudioBone(view, "spine_mid");
+		if (upperTorso >= 0)
+			hiddenRoots[hiddenRootCount++] = upperTorso;
+		else for (const char *candidate : {"neck", "clavicle_L", "clavicle_R"})
+		{
+			const int root = FindStudioBone(view, candidate);
+			if (root >= 0 && hiddenRootCount < 3)
+				hiddenRoots[hiddenRootCount++] = root;
+		}
+
+		if (hiddenRootCount == 0)
+			return s_DrawingLocalPlayerBodyDirect
+				&& s_LocalPlayerBodyDrawOffset.LengthSqr() > 0.0001f;
+
+		Vector pivot = info.origin;
+		if (hips >= 0 && hips < view.count)
+			pivot = {result[hips][0][3], result[hips][1][3], result[hips][2][3]};
+
+		FirstPersonBody::CollapseBranchesAtRoots(result, parents, view.count,
+			hiddenRoots, hiddenRootCount);
+		return true;
+	}
+
+	bool GetRenderableTransform(void *renderable, Vector &origin, QAngle &angles)
+	{
+		if (!renderable)
+			return false;
+
+		const uintptr_t originTarget = SigScanner::GetVirtualFunction(
+			renderable, Portal1::VTableIndex::kClientRenderable_GetRenderOrigin);
+		const uintptr_t anglesTarget = SigScanner::GetVirtualFunction(
+			renderable, Portal1::VTableIndex::kClientRenderable_GetRenderAngles);
+		if (!originTarget || !anglesTarget)
+			return false;
+
+		using GetVectorFn = const Vector &(__thiscall *)(void *);
+		using GetAnglesFn = const QAngle &(__thiscall *)(void *);
+		const Vector &renderOrigin = reinterpret_cast<GetVectorFn>(originTarget)(renderable);
+		const QAngle &renderAngles = reinterpret_cast<GetAnglesFn>(anglesTarget)(renderable);
+		if (!std::isfinite(renderOrigin.x) || !std::isfinite(renderOrigin.y)
+			|| !std::isfinite(renderOrigin.z) || !std::isfinite(renderAngles.x)
+			|| !std::isfinite(renderAngles.y) || !std::isfinite(renderAngles.z))
+			return false;
+
+		origin = renderOrigin;
+		angles = renderAngles;
+		return true;
+	}
+
+	int DrawLocalPlayerBodyDirect()
+	{
+		if (!Hooks::m_Game || !Hooks::m_VR || !s_ActiveFirstPersonBodyPass
+			|| !Hooks::m_VR->m_IsVREnabled || !Hooks::m_VR->m_FirstPersonBody)
+			return 0;
+		// The first-person copy is useful below the headset, but must never
+		// obscure forward aim. Portal/mirror world models keep their usual draw.
+		if (!FirstPersonBody::LookingDown(s_BodyExpectedView.angles.x))
+			return 0;
+
+		void *player = Hooks::m_Game->GetLocalPortalPlayer();
+		if (!player)
+			return 0;
+
+		// Portal keeps the renderable interface in the secondary subobject used
+		// by the existing viewmodel path. GetModel is safe to call here, but its
+		// DrawModel method still applies the first-person visibility rejection.
+		// Use the engine model-render interface for the actual submission so the
+		// normal model, animation, materials, and lighting remain engine-owned.
+		void *renderable = static_cast<unsigned char *>(player) + 4;
+		const uintptr_t getModelTarget = SigScanner::GetVirtualFunction(
+			renderable, Portal1::VTableIndex::kClientRenderable_GetModel);
+		if (!getModelTarget)
+			return 0;
+
+		using GetModelFn = model_t *(__thiscall *)(void *);
+		model_t *model = reinterpret_cast<GetModelFn>(getModelTarget)(renderable);
+		if (!model)
+			return 0;
+
+		IModelRender *modelRender = Hooks::m_Game->GetModelRender();
+		if (!modelRender)
+			return 0;
+
+		// Read the renderable's live transform first. This remains valid even
+		// when Source suppresses the normal first-person player draw, and follows
+		// crouching, portals, and elevators without a guessed eye-height offset.
+		// The ModelRenderInfo transform is the safe fallback for engines that do
+		// not expose these renderable accessors.
+		Vector origin = Hooks::m_VR->m_SetupOrigin - Vector(0, 0, 64.0f);
+		QAngle angles = Hooks::m_VR->m_HmdAngAbs;
+		QAngle renderAngles;
+		if (GetRenderableTransform(renderable, origin, renderAngles))
+		{
+			// Keep the model transform paired with the live bone palette. The HMD
+			// can look independently of the player's body; rotating the model to
+			// HMD yaw while retaining Source's bones makes the mesh shear/drift.
+			angles = renderAngles;
+		}
+		else if (s_HasLocalPlayerBodyTransform)
+		{
+			origin = s_LocalPlayerBodyOrigin;
+			angles = s_LocalPlayerBodyAngles;
+		}
+
+		// The camera moves by the tracked HMD displacement while Source's player
+		// entity remains at its locomotion origin. Apply the same horizontal
+		// displacement to the temporary bone palette so room-scale movement cannot
+		// leave the body behind. Include the collision correction because the eye
+		// view can be pushed away from the desired tracked position near a wall.
+		// Do not apply Z: leaning/crouching must not lift the feet off the floor.
+		// The desktop mirror uses the ordinary world view, so it receives no
+		// tracked offset.
+		Vector trackingOffset = {0, 0, 0};
+		if (Hooks::m_ActiveEyeTexture && Hooks::m_VR->m_6DOF)
+		{
+			trackingOffset = Hooks::m_VR->m_HmdPosRelative;
+			trackingOffset += Hooks::m_VR->m_CameraCollisionOffset;
+			trackingOffset.z = 0.0f;
+		}
+		const int entityIndex = Hooks::m_Game->GetLocalPlayerIndex();
+		if (entityIndex <= 0)
+			return 0;
+
+		s_LocalPlayerEntity = player;
+		s_LocalPlayerRenderable = renderable;
+		const bool wasDrawingDirect = s_DrawingLocalPlayerBodyDirect;
+		const Vector previousDrawOffset = s_LocalPlayerBodyDrawOffset;
+		s_LocalPlayerBodyDrawOffset = trackingOffset;
+		s_DrawingLocalPlayerBodyDirect = true;
+		const int result = modelRender->DrawModel(
+			1, renderable, 0, entityIndex, model, origin, angles, 0, 0, 0);
+		s_DrawingLocalPlayerBodyDirect = wasDrawingDirect;
+		s_LocalPlayerBodyDrawOffset = previousDrawOffset;
+		static int diagnosticDraws = 0;
+		if (diagnosticDraws++ < 8)
+		{
+			const char *modelName = Hooks::m_Game->GetModelInfo()
+				? Hooks::m_Game->GetModelInfo()->GetModelName(model) : nullptr;
+			PortalVrLog("First-person direct draw pass=%d eye=%p model=%s player=%p renderable=%p result=%d origin=%f,%f,%f offset=%f,%f,%f angles=%f,%f,%f",
+				s_ActiveFirstPersonBodyPass,
+				Hooks::m_ActiveEyeTexture, modelName ? modelName : "<unknown>",
+				player, renderable, result,
+				origin.x, origin.y, origin.z,
+				trackingOffset.x, trackingOffset.y, trackingOffset.z,
+				angles.x, angles.y, angles.z);
+		}
+		return result;
 	}
 }
 
@@ -149,11 +504,13 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkCreateMove);
 	EnableIfCreated(hkRenderView);
 	EnableIfCreated(hkPush3DView);
+	EnableIfCreated(hkPush2DView);
+	EnableIfCreated(hkPopView);
 	EnableIfCreated(hkPush3DViewDepth);
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
-	EnableIfCreated(hkWeapon_ShootPosition);
 	EnableIfCreated(hkEyePosition);
+	EnableIfCreated(hkWeapon_ShootPosition);
 	EnableIfCreated(hkComputeError);
 	EnableIfCreated(hkUpdateObject);
 	EnableIfCreated(hkUpdateObjectVM);
@@ -190,6 +547,10 @@ int Hooks::initSourceHooks()
 		reinterpret_cast<LPVOID>(&dPush3DViewDepth), "IVRenderView::Push3DView(depth)", true);
 	CreateHookAt(hkPush3DView, SigScanner::GetVirtualFunction(engineRenderView, 38),
 		reinterpret_cast<LPVOID>(&dPush3DView), "IVRenderView::Push3DView", true);
+	CreateHookAt(hkPush2DView, SigScanner::GetVirtualFunction(engineRenderView, 39),
+		reinterpret_cast<LPVOID>(&dPush2DView), "IVRenderView::Push2DView", true);
+	CreateHookAt(hkPopView, SigScanner::GetVirtualFunction(engineRenderView, 40),
+		reinterpret_cast<LPVOID>(&dPopView), "IVRenderView::PopView", true);
 	IViewRender *clientViewRender = m_Game->GetClientViewRender();
 	IClientMode *clientMode = m_Game->GetClientMode();
 
@@ -247,9 +608,17 @@ int Hooks::initSourceHooks()
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 	if (hasOffsets) {
-		CreateHookAt(hkEyePosition, m_Game->m_Offsets->EyePosition.address,
+		const uintptr_t eyePositionTarget = FindPortalPlayerFunction(
+			Portal1::VTableIndex::kPortalPlayer_EyePosition);
+		const uintptr_t shootPositionTarget = FindPortalPlayerFunction(
+			Portal1::VTableIndex::kPortalPlayer_WeaponShootPosition);
+		const uintptr_t eyeAnglesTarget = FindPortalPlayerFunction(
+			Portal1::VTableIndex::kPortalPlayer_EyeAngles);
+		CreateHookAt(hkEyePosition,
+			eyePositionTarget,
 			reinterpret_cast<LPVOID>(&dEyePosition), "Portal1::EyePosition", false);
-		CreateHookAt(hkWeapon_ShootPosition, m_Game->m_Offsets->Weapon_ShootPosition.address,
+		CreateHookAt(hkWeapon_ShootPosition,
+			shootPositionTarget ? shootPositionTarget : m_Game->m_Offsets->Weapon_ShootPosition.address,
 			reinterpret_cast<LPVOID>(&dWeapon_ShootPosition), "Portal1::WeaponShootPosition", false);
 		CreateHookAt(hkComputeError, m_Game->m_Offsets->ComputeError.address,
 			reinterpret_cast<LPVOID>(&dComputeError), "Portal1::ComputeGrabError", false);
@@ -259,7 +628,8 @@ int Hooks::initSourceHooks()
 			reinterpret_cast<LPVOID>(&dUpdateObjectVM), "Portal1::UpdateGrabObjectVM", false);
 		CreateHookAt(hkRotateObject, m_Game->m_Offsets->RotateObject.address,
 			reinterpret_cast<LPVOID>(&dRotateObject), "Portal1::RotateGrabObject", false);
-		CreateHookAt(hkEyeAngles, m_Game->m_Offsets->EyeAngles.address,
+		CreateHookAt(hkEyeAngles,
+			eyeAnglesTarget ? eyeAnglesTarget : m_Game->m_Offsets->EyeAngles.address,
 			reinterpret_cast<LPVOID>(&dEyeAngles), "Portal1::EyeAngles", false);
 	}
 
@@ -268,7 +638,6 @@ int Hooks::initSourceHooks()
 
 	CreatePingPointer = (hasOffsets ? reinterpret_cast<tCreatePingPointer>(m_Game->m_Offsets->CreatePingPointer.address) : nullptr);
 	PrecacheParticleSystem = hasOffsets && m_Game->m_Offsets->PrecacheParticleSystem.valid ? (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address : nullptr;
-	EntityIndex = hasOffsets && m_Game->m_Offsets->CBaseEntity_entindex.valid ? (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address : nullptr;
 	GetOwner = hasOffsets && m_Game->m_Offsets->GetOwner.valid ? (tGetOwner)m_Game->m_Offsets->GetOwner.address : nullptr;
 	GetFullScreenTexture = hasOffsets && m_Game->m_Offsets->GetFullScreenTexture.valid ? (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address : nullptr;
 	CreateHookAt(
@@ -284,14 +653,15 @@ int Hooks::initSourceHooks()
 		"Portal1::CHudCrosshair::ShouldDraw",
 		false);
 	PortalVrLog(
-		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p shoot=%p eyePosition=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p eyePosition=%p shoot=%p computeError=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
 		hkRenderView.pTarget,
 		hkCreateMove.pTarget,
 		hkGetViewModelFOV.pTarget,
 		hkCalcViewModelView.pTarget,
 		hkTraceFirePortal.pTarget,
-		hkWeapon_ShootPosition.pTarget,
 		hkEyePosition.pTarget,
+		hkWeapon_ShootPosition.pTarget,
+		hkComputeError.pTarget,
 		hkUpdateObject.pTarget,
 		hkEyeAngles.pTarget,
 		hkPlayerPortalled.pTarget,
@@ -338,12 +708,14 @@ void __fastcall Hooks::dPush3DView(void *ecx, void *edx, const CViewSetup &view,
 {
     if (!target && m_ActiveEyeTexture) target = m_ActiveEyeTexture;
     hkPush3DView.fOriginal(ecx, view, flags, target, frustum);
+    s_BodyViewStack.push_back(IsBodyWorldView(view, target, nullptr));
 }
 
 void __fastcall Hooks::dPush3DViewDepth(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum, ITexture *depth)
 {
     if (!target && m_ActiveEyeTexture) target = m_ActiveEyeTexture;
     hkPush3DViewDepth.fOriginal(ecx, view, flags, target, frustum, depth);
+    s_BodyViewStack.push_back(IsBodyWorldView(view, target, depth));
 }
 
 void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSetup, int nClearFlags, int whatToDraw)
@@ -391,6 +763,13 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	m_VR->UpdateCameraCollision(position);
 
 	Vector hmdAngle = m_VR->GetViewAngle();
+	static int renderPoseLogCounter = 0;
+	if ((++renderPoseLogCounter % 120) == 0)
+	{
+		PortalVrLog("Render view pose hmd=%f,%f,%f setup=%f,%f,%f",
+			hmdAngle.x, hmdAngle.y, hmdAngle.z,
+			setup.angles.x, setup.angles.y, setup.angles.z);
+	}
 	m_Game->SetViewAngles(QAngle(hmdAngle.x, hmdAngle.y, hmdAngle.z));
 
 	float aspect = setup.m_flAspectRatio;
@@ -440,7 +819,15 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		static_cast<int>(m_VR->m_RenderHeight));
 	m_VR->m_BindingEyeTexture = VR::Texture_None;
 	m_ActiveEyeTexture = m_VR->m_LeftEyeTexture;
-	hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	s_HasLocalPlayerBodyTransform = false;
+	s_BodyDrawTriggered = false;
+	s_InlineBodyDrawEligible = true;
+	s_ActiveFirstPersonBodyPass = true;
+		ExpectBodyView(leftEyeView);
+		s_BodyCameraCenter = m_VR->GetViewOrigin(position);
+		hkRenderView.fOriginal(ecx, leftEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	s_ActiveFirstPersonBodyPass = false;
+	s_InlineBodyDrawEligible = false;
 	m_ActiveEyeTexture = nullptr;
 	rndrContext->PopRenderTargetAndViewport();
 	
@@ -456,7 +843,15 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		static_cast<int>(m_VR->m_RenderHeight));
 	m_VR->m_BindingEyeTexture = VR::Texture_None;
 	m_ActiveEyeTexture = m_VR->m_RightEyeTexture;
-	hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	s_HasLocalPlayerBodyTransform = false;
+	s_BodyDrawTriggered = false;
+	s_InlineBodyDrawEligible = true;
+	s_ActiveFirstPersonBodyPass = true;
+		ExpectBodyView(rightEyeView);
+		s_BodyCameraCenter = m_VR->GetViewOrigin(position);
+		hkRenderView.fOriginal(ecx, rightEyeView, nClearFlags, whatToDraw & ~RENDERVIEW_DRAWHUD);
+	s_ActiveFirstPersonBodyPass = false;
+	s_InlineBodyDrawEligible = false;
 	m_ActiveEyeTexture = nullptr;
 	rndrContext->PopRenderTargetAndViewport();
 
@@ -480,7 +875,15 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	rndrContext->Release();*/
 
 	if (m_VR->m_RenderWindow) {
-        hkRenderView.fOriginal(ecx, desktopView, nClearFlags, whatToDraw);
+		s_HasLocalPlayerBodyTransform = false;
+		s_BodyDrawTriggered = false;
+		s_InlineBodyDrawEligible = true;
+		s_ActiveFirstPersonBodyPass = true;
+		ExpectBodyView(desktopView);
+		s_BodyCameraCenter = desktopView.origin;
+		hkRenderView.fOriginal(ecx, desktopView, nClearFlags, whatToDraw);
+		s_ActiveFirstPersonBodyPass = false;
+		s_InlineBodyDrawEligible = false;
 	}
 
 
@@ -503,19 +906,21 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
 		// Portal's object pickup code reads the server eye angles while +use is
 		// held. Feed it the portal-gun controller for that interval so the use
 		// trace and the held-object orientation follow the hand instead of the
-		// HMD. Set IN_USE in the command itself as well as issuing +use from the
-		// input pump; this keeps the pickup trace and the server's button state
-		// on the same tick.
+		// HMD. Set IN_USE in the command itself so the pickup trace and the
+		// server's button state stay on the same tick. Keep the command's player
+		// view HMD-driven; the grab-specific EyePosition/EyeAngles hooks below
+		// provide the controller pose only to the pickup solver.
 		const bool useHeld = m_VR->PressedDigitalAction(m_VR->m_ActionUse);
+		m_VR->m_GrabUseHeld = useHeld;
+		m_VR->m_GrabControllerPos = m_VR->GetRightControllerAbsPos();
+		m_VR->m_GrabControllerAng = m_VR->GetRightControllerAbsAngle();
 		cmd->buttons = useHeld ? (cmd->buttons | IN_USE) : (cmd->buttons & ~IN_USE);
-		cmd->viewangles = useHeld
-			? m_VR->m_RightControllerAngAbs
-			: m_VR->m_HmdAngAbs;
+		cmd->viewangles = m_VR->m_HmdAngAbs;
 		static bool lastUseHeld = false;
 		if (useHeld != lastUseHeld) {
 			PortalVrLog("Controller use state=%d origin=%f,%f,%f angle=%f,%f,%f cmdButtons=0x%X",
-				useHeld, m_VR->GetRightControllerAbsPos().x, m_VR->GetRightControllerAbsPos().y,
-				m_VR->GetRightControllerAbsPos().z, cmd->viewangles.x, cmd->viewangles.y,
+				useHeld, m_VR->m_GrabControllerPos.x, m_VR->m_GrabControllerPos.y,
+				m_VR->m_GrabControllerPos.z, cmd->viewangles.x, cmd->viewangles.y,
 				cmd->viewangles.z, cmd->buttons);
 			lastUseHeld = useHeld;
 		}
@@ -616,7 +1021,8 @@ void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &ey
 					const auto removeEffects = SigScanner::GetVirtualFunction(vm, 208);
 					if (setModel && removeEffects) {
 						void *renderable = static_cast<unsigned char *>(vm) + 4;
-						const auto getModel = SigScanner::GetVirtualFunction(renderable, 9);
+					const auto getModel = SigScanner::GetVirtualFunction(
+						renderable, Portal1::VTableIndex::kClientRenderable_GetModel);
 						using GetModelFn = model_t *(__thiscall *)(void *);
 						model_t *model = getModel ? reinterpret_cast<GetModelFn>(getModel)(renderable) : nullptr;
 						const char *name = model && m_Game->GetModelInfo() ? m_Game->GetModelInfo()->GetModelName(model) : nullptr;
@@ -654,9 +1060,9 @@ float __fastcall Hooks::dProcessUsercmds(void *ecx, void *edx, edict_t *player, 
 {
 	Server_BaseEntity *pPlayer = (Server_BaseEntity*)player->m_pUnk->GetBaseEntity();
 
-	if (EntityIndex)
+	if (pPlayer)
 	{
-		int index = EntityIndex(pPlayer);
+		int index = ServerEntityIndex(pPlayer);
 		m_Game->m_CurrentUsercmdID = index;
 	}
 
@@ -728,27 +1134,61 @@ int Hooks::dGetPrimaryAttackActivity(void *ecx, void *edx, void *meleeInfo)
 	return hkGetPrimaryAttackActivity.fOriginal(ecx, meleeInfo);
 }
 
-Vector *Hooks::dEyePosition(void *ecx, void *edx, Vector *eyePos)
-{
-	Vector *result = hkEyePosition.fOriginal(ecx, eyePos);
-	if (result && m_VR->m_IsVREnabled && m_VR->PressedDigitalAction(m_VR->m_ActionUse)) {
-		if (!EntityIndex || EntityIndex(ecx) == m_Game->GetLocalPlayerIndex()) {
-			*result = m_VR->GetRightControllerAbsPos();
-			static bool logged = false;
-			if (!logged) {
-				PortalVrLog("Controller eye origin enabled origin=%f,%f,%f", result->x, result->y, result->z);
-				logged = true;
-			}
-		}
-	}
-	return result;
-}
-
 void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld)
 {
-    // Work on a copy: Source shares its cached matrices with attachments and
-    // other eyes. Rewriting that cache would accumulate the controller transform.
+	// Work on a copy: Source shares its cached matrices with attachments and
+	// other eyes. Rewriting that cache would accumulate the controller transform.
     const auto *bones = static_cast<const matrix3x4_t *>(pCustomBoneToWorld);
+	const bool localPlayerBody = IsLocalPlayerBody(info);
+	if (localPlayerBody && !s_DrawingLocalPlayerBodyDirect)
+	{
+		s_LocalPlayerBodyOrigin = info.origin;
+		s_LocalPlayerBodyAngles = info.angles;
+		s_HasLocalPlayerBodyTransform = true;
+	}
+
+
+	if (localPlayerBody && s_DrawingLocalPlayerBodyDirect)
+	{
+		static int directDrawExecuteLogCounter = 0;
+		if (directDrawExecuteLogCounter++ < 16)
+		{
+			IModelInfo *modelInfo = m_Game ? m_Game->GetModelInfo() : nullptr;
+			const char *modelName = modelInfo && info.pModel
+				? modelInfo->GetModelName(info.pModel) : nullptr;
+			PortalVrLog("First-person direct DrawModelExecute eye=%p model=%s customBones=%p",
+				m_ActiveEyeTexture, modelName ? modelName : "<unknown>",
+				pCustomBoneToWorld);
+		}
+	}
+
+	if (localPlayerBody && m_VR->m_FirstPersonBodyHideUpper)
+	{
+		matrix3x4_t bodyBones[FirstPersonBody::MaxBones];
+		const bool built = BuildFirstPersonBodyBones(state, bones, bodyBones, info);
+		static int diagnosticBodyDraws = 0;
+		if (diagnosticBodyDraws++ < 8)
+		{
+			IModelInfo *modelInfo = m_Game ? m_Game->GetModelInfo() : nullptr;
+			const char *modelName = modelInfo && info.pModel
+				? modelInfo->GetModelName(info.pModel) : nullptr;
+			PortalVrLog("First-person body candidate eye=%p model=%s entity=%d renderable=%p origin=%f,%f,%f built=%d",
+				m_ActiveEyeTexture, modelName ? modelName : "<unknown>",
+				info.entity_index, info.pRenderable,
+				info.origin.x, info.origin.y, info.origin.z, built);
+		}
+		if (built)
+			return hkDrawModelExecute.fOriginal(ecx, state, info, bodyBones);
+	}
+
+	if (localPlayerBody && s_DrawingLocalPlayerBodyDirect
+		&& s_LocalPlayerBodyDrawOffset.LengthSqr() > 0.0001f)
+	{
+		matrix3x4_t bodyBones[FirstPersonBody::MaxBones];
+		if (TranslateFirstPersonBodyBones(state, bones, bodyBones))
+			return hkDrawModelExecute.fOriginal(ecx, state, info, bodyBones);
+	}
+
     if (m_VR->m_IsVREnabled && state && bones) {
         const auto *hdr = *reinterpret_cast<const unsigned char **>(state);
         if (hdr && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr), 164)) {
@@ -776,6 +1216,9 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                 }
 
                 const Vector rightPosition = m_VR->GetRightHandAbsPos();
+                const auto rightTarget = HandPose::ControllerHandFrame(
+                    m_VR->m_RightHandForward, m_VR->m_RightControllerRight,
+                    m_VR->m_RightHandUp, rightPosition, false);
                 if (gun) {
                     // The gun's local +Z is its barrel, +Y is up. Align its
                     // grip with the controller and retain animated gun parts.
@@ -783,15 +1226,11 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     for (int row = 0; row < 3; ++row) source[row][3] = reference[8][row][3];
                     const auto target = HandPose::Frame(-m_VR->m_RightControllerRight,
                         m_VR->m_RightControllerUp, m_VR->m_RightControllerForward, rightPosition);
-                    for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
+                    for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], reference[8], rightTarget);
                     const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
-                    HandPose::ApplyFingerCurlChain(reference, tracked, m_VR->m_RightFingerCurl, 0, 8);
-                    HandPose::StraightenGunWrist(tracked);
+                    HandPose::ApplyFingerCurlChain(reference, tracked, m_VR->m_RightFingerCurl, 0, 8, false);
                 } else {
-                    const auto rightTarget = HandPose::ControllerHandFrame(
-                        m_VR->m_RightHandForward, m_VR->m_RightControllerRight,
-                        m_VR->m_RightHandUp, rightPosition, false);
                     const auto leftTarget = HandPose::ControllerHandFrame(
                         m_VR->m_LeftHandForward, m_VR->m_LeftControllerRight,
                         m_VR->m_LeftHandUp, m_VR->GetLeftHandAbsPos(), true);
@@ -910,20 +1349,25 @@ DWORD *Hooks::dPrePushRenderTarget(void *ecx, void *edx, int a2)
 	return hkPrePushRenderTarget.fOriginal(ecx, a2);
 }
 
-Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
+Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* shootPos)
 {
-	Vector* result = hkWeapon_ShootPosition.fOriginal(ecx, eyePos);
+	Vector* result = hkWeapon_ShootPosition.fOriginal(ecx, shootPos);
 
-	if (!EntityIndex)
+	if (!result || !m_Game || !m_VR)
 		return result;
 
-	int localIndex = m_Game->GetLocalPlayerIndex();
-	int index = EntityIndex(ecx);
+	const int localIndex = m_Game->GetLocalPlayerIndex();
+	const int index = ServerEntityIndex(ecx);
+	if (index < 0 || index >= static_cast<int>(m_Game->m_PlayersVRInfo.size()))
+		return result;
 
-	auto vrPlayer = m_Game->m_PlayersVRInfo[index];
+	const auto &vrPlayer = m_Game->m_PlayersVRInfo[index];
 
-	if (m_VR->m_IsVREnabled && localIndex == index) {
-		*result = m_VR->GetRightControllerAbsPos();	
+	if (m_VR->m_IsVREnabled && localIndex > 0 && localIndex == index
+		&& m_VR->m_RightControllerPose.isValid) {
+		*result = m_VR->m_GrabUseHeld
+			? m_VR->m_GrabControllerPos
+			: m_VR->GetRightControllerAbsPos();
 	}
 	else if (vrPlayer.isUsingVR)
 	{
@@ -1088,10 +1532,23 @@ void __cdecl Hooks::dGetHudSize(int& w, int& h) {
 	h = m_VR->m_RenderHeight;
 }
 
-void __fastcall Hooks::dPush2DView(void* ecx, void* edx, IMatRenderContext* pRenderContext, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes) {
-	m_PushedHud = false;
+void __fastcall Hooks::dPush2DView(void* ecx, void* edx, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes) {
+	hkPush2DView.fOriginal(ecx, view, nFlags, pRenderTarget, frustumPlanes);
+	s_BodyViewStack.push_back(false);
+}
 
-	return hkPush2DView.fOriginal(ecx, pRenderContext, view, nFlags, pRenderTarget, frustumPlanes);
+void __fastcall Hooks::dPopView(void* ecx, void* edx, void* frustumPlanes) {
+	if (!s_BodyViewStack.empty()) {
+		const bool mainWorldView = s_BodyViewStack.back();
+		if (mainWorldView && s_InlineBodyDrawEligible && !s_BodyDrawTriggered) {
+			s_BodyDrawTriggered = true;
+			s_ActiveFirstPersonBodyPass = true;
+			DrawLocalPlayerBodyDirect();
+			s_ActiveFirstPersonBodyPass = false;
+		}
+		s_BodyViewStack.pop_back();
+	}
+	hkPopView.fOriginal(ecx, frustumPlanes);
 }
 
 void __fastcall Hooks::dRender(void* ecx, void* edx, vrect_t* rect) {
@@ -1118,28 +1575,50 @@ void __fastcall Hooks::dGetClipRect(void* ecx, void* edx, int& x0, int& y0, int&
 	//std::cout << "dGetClipRect - X: " << x0 << ", Y: " << y0 << ", W: " << x1 << ", H: " << y1  << "\n";
 }
 
-double __fastcall Hooks::dComputeError(void* ecx, void* edx) {
-	bool wasTrue = m_VR->m_OverrideEyeAngles;
+Vector* __fastcall Hooks::dEyePosition(void* ecx, void* edx, Vector* eyePos)
+{
+	Vector* result = hkEyePosition.fOriginal(ecx, eyePos);
 
-	m_VR->m_OverrideEyeAngles = true;
+	if (!result || !m_Game || !m_VR)
+		return result;
 
-	double computedError = hkComputeError.fOriginal(ecx);
+	const int localIndex = m_Game->GetLocalPlayerIndex();
+	const int index = ServerEntityIndex(ecx);
+	const bool isLocalPlayer = localIndex > 0 && localIndex == index;
+	const bool useHeld = m_VR->m_IsVREnabled && isLocalPlayer && m_VR->m_GrabUseHeld;
+	if (m_VR->m_IsVREnabled && isLocalPlayer
+		&& m_VR->m_RightControllerPose.isValid
+		&& (useHeld || m_VR->m_OverrideEyeAngles))
+	{
+		*result = m_VR->m_GrabControllerPos;
+		static bool logged = false;
+		if (!logged)
+		{
+			PortalVrLog("Controller EyePosition override origin=%f,%f,%f",
+				result->x, result->y, result->z);
+			logged = true;
+		}
+	}
 
-	if (!wasTrue)
-		m_VR->m_OverrideEyeAngles = false;
-
-	return computedError;
+	return result;
 }
 
-bool __fastcall Hooks::dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError, bool bIsTeleport) {
-	bool wasTrue = m_VR->m_OverrideEyeAngles;
+float __fastcall Hooks::dComputeError(void* ecx, void* edx) {
+	const bool wasTrue = m_VR->m_OverrideEyeAngles;
+	m_VR->m_OverrideEyeAngles = true;
+	const float value = hkComputeError.fOriginal(ecx);
+	m_VR->m_OverrideEyeAngles = wasTrue;
+	return value;
+}
+
+bool __fastcall Hooks::dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError) {
+	const bool wasTrue = m_VR->m_OverrideEyeAngles;
 
 	m_VR->m_OverrideEyeAngles = true;
 
-	bool value = hkUpdateObject.fOriginal(ecx, pPlayer, flError, bIsTeleport);
+	const bool value = hkUpdateObject.fOriginal(ecx, pPlayer, flError);
 
-	if (!wasTrue)
-		m_VR->m_OverrideEyeAngles = false;
+	m_VR->m_OverrideEyeAngles = wasTrue;
 
 	return value;
 }
@@ -1172,18 +1651,30 @@ void __fastcall Hooks::dRotateObject(void* ecx, void* edx, void* pPlayer, float 
 // This is CPlayerBase, do we also need to hook CPortalPlayer? can the same function be used by both?
 // This works for release, but why was it crashing before??? TODO: buy a c++ book...
 QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
-	if (m_VR->m_OverrideEyeAngles && EntityIndex) {
-		int localIndex = m_Game->GetLocalPlayerIndex();
-		int index = EntityIndex(ecx);
-
-		auto& vrPlayer = m_Game->m_PlayersVRInfo[index];
-
-		if (m_VR->m_IsVREnabled && localIndex == index) {
-			return m_VR->GetRightControllerAbsAngleConst();
-		}
-		else if (vrPlayer.isUsingVR)
+	if (m_VR && m_Game) {
+		const int localIndex = m_Game->GetLocalPlayerIndex();
+		const int index = ServerEntityIndex(ecx);
+		if (index >= 0 && index < static_cast<int>(m_Game->m_PlayersVRInfo.size()))
 		{
-			return vrPlayer.controllerAngle;
+			auto &vrPlayer = m_Game->m_PlayersVRInfo[index];
+			const bool useHeld = m_VR->m_IsVREnabled && localIndex == index
+				&& m_VR->m_GrabUseHeld;
+			if ((m_VR->m_OverrideEyeAngles || useHeld)
+				&& m_VR->m_IsVREnabled && localIndex > 0 && localIndex == index
+				&& m_VR->m_RightControllerPose.isValid)
+			{
+				static bool logged = false;
+				if (!logged)
+				{
+					const QAngle &controller = m_VR->m_GrabControllerAng;
+					PortalVrLog("Controller EyeAngles override angle=%f,%f,%f",
+						controller.x, controller.y, controller.z);
+					logged = true;
+				}
+				return m_VR->m_GrabControllerAng;
+			}
+			if (m_VR->m_OverrideEyeAngles && vrPlayer.isUsingVR)
+				return vrPlayer.controllerAngle;
 		}
 	}
 

@@ -13,6 +13,7 @@ class ITexture;
 
 struct TrackedDevicePoseData
 {
+	bool isValid = false;
 	std::string TrackedDeviceName;
 	Vector TrackedDevicePos = { 0, 0, 0 };
 	Vector TrackedDeviceVel = { 0, 0, 0 };
@@ -199,6 +200,13 @@ public:
 	QAngle m_PortalRotationOffset = {0, 0, 0};
 	QAngle m_RotationOffset = { 0, 0, 0 };
 	bool m_OverrideEyeAngles = false;
+	// Snapshot the hand pose at CreateMove time. Server-side pickup callbacks
+	// can run between SteamVR action samples, so they must not query live input
+	// and accidentally fall back to the HMD pose.
+	bool m_GrabUseHeld = false;
+	Vector m_GrabControllerPos = { 0, 0, 0 };
+	QAngle m_GrabControllerAng = { 0, 0, 0 };
+	bool m_UseCommandHeld = false;
 	std::chrono::steady_clock::time_point m_PrevFrameTime;
 
 	float m_TurnSpeed = 0.15f;
@@ -212,6 +220,8 @@ public:
 	float m_HudSize = 4.0f;
 	bool m_HudAlwaysVisible = false;
 	int m_AimMode = 2;
+	bool m_FirstPersonBody = true;
+	bool m_FirstPersonBodyHideUpper = true;
 
 	VR() {};
 	VR(Game *game);

@@ -150,6 +150,26 @@ $configDestination = Join-Path $vrDir "config.txt"
 if (-not (Test-Path -LiteralPath $configDestination)) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "config.txt") -Destination $configDestination
 }
+else {
+    # Existing installs keep their chosen settings, but older configs do not
+    # know about the optional body-render settings. Add only those missing
+    # lines so the parser does not show a warning dialog at startup.
+    $configText = [System.IO.File]::ReadAllText($configDestination)
+    $bodyConfigLines = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot "config.txt") |
+        Where-Object { $_ -match '^(FirstPersonBody|FirstPersonBodyHideUpper)=' })
+    $missingBodyConfigLines = @($bodyConfigLines | Where-Object {
+        $key = ($_ -split '=', 2)[0]
+        $configText -notmatch ('(?m)^' + [regex]::Escape($key) + '=')
+    })
+    if ($missingBodyConfigLines.Count -gt 0) {
+        $newline = [Environment]::NewLine
+        $prefix = if ($configText.EndsWith("`n") -or $configText.EndsWith("`r")) { '' } else { $newline }
+        [System.IO.File]::AppendAllText(
+            $configDestination,
+            $prefix + ($missingBodyConfigLines -join $newline) + $newline)
+        Write-Host "Added missing first-person body settings to $configDestination"
+    }
+}
 
 $materialSource = Join-Path $PSScriptRoot "materials"
 $materialDestination = Join-Path $portalDir "portal\custom\portal1vr\materials"
