@@ -154,6 +154,7 @@ public:
 
 	// action set
 	vr::VRActionSetHandle_t m_ActionSet = 0;
+	vr::VRActionSetHandle_t m_BaseActionSet = 0;
 	vr::VRActiveActionSet_t m_ActiveActionSet{};
 
 	// actions
@@ -180,6 +181,12 @@ public:
 	vr::VRActionHandle_t m_Scoreboard = 0;
 	vr::VRActionHandle_t m_ShowHUD = 0;
 	vr::VRActionHandle_t m_Pause = 0;
+	vr::VRActionHandle_t m_ActionSkeletonLeft = 0;
+	vr::VRActionHandle_t m_ActionSkeletonRight = 0;
+	float m_LeftFingerCurl[5] = { 0.35f, 0.35f, 0.35f, 0.35f, 0.35f };
+	float m_RightFingerCurl[5] = { 0.35f, 0.35f, 0.35f, 0.35f, 0.35f };
+	bool m_LeftSkeletonValid = false;
+	bool m_RightSkeletonValid = false;
 
 	TrackedDevicePoseData m_HmdPose;
 	TrackedDevicePoseData m_LeftControllerPose;

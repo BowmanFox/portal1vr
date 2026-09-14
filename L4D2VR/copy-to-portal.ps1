@@ -158,3 +158,11 @@ if (Test-Path -LiteralPath $materialSource) {
     Get-ChildItem -LiteralPath $materialSource -Directory | Copy-Item -Destination $materialDestination -Recurse -Force
     Write-Host "Installed corrected arm materials"
 }
+
+$customVpkSource = Join-Path $PSScriptRoot "custom\bowman_portal1.vpk"
+$customVpkDestination = Join-Path $portalDir "portal\custom\bowman_portal1.vpk"
+if (Test-Path -LiteralPath $customVpkSource) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $customVpkDestination) | Out-Null
+    Copy-Item -LiteralPath $customVpkSource -Destination $customVpkDestination -Force
+    Write-Host "Installed custom viewmodel and playermodel VPK"
+}

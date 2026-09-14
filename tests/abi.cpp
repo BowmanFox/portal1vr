@@ -74,14 +74,32 @@ static void CheckHandAttachment() {
 
     matrix3x4_t original[43], first[43]{}, rightMoved[43]{}, leftMoved[43]{};
     for (int i=0;i<43;++i) original[i] = HandPose::Frame({1,0,0},{0,1,0},{0,0,1},{float(i),0,0});
-    HandPose::AlignBareArms(original,first,source,source);
-    HandPose::AlignBareArms(original,rightMoved,source,target);
-    HandPose::AlignBareArms(original,leftMoved,target,source);
+    HandPose::AlignBareArms(original, first, source, source);
+    HandPose::AlignBareArms(original, rightMoved, source, target);
+    HandPose::AlignBareArms(original, leftMoved, target, source);
     // Moving either controller cannot move the other arm, including its fingers.
     for (int i=5;i<24;++i) assert(!memcmp(&first[i],&rightMoved[i],sizeof(matrix3x4_t)));
     for (int i=24;i<43;++i) assert(!memcmp(&first[i],&leftMoved[i],sizeof(matrix3x4_t)));
     assert(!memcmp(&rightMoved[27],&target,sizeof(target)));
     assert(!memcmp(&leftMoved[8],&target,sizeof(target)));
+
+    // Controller hand frames keep the Source left-handed controller basis
+    // rigid while mirroring the lateral axis.  This prevents edge-on palms
+    // and keeps each hand's fingers aligned with its own controller.
+    const auto rightFrame = HandPose::ControllerHandFrame(
+        {1,0,0}, {0,-1,0}, {0,0,1}, {2,3,4}, false);
+    const auto leftFrame = HandPose::ControllerHandFrame(
+        {1,0,0}, {0,-1,0}, {0,0,1}, {5,6,7}, true);
+    assert(rightFrame[0][0] == 1 && rightFrame[1][1] == -1 && rightFrame[2][2] == -1);
+    assert(leftFrame[0][0] == 1 && leftFrame[1][1] == 1 && leftFrame[2][2] == 1);
+    assert(rightFrame[0][3] == 2 && leftFrame[1][3] == 6);
+
+    // Custom VPK fingers extend along +X, so curl must rotate in the X/Y
+    // plane around the local palm (+Z) axis. A Y-axis bend fans them sideways.
+    const auto curlFrame = HandPose::FingerBend(0.5f);
+    assert(fabs(curlFrame[0][2]) < 0.0001f && fabs(curlFrame[1][2]) < 0.0001f);
+    assert(fabs(curlFrame[2][2] - 1.0f) < 0.0001f);
+    assert(fabs(curlFrame[0][1]) > 0.1f && fabs(curlFrame[1][0]) > 0.1f);
 
     matrix3x4_t gun[45];
     for (auto &bone:gun) bone = source;

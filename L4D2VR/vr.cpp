@@ -105,15 +105,11 @@ VR::VR(Game *game)
     tanHalfFov[0] = std::max({ -l_left, l_right, -r_left, r_right });
     tanHalfFov[1] = std::max({ -l_top, l_bottom, -r_top, r_bottom });
 
-    m_TextureBounds[0].uMin = 0.5f + 0.5f * l_left / tanHalfFov[0];
-    m_TextureBounds[0].uMax = 0.5f + 0.5f * l_right / tanHalfFov[0];
-    m_TextureBounds[0].vMin = 0.5f - 0.5f * l_bottom / tanHalfFov[1];
-    m_TextureBounds[0].vMax = 0.5f - 0.5f * l_top / tanHalfFov[1];
-
-    m_TextureBounds[1].uMin = 0.5f + 0.5f * r_left / tanHalfFov[0];
-    m_TextureBounds[1].uMax = 0.5f + 0.5f * r_right / tanHalfFov[0];
-    m_TextureBounds[1].vMin = 0.5f - 0.5f * r_bottom / tanHalfFov[1];
-    m_TextureBounds[1].vMax = 0.5f - 0.5f * r_top / tanHalfFov[1];
+    // Each eye is rendered into its own complete symmetric Source target.
+    // Submitting asymmetric raw-projection bounds here double-applies the
+    // lens shift and makes the left eye appear cropped/warped in the headset.
+    m_TextureBounds[0] = { 0, 0, 1, 1 };
+    m_TextureBounds[1] = { 0, 0, 1, 1 };
 
     m_Aspect = tanHalfFov[0] / tanHalfFov[1];
     m_Fov = 2.0f * atan(tanHalfFov[0]) * 360 / (3.14159265358979323846 * 2);
@@ -229,8 +225,13 @@ int VR::SetActionManifest(const char *fileName)
     m_Input->GetActionHandle("/actions/main/in/Scoreboard", &m_Scoreboard);
     m_Input->GetActionHandle("/actions/main/in/ShowHUD", &m_ShowHUD);
     m_Input->GetActionHandle("/actions/main/in/Pause", &m_Pause);
+	if (m_Input->GetActionHandle("/actions/base/in/skeleton_lefthand", &m_ActionSkeletonLeft) != vr::VRInputError_None)
+		m_ActionSkeletonLeft = 0;
+	if (m_Input->GetActionHandle("/actions/base/in/skeleton_righthand", &m_ActionSkeletonRight) != vr::VRInputError_None)
+		m_ActionSkeletonRight = 0;
 
     m_Input->GetActionSetHandle("/actions/main", &m_ActionSet);
+    m_Input->GetActionSetHandle("/actions/base", &m_BaseActionSet);
     m_ActiveActionSet = {};
     m_ActiveActionSet.ulActionSet = m_ActionSet;
 
@@ -593,7 +594,40 @@ void VR::UpdatePosesAndActions()
     if (loggedPoses++ < 3)
         PortalVrLog("Pose update this=%p poses=%p compositor=%p input=%p", this, m_Poses, vr::VRCompositor(), m_Input);
     vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
-    m_Input->UpdateActionState(&m_ActiveActionSet, sizeof(vr::VRActiveActionSet_t), 1);
+    vr::VRActiveActionSet_t actionSets[2] = { m_ActiveActionSet, {} };
+    actionSets[1].ulActionSet = m_BaseActionSet;
+    m_Input->UpdateActionState(actionSets, sizeof(vr::VRActiveActionSet_t), m_BaseActionSet ? 2 : 1);
+
+	// SteamVR can provide finger curl even when the controller has no full
+	// skeletal tracking. Keep the last good pose and use a relaxed fallback so
+	// custom hands never render as board-flat fists on runtimes without it.
+	auto updateFingerSummary = [this](vr::VRActionHandle_t action, float *curl, bool &valid) {
+		static bool reportedMissing = false;
+		if (!action) { valid = false; if (!reportedMissing) { PortalVrLog("Finger skeleton action unavailable; using relaxed pose"); reportedMissing = true; } return; }
+		vr::VRSkeletalSummaryData_t summary{};
+		const auto error = m_Input->GetSkeletalSummaryData(action, vr::VRSummaryType_FromDevice, &summary);
+		if (error != vr::VRInputError_None) { valid = false; if (!reportedMissing) { PortalVrLog("Finger skeleton data unavailable error=%d; using relaxed pose", error); reportedMissing = true; } return; }
+		float sampledCurl[5]{};
+		bool anyCurl = false;
+		for (int i = 0; i < 5; ++i)
+		{
+			sampledCurl[i] = std::clamp(summary.flFingerCurl[i], 0.0f, 1.0f);
+			anyCurl = anyCurl || sampledCurl[i] > 0.02f;
+		}
+		// Pico's compatibility layer can return a successful all-zero summary
+		// even though it has no skeletal stream. Keep the relaxed fallback in
+		// that case instead of turning every finger into a board-flat pose.
+		if (!anyCurl) {
+			valid = false;
+			if (!reportedMissing) { PortalVrLog("Finger skeleton returned zero curl; using relaxed pose"); reportedMissing = true; }
+			return;
+		}
+		for (int i = 0; i < 5; ++i) curl[i] = sampledCurl[i];
+		valid = true;
+		if (!reportedMissing) { PortalVrLog("Finger skeleton curl=%.2f,%.2f,%.2f,%.2f,%.2f", curl[0], curl[1], curl[2], curl[3], curl[4]); reportedMissing = true; }
+	};
+	updateFingerSummary(m_ActionSkeletonLeft, m_LeftFingerCurl, m_LeftSkeletonValid);
+	updateFingerSummary(m_ActionSkeletonRight, m_RightFingerCurl, m_RightSkeletonValid);
 }
 
 void VR::GetViewParameters() 

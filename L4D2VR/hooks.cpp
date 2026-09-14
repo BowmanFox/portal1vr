@@ -152,6 +152,12 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkPush3DViewDepth);
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
+	EnableIfCreated(hkWeapon_ShootPosition);
+	EnableIfCreated(hkComputeError);
+	EnableIfCreated(hkUpdateObject);
+	EnableIfCreated(hkUpdateObjectVM);
+	EnableIfCreated(hkRotateObject);
+	EnableIfCreated(hkEyeAngles);
 	EnableIfCreated(hkGetViewModelFOV);
 	EnableIfCreated(hkCreateViewModel);
 	EnableIfCreated(hkDrawModelExecute);
@@ -239,6 +245,20 @@ int Hooks::initSourceHooks()
 
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
+	if (hasOffsets) {
+		CreateHookAt(hkWeapon_ShootPosition, m_Game->m_Offsets->Weapon_ShootPosition.address,
+			reinterpret_cast<LPVOID>(&dWeapon_ShootPosition), "Portal1::WeaponShootPosition", false);
+		CreateHookAt(hkComputeError, m_Game->m_Offsets->ComputeError.address,
+			reinterpret_cast<LPVOID>(&dComputeError), "Portal1::ComputeGrabError", false);
+		CreateHookAt(hkUpdateObject, m_Game->m_Offsets->UpdateObject.address,
+			reinterpret_cast<LPVOID>(&dUpdateObject), "Portal1::UpdateGrabObject", false);
+		CreateHookAt(hkUpdateObjectVM, m_Game->m_Offsets->UpdateObjectVM.address,
+			reinterpret_cast<LPVOID>(&dUpdateObjectVM), "Portal1::UpdateGrabObjectVM", false);
+		CreateHookAt(hkRotateObject, m_Game->m_Offsets->RotateObject.address,
+			reinterpret_cast<LPVOID>(&dRotateObject), "Portal1::RotateGrabObject", false);
+		CreateHookAt(hkEyeAngles, m_Game->m_Offsets->EyeAngles.address,
+			reinterpret_cast<LPVOID>(&dEyeAngles), "Portal1::EyeAngles", false);
+	}
 
 	// The inherited FirePortal detour has Portal 2's ABI. Portal 1 aiming is
 	// handled by the verified eight-argument TraceFirePortal hook above.
@@ -261,12 +281,15 @@ int Hooks::initSourceHooks()
 		"Portal1::CHudCrosshair::ShouldDraw",
 		false);
 	PortalVrLog(
-		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p playerPortalled=%p crosshair=%p",
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p shoot=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
 		hkRenderView.pTarget,
 		hkCreateMove.pTarget,
 		hkGetViewModelFOV.pTarget,
 		hkCalcViewModelView.pTarget,
 		hkTraceFirePortal.pTarget,
+		hkWeapon_ShootPosition.pTarget,
+		hkUpdateObject.pTarget,
+		hkEyeAngles.pTarget,
 		hkPlayerPortalled.pTarget,
 		hkCHudCrosshair_ShouldDraw.pTarget);
 	return 1;
@@ -473,7 +496,13 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
         return originalResult;
 	if (m_VR->m_IsVREnabled)
 	{
-		cmd->viewangles = m_VR->m_HmdAngAbs;
+		// Portal's object pickup code reads the server eye angles while +use is
+		// held. Feed it the portal-gun controller for that interval so the use
+		// trace and the held-object orientation follow the hand instead of the
+		// HMD. The VR renderer still uses the headset pose for the camera.
+		cmd->viewangles = m_VR->PressedDigitalAction(m_VR->m_ActionUse)
+			? m_VR->m_RightControllerAngAbs
+			: m_VR->m_HmdAngAbs;
 
 		vr::InputAnalogActionData_t analogActionData;
 		if (m_VR->GetAnalogActionData(m_VR->m_ActionWalk, analogActionData)) {
@@ -731,13 +760,18 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
                     const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
+                    HandPose::ApplyFingerCurlChain(reference, tracked, m_VR->m_RightFingerCurl, 0, 8);
                     HandPose::StraightenGunWrist(tracked);
                 } else {
-                    const auto rightTarget = HandPose::Frame(m_VR->m_RightHandForward,
-                        -m_VR->m_RightHandUp, -m_VR->m_RightControllerRight, rightPosition);
-                    const auto leftTarget = HandPose::Frame(m_VR->m_LeftHandForward,
-                        m_VR->m_LeftHandUp, m_VR->m_LeftControllerRight, m_VR->GetLeftHandAbsPos());
+                    const auto rightTarget = HandPose::ControllerHandFrame(
+                        m_VR->m_RightHandForward, m_VR->m_RightControllerRight,
+                        m_VR->m_RightHandUp, rightPosition, false);
+                    const auto leftTarget = HandPose::ControllerHandFrame(
+                        m_VR->m_LeftHandForward, m_VR->m_LeftControllerRight,
+                        m_VR->m_LeftHandUp, m_VR->GetLeftHandAbsPos(), true);
                     HandPose::AlignBareArms(reference, tracked, leftTarget, rightTarget);
+                    HandPose::ApplyFingerCurl(reference, tracked,
+                        m_VR->m_LeftFingerCurl, m_VR->m_RightFingerCurl);
                     if (s_LeftArmRenderable) {
                         const bool leftOnly = info.pRenderable == s_LeftArmRenderable;
                         const Vector hiddenAt = leftOnly ? m_VR->GetLeftHandAbsPos() : rightPosition;
@@ -1063,7 +1097,7 @@ double __fastcall Hooks::dComputeError(void* ecx, void* edx) {
 
 	m_VR->m_OverrideEyeAngles = true;
 
-	double computedError = hkComputeError.fOriginal(edx);
+	double computedError = hkComputeError.fOriginal(ecx);
 
 	if (!wasTrue)
 		m_VR->m_OverrideEyeAngles = false;

@@ -43,17 +43,20 @@ Choose your preferred display resolution in Portal's video options, then load a 
 - Attach the portal gun at its wrist bone, with the barrel aligned to the shot direction. Transform copies of the bone matrices so eye renders do not compound the pose.
 - Render bare arms with independently tracked left/right bone chains, and create the player's second viewmodel to retain the left arm while holding the gun.
 - Disable world-player bone merging and reconstruct bare arms from their reference skeleton. The old hands animation displaced the wrists from their forearm attachment points. The gun forearm is also rotated into a neutral wrist pose without moving the hand or gun.
+- Map each controller to a mirrored, rigid hand frame so palms do not render edge-on. SteamVR skeletal summaries drive per-finger curl when the runtime exposes it; a relaxed pose keeps custom Pico hands from becoming stiff when it does not.
 - Override the broken stock arm material path through Portal's custom-content folder, using textures already installed with the game. The gun hand uses a filled skin region because its UV layout does not match this atlas; this avoids black pixels but does not restore its original nail/tattoo detailing.
 
 ## Validation and limits
 
 Tested locally against Portal client.dll timestamp `0x68362d89`, with a Pico headset through SteamVR. The tester confirmed a visible room, working head rotation, and left-stick movement. Captured eye render targets contain the scene, and both SteamVR eye submissions return success. This confirms basic VR operation, not a complete campaign playthrough.
 
-The tester also confirmed controller-directed portal placement and independent arm movement in an early room without the gun. After the gun wrist adjustment, the remaining reported issue was a black hand. This was traced to incompatible texture coordinates and corrected with a material transform. Fresh playtest screenshots show both hands with skin-colored materials. The fullscreen playtest retained successful eye submissions, head tracking, movement, and controller-directed shots. These are controller-driven arms, without full-body elbow tracking or finger tracking. Legacy laser-particle and specialized portal-transition hooks remain disabled where their signatures do not match. Pause-menu behavior and a complete campaign playthrough still need testing.
+The tester also confirmed controller-directed portal placement and independent arm movement in an early room without the gun. The custom VPK supplies the authored hand texture and model, while the VR pose path preserves each wrist attachment and applies SteamVR skeletal finger curl when Pico exposes it. On Pico runtimes that report a successful zero curl summary, the build keeps a relaxed pose so the fingers do not flatten into a karate chop. The fullscreen playtest retained successful eye submissions, head tracking, movement, and controller-directed shots. Legacy laser-particle and specialized portal-transition hooks remain disabled where their signatures do not match. Pause-menu behavior and a complete campaign playthrough still need testing.
 
 The gun-hand grip correction is 2.5 Source units backward and 1 unit left. `ViewmodelPosCustomOffsetX/Y/Z` add forward/right/up adjustments in Source units; at the default scale, one unit is about 2.3 cm. Restart Portal after changing configuration.
 
 The camera-collision update passes the Release x86 build and regression checks and has been installed for Pico testing. Its ray flags were checked against the installed engine.dll and corrected to Portal 1's layout. A live downward hull probe returned a floor hit at fraction `0.015059`. During play, the camera then logged blocked contact and recovery to zero correction, with successful submissions to both eyes. The Pico tester confirmed the wall fix works. Passage through active portals with this update still needs verification.
+
+The archive also carries the custom `bowman_portal1.vpk` from `portal/custom`, which supplies the custom viewmodels and `chell` playermodel used by the VR build. The installer restores it to that same `portal/custom` location.
 
 ## Build
 
