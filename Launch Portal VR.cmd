@@ -8,4 +8,4 @@ if not exist "%PORTAL_VR_DIR%hl2.exe" (
   exit /b 1
 )
 cd /d "%PORTAL_VR_DIR%"
-start "" "%PORTAL_VR_DIR%hl2.exe" -game portal -insecure -windowed -novid -w 1280 -h 720 +mat_queue_mode 0 +mat_vsync 0 +mat_antialias 0
+start "" "%PORTAL_VR_DIR%hl2.exe" -steam -game portal -insecure -fullscreen -novid +mat_queue_mode 0 +mat_vsync 0 +mat_antialias 0 %*

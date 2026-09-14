@@ -88,6 +88,11 @@ $capsuleSource = Join-Path $PSScriptRoot "portal1vr_capsule_main.png"
 $portraitSource = Join-Path $PSScriptRoot "portal1vr_portrait_main.png"
 $runtimeFiles = @(
     @{
+        Source = Join-Path $PSScriptRoot '..\Launch Portal VR.cmd'
+        Destination = Join-Path $portalDir 'Launch Portal VR.cmd'
+        Label = 'Launch Portal VR.cmd'
+    },
+    @{
         Source = $SourceDll
         Destination = Join-Path $binDir "d3d9.dll"
         Label = "d3d9.dll"
