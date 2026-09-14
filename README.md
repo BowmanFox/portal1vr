@@ -10,9 +10,9 @@ VR mod for the Windows x86 Steam version of Portal, based on [Portal2VR](https:/
 
 Captured while playing Portal 1 VR fullscreen with a Pico headset through SteamVR. These are actual headset views from the playtest. Click either picture for the full-size image.
 
-| Portal gun in the test chamber | Both hands in the elevator |
-| --- | --- |
-| [![Portal 1 VR playtest with the controller-held portal gun and an orange portal across the test chamber](imgs/screenshots/portal1vr-playtest-1.png)](imgs/screenshots/portal1vr-playtest-1.png) | [![Portal 1 VR playtest showing the separate left hand and the right hand holding the portal gun inside an elevator](imgs/screenshots/portal1vr-playtest-2.png)](imgs/screenshots/portal1vr-playtest-2.png) |
+| Portal gun in the test chamber | Both hands in the elevator | Fresh Pico playtest |
+| --- | --- | --- |
+| [![Portal 1 VR playtest with the controller-held portal gun and an orange portal across the test chamber](imgs/screenshots/portal1vr-playtest-1.png)](imgs/screenshots/portal1vr-playtest-1.png) | [![Portal 1 VR playtest showing the separate left hand and the right hand holding the portal gun inside an elevator](imgs/screenshots/portal1vr-playtest-2.png)](imgs/screenshots/portal1vr-playtest-2.png) | [![Fresh Portal 1 VR Pico playtest showing both tracked hands in a test chamber](imgs/screenshots/portal1vr-playtest-3.png)](imgs/screenshots/portal1vr-playtest-3.png) |
 
 ## Installation
 
