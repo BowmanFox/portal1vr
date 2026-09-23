@@ -151,23 +151,24 @@ if (-not (Test-Path -LiteralPath $configDestination)) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "config.txt") -Destination $configDestination
 }
 else {
-    # Existing installs keep their chosen settings, but older configs do not
-    # know about the optional body-render settings. Add only those missing
-    # lines so the parser does not show a warning dialog at startup.
+    # Preserve chosen settings and append every missing shipped default. A
+    # hand-maintained list missed the grip and body-offset settings, causing
+    # one blocking startup dialog for each absent entry.
     $configText = [System.IO.File]::ReadAllText($configDestination)
-    $bodyConfigLines = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot "config.txt") |
-        Where-Object { $_ -match '^(FirstPersonBody|FirstPersonBodyHideUpper)=' })
-    $missingBodyConfigLines = @($bodyConfigLines | Where-Object {
+    $defaultConfigLines = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot "config.txt") |
+        Where-Object { $_ -match '^[A-Za-z0-9_]+=' })
+    $missingConfigLines = @($defaultConfigLines | Where-Object {
         $key = ($_ -split '=', 2)[0]
-        $configText -notmatch ('(?m)^' + [regex]::Escape($key) + '=')
+        # Runtime keys are case-sensitive, including when checking presence.
+        $configText -cnotmatch ('(?m)^' + [regex]::Escape($key) + '=')
     })
-    if ($missingBodyConfigLines.Count -gt 0) {
+    if ($missingConfigLines.Count -gt 0) {
         $newline = [Environment]::NewLine
         $prefix = if ($configText.EndsWith("`n") -or $configText.EndsWith("`r")) { '' } else { $newline }
         [System.IO.File]::AppendAllText(
             $configDestination,
-            $prefix + ($missingBodyConfigLines -join $newline) + $newline)
-        Write-Host "Added missing first-person body settings to $configDestination"
+            $prefix + ($missingConfigLines -join $newline) + $newline)
+        Write-Host "Added $($missingConfigLines.Count) missing default settings to $configDestination"
     }
 }
 

@@ -9,6 +9,8 @@ AimMode=2 # 0 = None, 1 = Crosshair (does not work properly), 2 = Laser sight/be
 FirstPersonBody=true # Draw the local player body in the VR eye and desktop mirror views
 FirstPersonBodyBackOffset=8 # Move the first-person torso backward in Source units (0-24); restart Portal after changing
 FirstPersonBodyHideUpper=true # Keep the head and arm branches out of the near-camera view while retaining torso and legs
+LeftHandGunGrip=true # Optional support grip; the left hand stays independently tracked until engaged
+LeftHandGunGripRadius=6 # Support engagement distance in Source units (2-12)
 AntiAliasing=0 # 0, 2, 4 8
 RenderWindow=1 # Whether or not to render the game a third time for the window, yes you heard it right, so use this wisely
 ViewmodelPosCustomOffsetX=0.0

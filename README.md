@@ -28,6 +28,8 @@ Choose your preferred display resolution in Portal's video options, then load a 
 
 `RenderWindow=1` provides a separate desktop view and the pause-menu texture. It adds a third scene render. Leave it enabled for the tested configuration.
 
+The installer appends missing settings from the shipped config while preserving existing values and comments. This includes `LeftHandGunGrip=true`, `LeftHandGunGripRadius=6`, and `FirstPersonBodyBackOffset=8` on older installations. `tests/install-config.ps1` verifies that the shipped defaults cover every active runtime setting and that upgrades preserve custom values.
+
 ## Runtime fixes
 
 - Start VR on the render thread after the engine and D3D device are ready. SteamVR initialization failures can retry without crashing normal rendering.

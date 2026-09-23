@@ -1,0 +1,13 @@
+{
+  "all_runtime_keys_present": 21,
+  "existing_config_bytes_preserved_as_prefix": true,
+  "existing_values_unchanged": true,
+  "added_defaults": {
+    "FirstPersonBodyBackOffset": "8",
+    "LeftHandGunGrip": "true",
+    "LeftHandGunGripRadius": "6"
+  },
+  "installed_config_sha256": "68adea616be354aa56426c438b8ce95e4d9fef5696792acfbd2a43c7c16d019f",
+  "reproduced_and_repaired_all_three_missing_key_warnings": true,
+  "fresh_install_upgrade_custom_values_and_idempotence_tests_passed": true
+}
