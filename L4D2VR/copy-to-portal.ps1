@@ -182,6 +182,7 @@ if (Test-Path -LiteralPath $materialSource) {
 $customVpkSource = Join-Path $PSScriptRoot "custom\bowman_portal1.vpk"
 $customVpkArchive = Join-Path $PSScriptRoot "custom\bowman_portal1.zip"
 $customVpkDestination = Join-Path $portalDir "portal\custom\bowman_portal1.vpk"
+$customVpkInstalled = $false
 if (Test-Path -LiteralPath $customVpkArchive) {
     # Store the losslessly compressed model in Git; Source still loads a VPK.
     # Extract only the expected file so archive paths cannot escape custom/.
@@ -196,9 +197,38 @@ if (Test-Path -LiteralPath $customVpkArchive) {
     } finally {
         $modelArchive.Dispose()
     }
+    $customVpkInstalled = $true
     Write-Host "Installed custom viewmodel and playermodel VPK"
 } elseif (Test-Path -LiteralPath $customVpkSource) {
     New-Item -ItemType Directory -Force -Path (Split-Path $customVpkDestination) | Out-Null
     Copy-Item -LiteralPath $customVpkSource -Destination $customVpkDestination -Force
+    $customVpkInstalled = $true
     Write-Host "Installed custom viewmodel and playermodel VPK"
+}
+
+if ($customVpkInstalled) {
+    # Older radio installers left a loose WAV that can mask the bundled song.
+    # Keep those files outside custom/ so Source loads only the new VPK copy.
+    $customRoot = [IO.Path]::GetFullPath((Join-Path $portalDir 'portal\custom'))
+    $retiredRadioFiles = @(
+        'portal1vr\sound\ambient\music\looping_radio_mix.wav',
+        'portal1vr\portal1vr_streamer_warning.txt',
+        'portal1vr\sound\sound.cache',
+        'bowman_portal1.vpk.sound.cache'
+    )
+    $radioBackupRoot = Join-Path $portalDir ('bin\VR\InstallBackups\radio-' +
+        [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fffffff'))
+    foreach ($relativePath in $retiredRadioFiles) {
+        $oldFile = [IO.Path]::GetFullPath((Join-Path $customRoot $relativePath))
+        if (-not $oldFile.StartsWith($customRoot + [IO.Path]::DirectorySeparatorChar,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Radio migration path escaped the custom directory.'
+        }
+        if (Test-Path -LiteralPath $oldFile -PathType Leaf) {
+            $backupFile = Join-Path $radioBackupRoot $relativePath
+            New-Item -ItemType Directory -Force -Path (Split-Path $backupFile) | Out-Null
+            Move-Item -LiteralPath $oldFile -Destination $backupFile
+            Write-Host "Backed up obsolete radio override/cache: $backupFile"
+        }
+    }
 }

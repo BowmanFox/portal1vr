@@ -73,6 +73,14 @@ Optional left-hand support remains free until a fresh grip squeeze near the unde
 
 The fresh body/viewmodel compiles, expression checks, five sampled gun-grip poses, optional-support clearance, and Release x86 regression tests pass. These changes have not been tested in a headset. The clearance checks concern hands against the gun and each other at the authored support pose; they are not a guarantee against all finger self-contact or arbitrary tracked poses.
 
+## Radio
+
+The bundled radio plays an instrumental separation of thecybercat's [The Device has Been Modified v2 - HD Remaster](https://www.youtube.com/watch?v=wRj-29ceRvU). It uses the original radio WAV path and loop metadata, mono 44.1 kHz PCM, and small-speaker filtering. Portal's existing radio entity supplies positional audio, distance falloff, and room effects. No dialogue-triggered mute or mixer override is added.
+
+The installer backs up an older loose radio WAV, credit notice, and sound caches under `bin/VR/InstallBackups` so they cannot mask the new VPK. Other sounds and the existing VR configuration are preserved. For manual installation, move any old `portal/custom/portal1vr/sound/ambient/music/looping_radio_mix.wav` outside `portal/custom`, and retire its `sound/sound.cache` and `portal/custom/bowman_portal1.vpk.sound.cache` before restarting Portal. Keep the existing Options > Portal radio-disable setting and `portal1vr_radio_on/off` commands.
+
+The final radio passed format, loop metadata, archive CRC, and automated speech-recognition checks; only music/effect labels were transcribed. Vocal separation can leave faint artifacts, and no headset listening test is claimed. Verification details are in `docs/avatar-verification/Radio_Verification.json`. Run `powershell -NoProfile -File tests/install-radio.ps1` to check reversible migration, repeated installation, and malformed-archive rejection.
+
 ## Build
 
 The September 23 portal/pickup and save-load changes pass the Release x86 build and automated pose checks. A live Pico run confirmed both new hooks attach, controller pickup reaches the scoped eye overrides, a portal crossing updates tracking by 90 degrees, and both eyes continue receiving frames afterward. Held-prop behavior during crossing and repeated save-load textures still need gameplay confirmation. Check carrying a cube through both directions, releasing it afterward, and loading a save repeatedly while watching chamber textures.
