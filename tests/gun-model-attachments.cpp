@@ -6,6 +6,7 @@
 #include "portalpose.h"
 #include "gunattachments.h"
 #include "gunray.h"
+#include "portalshotfx.h"
 
 // Optional regression using the actual compiled custom v_portalgun.mdl.
 int main(int argc,char **argv) {
@@ -25,10 +26,10 @@ int main(int argc,char **argv) {
     assert(model.count==18);
     assert(model.hasBarrel);
     auto source=bind[24];for(int r=0;r<3;++r)source[r][3]=bind[8][r][3];
-    float maxError=0,maxRayError=0;int cases=0,rangeCases=0;
-    for(float pitch:{-75.f,-30.f,0.f,45.f,80.f})
+    float maxError=0,maxRayError=0,maxPickupError=0;int cases=0,rangeCases=0,pickupCases=0;
+    for(float pitch:{-90.f,-75.f,-30.f,0.f,45.f,80.f,90.f})
     for(float yaw:{-150.f,-45.f,0.f,90.f})
-    for(float roll:{-60.f,0.f,60.f}) {
+    for(float roll:{-180.f,-90.f,-60.f,0.f,60.f,90.f,180.f}) {
         const auto engine=PortalPose::Frame({120,70,40},{12,35,-8});
         for(int i=0;i<45;++i)native[i]=HandPose::Concat(engine,bind[i]);
         native[25]=HandPose::Concat(native[25],PortalPose::Frame({0,0,-.8f},{3,0,0}));
@@ -41,9 +42,40 @@ int main(int argc,char **argv) {
         const auto rigid=HandPose::RigidOrientation(authored);
         const Vector barrelForward(rigid[0][0],rigid[1][0],rigid[2][0]);
         const Vector wrist=PortalPose::Position(controller);
+        PortalShotFx::Data effect;
+        memset(&effect,0xa5,sizeof(effect));
+        effect.origin={500,90,12};effect.start={200,-300,40};effect.angles={10,40,25};
+        const auto oldEffect=effect;
+        assert(PortalShotFx::Align(effect,authored));
+        Vector effectDirection;QAngle::AngleVectors(effect.angles,&effectDirection,nullptr,nullptr);
+        assert((effect.origin-PortalPose::Position(authored)).LengthSqr()<1e-8f);
+        assert((effectDirection-barrelForward).LengthSqr()<1e-8f);
+        assert(!memcmp(&effect.start,&oldEffect.start,2*sizeof(Vector)));
+        assert(!memcmp(effect.remaining,oldEffect.remaining,sizeof(effect.remaining)));
         Vector rayStart,rayDirection;
         assert(GunRay::FromBarrel(barrel,wrist,rayStart,rayDirection));
         assert((rayStart-wrist).LengthSqr()>.5f); // reproduces the old wrist-ray parallax
+        // Use the same barrel ray for native prop selection, independently of
+        // the wrist used for carrying. Rebase both position and direction if
+        // the server crosses a portal before the next controller sample.
+        const auto head=PortalPose::Frame({17,-40,64},{37,120,13});
+        QAngle pickupAngles;QAngle::VectorAngles(rayDirection,up,pickupAngles);
+        const auto relative=PortalPose::RelativeHand(rayStart-PortalPose::Position(head),
+            pickupAngles,PortalPose::Angles(head));
+        for(const auto& crossing:{PortalPose::Frame({0,0,0},{0,0,0}),
+            PortalPose::Frame({300,-100,20},{0,180,0}),PortalPose::Frame({0,80,400},{90,0,0})}) {
+            const auto serverHead=HandPose::Concat(crossing,head);
+            const auto selection=PortalPose::WorldHand(relative,PortalPose::Position(serverHead),PortalPose::Angles(serverHead));
+            const auto expectedSelection=HandPose::Concat(crossing,PortalPose::Frame(rayStart,pickupAngles));
+            Vector selectionDirection;QAngle::AngleVectors(PortalPose::Angles(selection),&selectionDirection,nullptr,nullptr);
+            const Vector expectedDirection(expectedSelection[0][0],expectedSelection[1][0],expectedSelection[2][0]);
+            const auto originError=PortalPose::Position(selection)-PortalPose::Position(expectedSelection);
+            assert(originError.LengthSqr()<.00001f);
+            assert((selectionDirection-expectedDirection).LengthSqr()<.000001f);
+            const auto distanceError=originError+(selectionDirection-expectedDirection)*1024;
+            maxPickupError=std::fmax(maxPickupError,sqrtf(distanceError.LengthSqr()));
+            ++pickupCases;
+        }
         // Recoil slides the front cover down the same barrel line. Check near
         // walls and distant targets without converging at an arbitrary range.
         for(float recoil:{0.f,-3.f,1.f})
@@ -73,5 +105,8 @@ int main(int argc,char **argv) {
     }
     assert(maxError<.001f);
     assert(maxRayError<.002f);
-    printf("{\"attachments\":%d,\"angle_poses\":60,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"range_checks\":%d,\"maximum_barrel_ray_error\":%.9f,\"passed\":true}\n",model.count,cases,maxError,rangeCases,maxRayError);
+    // Float matrix/Euler round trips stay below 0.25 mm even at 24 m,
+    // far beyond native pickup reach, including exactly vertical poses.
+    assert(maxPickupError<.01f);
+    printf("{\"attachments\":%d,\"angle_poses\":%d,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"range_checks\":%d,\"maximum_barrel_ray_error\":%.9f,\"pickup_barrel_checks\":%d,\"maximum_pickup_error_at_1024\":%.9f,\"blast_pose_checks\":%d,\"passed\":true}\n",model.count,cases/model.count,cases,maxError,rangeCases,maxRayError,pickupCases,maxPickupError,cases/model.count);
 }

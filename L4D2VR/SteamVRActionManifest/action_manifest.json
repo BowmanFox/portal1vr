@@ -143,6 +143,100 @@
 			"name": "/actions/base/in/support_righthand",
 			"type": "boolean",
 			"requirement": "optional"
+		},
+		{
+			"name": "/actions/left_handed/in/PrimaryAttack",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/SecondaryAttack",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Jump",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Walk",
+			"type": "vector2"
+		},
+		{
+			"name": "/actions/left_handed/in/Turn",
+			"type": "vector2"
+		},
+		{
+			"name": "/actions/left_handed/in/Reload",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Use",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/NextItem",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/PrevItem",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/ResetPosition",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Crouch",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Flashlight",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/ActivateVR",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuSelect",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuBack",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuUp",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuDown",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuLeft",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/MenuRight",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/Spray",
+			"type": "boolean",
+			"requirement": "optional"
+		},
+		{
+			"name": "/actions/left_handed/in/Scoreboard",
+			"type": "boolean"
+		},
+		{
+			"name": "/actions/left_handed/in/ShowHUD",
+			"type": "boolean",
+			"requirement": "optional"
+		},
+		{
+			"name": "/actions/left_handed/in/Pause",
+			"type": "boolean"
 		}
 	],
 	"action_sets": [
@@ -153,6 +247,10 @@
 		{
 			"name": "/actions/base",
 			"usage": "hidden"
+		},
+		{
+			"name": "/actions/left_handed",
+			"usage": "leftright"
 		}
 	],
 	"localization": [
@@ -183,7 +281,31 @@
 			"/actions/main/in/ShowHUD": "Show HUD",
 			"/actions/main/in/Pause": "Pause",
 			"/actions/base/in/support_lefthand": "Optional gun support (left grip)",
-			"/actions/base/in/support_righthand": "Optional gun support (right grip)"
+			"/actions/base/in/support_righthand": "Optional gun support (right grip)",
+			"/actions/left_handed/in/PrimaryAttack": "Primary Attack",
+			"/actions/left_handed/in/SecondaryAttack": "Secondary Attack",
+			"/actions/left_handed/in/Jump": "Jump",
+			"/actions/left_handed/in/Walk": "Walk",
+			"/actions/left_handed/in/Turn": "Turn",
+			"/actions/left_handed/in/Reload": "Reload",
+			"/actions/left_handed/in/Use": "Use",
+			"/actions/left_handed/in/NextItem": "Next Item",
+			"/actions/left_handed/in/PrevItem": "Previous Item",
+			"/actions/left_handed/in/ResetPosition": "Reset Position",
+			"/actions/left_handed/in/Crouch": "Crouch",
+			"/actions/left_handed/in/Flashlight": "Flashlight",
+			"/actions/left_handed/in/ActivateVR": "Activate VR",
+			"/actions/left_handed/in/MenuSelect": "Menu Select",
+			"/actions/left_handed/in/MenuBack": "Menu Back",
+			"/actions/left_handed/in/MenuUp": "Menu Up",
+			"/actions/left_handed/in/MenuDown": "Menu Down",
+			"/actions/left_handed/in/MenuLeft": "Menu Left",
+			"/actions/left_handed/in/MenuRight": "Menu Right",
+			"/actions/left_handed/in/Spray": "Spray",
+			"/actions/left_handed/in/Scoreboard": "Show Scoreboard",
+			"/actions/left_handed/in/ShowHUD": "Show HUD",
+			"/actions/left_handed/in/Pause": "Pause",
+			"/actions/left_handed": "Left-handed controls"
 		}
 	]
 }

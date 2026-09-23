@@ -173,6 +173,13 @@ else {
 }
 
 $materialSource = Join-Path $PSScriptRoot "materials"
+$resourceSource = Join-Path $PSScriptRoot 'resource'
+if (Test-Path -LiteralPath $resourceSource) {
+    $resourceDestination = Join-Path $portalDir 'portal\custom\portal1vr\resource'
+    New-Item -ItemType Directory -Force -Path $resourceDestination | Out-Null
+    Get-ChildItem -LiteralPath $resourceSource -File | Copy-Item -Destination $resourceDestination -Force
+    Write-Host 'Installed VR handedness and recenter menu options'
+}
 $materialDestination = Join-Path $portalDir "portal\custom\portal1vr\materials"
 if (Test-Path -LiteralPath $materialSource) {
     New-Item -ItemType Directory -Force -Path $materialDestination | Out-Null

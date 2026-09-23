@@ -252,6 +252,194 @@
                "path" : "/user/hand/right/input/grip"
             }
          ]
+      },
+      "/actions/left_handed" : {
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/ResetPosition"
+                  },
+                  "position" : {
+                     "output" : "/actions/left_handed/in/Walk"
+                  }
+               },
+               "mode" : "joystick",
+               "parameters" : {
+                  "deadzone_pct" : "10"
+               },
+               "path" : "/user/hand/right/input/thumbstick"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Flashlight"
+                  },
+                  "position" : {
+                     "output" : "/actions/left_handed/in/Turn"
+                  }
+               },
+               "mode" : "joystick",
+               "parameters" : {
+                  "deadzone_pct" : "10"
+               },
+               "path" : "/user/hand/left/input/thumbstick"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Reload"
+                  }
+               },
+               "mode" : "button",
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
+               "path" : "/user/hand/right/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/PrimaryAttack"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "north" : {
+                     "output" : "/actions/left_handed/in/PrevItem"
+                  },
+                  "south" : {
+                     "output" : "/actions/left_handed/in/NextItem"
+                  }
+               },
+               "mode" : "dpad",
+               "parameters" : {
+                  "deadzone_pct" : "70",
+                  "overlap_pct" : "0",
+                  "sub_mode" : "touch"
+               },
+               "path" : "/user/hand/left/input/thumbstick"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Use"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/b"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/ActivateVR"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Jump"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/MenuSelect"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/MenuBack"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/b"
+            },
+            {
+               "inputs" : {
+                  "east" : {
+                     "output" : "/actions/left_handed/in/MenuRight"
+                  },
+                  "north" : {
+                     "output" : "/actions/left_handed/in/MenuUp"
+                  },
+                  "south" : {
+                     "output" : "/actions/left_handed/in/MenuDown"
+                  },
+                  "west" : {
+                     "output" : "/actions/left_handed/in/MenuLeft"
+                  }
+               },
+               "mode" : "dpad",
+               "parameters" : {
+                  "deadzone_pct" : "70",
+                  "overlap_pct" : "0",
+                  "sub_mode" : "touch"
+               },
+               "path" : "/user/hand/right/input/thumbstick"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Scoreboard"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Pause"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/b"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/Crouch"
+                  }
+               },
+               "mode" : "button",
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
+               "path" : "/user/hand/right/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/left_handed/in/SecondaryAttack"
+                  }
+               },
+               "mode" : "button",
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
+               "path" : "/user/hand/left/input/grip"
+            }
+         ]
       }
    },
    "category" : "steamvr_input",

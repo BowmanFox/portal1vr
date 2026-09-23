@@ -5,6 +5,7 @@ LeftHanded=false
 VRScale=43.2 # Real word units to source units scale
 IPDScale=1.0 # Scale of interpupillary distance 
 6DOF=true
+AutoCalibration=true # Preserve tracking-origin position/height/heading changes; ease horizontal alignment only with stable tracking and body/head route mismatch
 AimMode=2 # 0 = None, 1 = Crosshair (does not work properly), 2 = Laser sight/beam
 FirstPersonBody=true # Draw the local player body in the VR eye and desktop mirror views
 FirstPersonBodyBackOffset=8 # Move the first-person torso backward in Source units (0-24); restart Portal after changing

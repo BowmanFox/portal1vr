@@ -3,7 +3,9 @@
 #include "vector.h"
 #include <chrono>
 #include <cstdint>
+#include <unordered_map>
 #include "optionalgungrip.h"
+#include "autocalibration.h"
 
 #define MAX_STR_LEN 256
 
@@ -95,6 +97,14 @@ public:
 
 	Vector m_Center = { 0,0,0 };
 	bool m_CenterPending = true;
+	bool m_AutoCalibration = true;
+	AutoCalibration::Origin m_CalibrationOrigin;
+	AutoCalibration::Drift m_CalibrationDrift;
+	AutoCalibration::Stability m_CalibrationStability;
+	bool m_CalibrationTracked = false;
+	std::uint64_t m_CalibrationTime = 0, m_CalibrationSuppressUntil = 0, m_LastCarryUpdate = 0;
+	Vector m_CalibrationPlayerPosition = {0,0,0};
+	void UpdateAutoCalibration();
 	Vector m_SetupOrigin = { 0,0,0 };
 	Vector m_CameraCollisionOffset = { 0,0,0 };
 	bool m_CameraBlocked = false;
@@ -218,6 +228,8 @@ public:
 	QAngle m_GrabControllerAng = { 0, 0, 0 };
 	matrix3x4_t m_GrabHandRelative;
 	bool m_GrabPoseValid = false;
+	matrix3x4_t m_PickupAimRelative{};
+	bool m_PickupAimValid = false;
 	matrix3x4_t m_PortalAimFromController{};
 	std::uint64_t m_PortalAimLastSeen = 0;
 	bool GetPortalAimRay(Vector& origin, Vector& direction);
@@ -230,6 +242,11 @@ public:
 	bool m_SnapTurning = false;
 	float m_SnapTurnAngle = 45.0f;
 	bool m_LeftHanded = false;
+	vr::VRActionSetHandle_t m_LeftActionSet = 0;
+	std::unordered_map<vr::VRActionHandle_t,vr::VRActionHandle_t> m_LeftActions;
+	std::uint64_t m_HandSwitchSuppressUntil = 0;
+	vr::VRActionHandle_t ResolveAction(vr::VRActionHandle_t action) const;
+	bool HandleSettingsCommand(const char* command);
 	float m_VRScale = 43.2f;
 	float m_IpdScale = 1.0f;
 	bool m_6DOF = true;

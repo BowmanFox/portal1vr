@@ -24,7 +24,7 @@ Run `Launch Portal VR.cmd` for fullscreen using Portal's configured resolution, 
 -insecure -fullscreen -novid +mat_queue_mode 0 +mat_vsync 0 +mat_antialias 0
 ```
 
-Choose your preferred display resolution in Portal's video options, then load a chapter. The left stick moves, the right stick turns, and clicking the left stick recenters the headset. Controller bindings are in `bin/VR/SteamVRActionManifest`; SteamVR's Pico-to-Oculus compatibility mapping was used during testing. Configuration is loaded from `bin/VR/config.txt` at startup.
+Choose your preferred display resolution in Portal's video options, then load a chapter. The left stick moves, the right stick turns, and clicking the left stick recenters the headset. Controller bindings are in `bin/VR/SteamVRActionManifest`; SteamVR's Pico-to-Oculus compatibility mapping was used during testing. Use **VR: use left-handed controls** or **VR: use right-handed controls** in the main/pause menu to switch and save the gun hand. Left-handed mode mirrors the gameplay buttons and sticks; click the movement stick (right stick in left-handed mode) to recenter, or choose **VR: recenter headset**. Configuration is loaded from `bin/VR/config.txt` at startup.
 
 `RenderWindow=1` provides a separate desktop view and the pause-menu texture. It adds a third scene render. Leave it enabled for the tested configuration.
 
@@ -98,7 +98,15 @@ The rear shell opening now clears the wrist without shifting the gun away from t
 
 After building Release x86, run `python package-release.py --output Portal1VR-Windows-x86.zip` to package the compiled runtime, avatar, OpenVR dependency, config-preserving installer and controller bindings. End users do not need Python, Visual Studio or Blender.
 
-Held objects now use the corrected aim orientation from the visible wrist instead of the raw grip direction, which was 30 degrees higher. The left-hand support socket and compiled models retain their existing transforms. Automated checks cover carry height and 900 barrel-ray cases across angles, ranges and axial recoil, with maximum line error below 0.002 Source units. See `docs/avatar-verification/Range_Carry_Verification.json`; final carry height and aim in the headset remain unverified.
+Held objects now use the corrected aim orientation from the visible wrist instead of the raw grip direction, which was 30 degrees higher. The left-hand support socket and compiled models retain their existing transforms. Automated checks cover carry height and 900 barrel-ray cases across angles, ranges and axial recoil, with maximum line error below 0.002 Source units. See `docs/avatar-verification/Range_Carry_Verification.json`; that report predates the latest headset confirmation of angled aiming and wrist-roll carry stability.
+
+The viewmodel render pass now uses the active eye camera at Portal's verified gun-render call site. The earlier aspect-only guard did not explain the reported miss: live headset and queried aspect ratios already matched. Shot logs also show the rendered muzzle and placement trace agreeing, while the native `PortalBlast` travelling effect still used head-derived launch position and angles. This update aligns that effect to the captured muzzle without changing its native destination, timing or portal color. Native portal-placement adjustments remain enabled. The user confirmed that angled wall and ceiling aiming now lines up inside the headset on this build.
+
+The carry solver receives zero roll only for its position calculation, preventing wrist twists from triggering Portal's downward view-offset correction; prop orientation still receives the full wrist pose. The user confirmed stable cube holding during wrist twists. See `docs/avatar-verification/Overhead_Calibration_Verification.json` for build and test status.
+
+`AutoCalibration=true` preserves calibration after explicit SteamVR origin/floor/heading changes, including small changes that accumulate slowly. Horizontal recovery requires a still, upright headset, a stationary player, sustained stick input, a blocked route at the player body, and a clear route at the visible head. It eases toward alignment at up to 12 cm/s. Ordinary walls, crouches, head turns, aiming, carrying, portal transitions and unreliable tracking inhibit recovery. Tracking loss or frame gaps reset the movement baseline and require stable tracking before recovery resumes. It does not guess an arbitrary incorrect starting floor or heading. Manual recentering remains available from the menu or movement-stick click; `AutoCalibration=false` disables automatic recovery.
+
+Prop selection uses the barrel centerline separately from the wrist carry pose. Native reach, visibility, usability and contact-pickup checks remain enabled. Pickup accuracy, the new left-handed controls and calibration comfort require headset confirmation.
 
 ## Build
 

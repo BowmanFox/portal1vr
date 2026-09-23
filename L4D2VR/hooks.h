@@ -111,6 +111,8 @@ typedef ITexture* (__thiscall* tGetFullScreenTexture)();
 
 // Portal 1 returns a placement score in ST(0) and pops eight arguments.
 typedef float(__thiscall* tTraceFirePortal)(void* thisptr, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
+typedef void(__cdecl* tDispatchEffect)(const char* name,const void* data);
+typedef void(__thiscall* tSettingsClientCmd)(void*,const char*);
 
 // Portal 1 takes one portal pointer and pops four bytes (Portal 2 differs).
 typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* portal);
@@ -203,6 +205,8 @@ public:
 	static Hook<tEyePosition> hkEyePosition;
 	static Hook<tWeapon_ShootPosition> hkWeapon_ShootPosition;
 	static Hook<tTraceFirePortal> hkTraceFirePortal;
+	static Hook<tDispatchEffect> hkDispatchEffect;
+	static Hook<tSettingsClientCmd> hkSettingsClientCmd,hkSettingsClientCmdUnrestricted;
 
 	static Hook<tGetModeHeight> hkGetModeHeight;
 	static Hook<tDrawSelf> hkDrawSelf;
@@ -288,6 +292,9 @@ public:
 
 	// Fire portals from right controller
 	static float __fastcall dTraceFirePortal(void* ecx, void* edx, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
+	static void __cdecl dDispatchEffect(const char* name,const void* data);
+	static void __fastcall dSettingsClientCmd(void*,void*,const char*);
+	static void __fastcall dSettingsClientCmdUnrestricted(void*,void*,const char*);
 
 	// Portalling angle fix
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* portal);

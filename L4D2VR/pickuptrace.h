@@ -3,6 +3,12 @@
 #include <cmath>
 
 namespace PickupTrace {
+inline QAngle CarryDirectionAngles(QAngle angles) {
+    // Portal applies negative up.z/right.z * player view offset to the carry
+    // origin. Wrist roll must rotate the object, not lower that origin.
+    angles.z=0;
+    return angles;
+}
 inline QAngle CarryAngles(const Vector& aimForward, const Vector& aimUp) {
     QAngle result;
     QAngle::VectorAngles(aimForward,aimUp,result);

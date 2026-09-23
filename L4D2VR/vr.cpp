@@ -23,6 +23,7 @@
 #include "portaltrace.h"
 #include "gunray.h"
 #include "pickuptrace.h"
+#include "vrsettings.h"
 
 namespace
 {
@@ -242,6 +243,18 @@ int VR::SetActionManifest(const char *fileName)
 
     m_Input->GetActionSetHandle("/actions/main", &m_ActionSet);
     m_Input->GetActionSetHandle("/actions/base", &m_BaseActionSet);
+    m_Input->GetActionSetHandle("/actions/left_handed", &m_LeftActionSet);
+    m_LeftActions.clear();
+    for(const char* name : {"ActivateVR","Jump","PrimaryAttack","Reload","Use","Walk","Turn",
+        "SecondaryAttack","NextItem","PrevItem","ResetPosition","Crouch","Flashlight",
+        "MenuSelect","MenuBack","MenuUp","MenuDown","MenuLeft","MenuRight","Spray",
+        "Scoreboard","ShowHUD","Pause"}) {
+        vr::VRActionHandle_t normal=0,left=0;
+        const std::string suffix=std::string("/in/")+name;
+        if(m_Input->GetActionHandle(("/actions/main"+suffix).c_str(),&normal)==vr::VRInputError_None
+            && m_Input->GetActionHandle(("/actions/left_handed"+suffix).c_str(),&left)==vr::VRInputError_None)
+            m_LeftActions[normal]=left;
+    }
     m_ActiveActionSet = {};
     m_ActiveActionSet.ulActionSet = m_ActionSet;
 
@@ -481,6 +494,12 @@ void VR::SubmitVRTextures()
 void VR::GetPoseData(vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut)
 {
     poseOut.isValid = poseRaw.bPoseIsValid && poseRaw.bDeviceIsConnected;
+    for(int row=0;row<3 && poseOut.isValid;++row) {
+        for(int col=0;col<4;++col)
+            poseOut.isValid=poseOut.isValid && std::isfinite(poseRaw.mDeviceToAbsoluteTracking.m[row][col]);
+        poseOut.isValid=poseOut.isValid && std::isfinite(poseRaw.vVelocity.v[row])
+            && std::isfinite(poseRaw.vAngularVelocity.v[row]);
+    }
     if (poseOut.isValid)
     {
         vr::HmdMatrix34_t mat = poseRaw.mDeviceToAbsoluteTracking;
@@ -491,7 +510,7 @@ void VR::GetPoseData(vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &po
         pos.x = -mat.m[2][3];
         pos.y = -mat.m[0][3];
         pos.z = mat.m[1][3];
-        ang.x = asin(mat.m[1][2]) * (180.0 / 3.141592654);
+        ang.x = asinf(std::clamp(mat.m[1][2],-1.f,1.f)) * (180.0 / 3.141592654);
         ang.y = atan2f(mat.m[0][2], mat.m[2][2]) * (180.0 / 3.141592654);
         ang.z = atan2f(-mat.m[1][0], mat.m[1][1]) * (180.0 / 3.141592654);
         vel.x = -poseRaw.vVelocity.v[2];
@@ -609,6 +628,7 @@ void VR::UpdatePosesAndActions()
     if (loggedPoses++ < 3)
         PortalVrLog("Pose update this=%p poses=%p compositor=%p input=%p", this, m_Poses, vr::VRCompositor(), m_Input);
     vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    m_ActiveActionSet.ulActionSet=m_LeftHanded && m_LeftActionSet ? m_LeftActionSet : m_ActionSet;
     vr::VRActiveActionSet_t actionSets[2] = { m_ActiveActionSet, {} };
     actionSets[1].ulActionSet = m_BaseActionSet;
     m_Input->UpdateActionState(actionSets, sizeof(vr::VRActiveActionSet_t), m_BaseActionSet ? 2 : 1);
@@ -659,10 +679,11 @@ void VR::GetViewParameters()
 
 bool VR::PressedDigitalAction(vr::VRActionHandle_t &actionHandle, bool checkIfActionChanged)
 {
-    vr::InputDigitalActionData_t digitalActionData;
-    vr::EVRInputError result = m_Input->GetDigitalActionData(actionHandle, &digitalActionData, sizeof(digitalActionData), vr::k_ulInvalidInputValueHandle);
+    if(GetTickCount64()<m_HandSwitchSuppressUntil) return false;
+    vr::InputDigitalActionData_t digitalActionData{};
+    vr::EVRInputError result = m_Input->GetDigitalActionData(ResolveAction(actionHandle), &digitalActionData, sizeof(digitalActionData), vr::k_ulInvalidInputValueHandle);
     
-    if (result == vr::VRInputError_None)
+    if (result == vr::VRInputError_None && digitalActionData.bActive)
     {
         if (checkIfActionChanged)
             return digitalActionData.bState && digitalActionData.bChanged;
@@ -675,12 +696,70 @@ bool VR::PressedDigitalAction(vr::VRActionHandle_t &actionHandle, bool checkIfAc
 
 bool VR::GetAnalogActionData(vr::VRActionHandle_t &actionHandle, vr::InputAnalogActionData_t &analogDataOut)
 {
-    vr::EVRInputError result = m_Input->GetAnalogActionData(actionHandle, &analogDataOut, sizeof(analogDataOut), vr::k_ulInvalidInputValueHandle);
+    analogDataOut={};
+    if(GetTickCount64()<m_HandSwitchSuppressUntil) return false;
+    vr::EVRInputError result = m_Input->GetAnalogActionData(ResolveAction(actionHandle), &analogDataOut, sizeof(analogDataOut), vr::k_ulInvalidInputValueHandle);
 
-    if (result == vr::VRInputError_None)
+    if (result == vr::VRInputError_None && analogDataOut.bActive)
         return true;
 
     return false;
+}
+
+vr::VRActionHandle_t VR::ResolveAction(vr::VRActionHandle_t action) const {
+    const auto found=m_LeftActions.find(action);
+    return m_LeftHanded && m_LeftActionSet && found!=m_LeftActions.end() ? found->second : action;
+}
+
+bool VR::HandleSettingsCommand(const char* command) {
+    const auto selection=VrSettings::Parse(command ? command : "");
+    if(selection==VrSettings::Command::None) return false;
+    if(!m_IsInitialized) return true;
+    if(selection==VrSettings::Command::Recenter) {
+        ResetPosition();
+        PortalVrLog("VR menu: manual recenter requested");
+        return true;
+    }
+    const bool left=selection==VrSettings::Command::Left;
+    if(left && (!m_LeftActionSet || m_LeftActions.size()!=23)) {
+        Game::errorMsg("Left-handed bindings are unavailable. Reinstall the complete Portal1VR update.");
+        return true;
+    }
+    char directory[MAX_PATH]{};
+    if(!GetRuntimeBaseDirectory(directory,sizeof(directory))) return true;
+    const auto config=std::filesystem::path(directory)/"VR"/"config.txt";
+    const auto temporary=std::filesystem::path(directory)/"VR"/"config.txt.tmp";
+    try {
+        std::ifstream input(config,std::ios::binary);
+        if(!input) throw std::runtime_error("cannot read config.txt");
+        const std::string original((std::istreambuf_iterator<char>(input)),{});
+        input.close();
+        std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
+        output<<VrSettings::SetBool(original,"LeftHanded",left);
+        output.close();
+        if(!output || !MoveFileExW(temporary.c_str(),config.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+            throw std::runtime_error("cannot save config.txt");
+    } catch(const std::exception& error) {
+        PortalVrLog("VR menu: hand preference save failed: %s",error.what());
+        Game::errorMsg("Could not save the VR hand preference. Check that bin/VR/config.txt is writable.");
+        return true;
+    }
+    if(left!=m_LeftHanded) {
+        // Release old action state before changing pose roles. A menu click must
+        // not become a shot or pickup when the new action set becomes active.
+        m_Game->ClientCmd_Unrestricted("-attack;-attack2;-use;-jump;-duck;-reload");
+        m_UseCommandHeld=false;
+        m_LeftHanded=left;
+        m_HandSwitchSuppressUntil=GetTickCount64()+500;
+        m_GrabPoseValid=m_PickupAimValid=false;
+        m_PortalAimLastSeen=m_SupportLastSeen=0;
+        m_OptionalGripState={};m_OptionalSupportActive=m_LeftGripPressed=false;
+        m_PressedTurn=false;
+        m_CalibrationDrift.Reset();m_CalibrationStability.Reset();
+        m_CalibrationSuppressUntil=GetTickCount64()+2000;
+    }
+    PortalVrLog("VR menu: %s-handed controls selected and saved",left ? "left" : "right");
+    return true;
 }
 
 void VR::ProcessMenuInput()
@@ -1191,8 +1270,97 @@ void VR::ResetPosition()
     if (m_CenterPending) return;
     m_Center = m_HmdPose.TrackedDevicePos;
     m_HmdPosRelativeRaw = m_HmdPosRelative = {0,0,0};
+    m_HmdPosRelativeRawPrev = {0,0,0};
     m_CameraCollisionOffset = {0,0,0};
     m_CameraBlocked = false;
+    m_CalibrationDrift.Reset();
+    m_CalibrationStability.Reset();
+    m_CalibrationSuppressUntil = GetTickCount64()+10000;
+}
+
+void VR::UpdateAutoCalibration()
+{
+    const auto now=GetTickCount64();
+    const float dt=m_CalibrationTime ? (now-m_CalibrationTime)*.001f : 0;
+    m_CalibrationTime=now;
+    const Vector playerDelta=m_SetupOrigin-m_CalibrationPlayerPosition;
+    m_CalibrationPlayerPosition=m_SetupOrigin;
+    const bool tracked=m_HmdPose.isValid
+        && m_Poses[vr::k_unTrackedDeviceIndex_Hmd].eTrackingResult==vr::TrackingResult_Running_OK;
+    if(!tracked || !m_CalibrationTracked || dt>.1f || playerDelta.LengthSqr()>64.f*64.f) {
+        m_CalibrationDrift.Reset();
+        m_CalibrationStability.Reset();
+        m_CalibrationSuppressUntil=std::max(m_CalibrationSuppressUntil,now+2000);
+        // Never turn movement during lost tracking/a paused frame into a large
+        // roomscale locomotion impulse on the first recovered frame.
+        m_HmdPosRelativeRawPrev=m_HmdPose.TrackedDevicePos-m_Center;
+    }
+    m_CalibrationTracked=tracked;
+    if(!tracked) return;
+    // SteamVR supplies an explicit transform for origin/floor/heading changes.
+    // Compensate that transform exactly rather than treating head turns or
+    // crouches as calibration errors.
+    const auto rawStanding=m_System->GetRawZeroPoseToStandingAbsoluteTrackingPose();
+    auto frame=AutoCalibration::SourceSpace(rawStanding.m);
+    const auto space=vr::VRCompositor()->GetTrackingSpace();
+    if(space==vr::TrackingUniverseSeated) {
+        const auto seated=m_System->GetSeatedZeroPoseToStandingAbsoluteTrackingPose();
+        frame=HandPose::Concat(HandPose::InverseRigid(AutoCalibration::SourceSpace(seated.m)),frame);
+    } else if(space==vr::TrackingUniverseRawAndUncalibrated) frame=PortalPose::Frame({0,0,0},{0,0,0});
+    if(m_CalibrationOrigin.Update(frame,m_AutoCalibration && !m_CenterPending,m_Center,m_RotationOffset.y)) {
+        m_HmdPosRelativeRawPrev=m_HmdPose.TrackedDevicePos-m_Center;
+        m_CameraCollisionOffset={0,0,0};
+        m_CalibrationDrift.Reset();
+        m_CalibrationStability.Reset();
+        m_CalibrationSuppressUntil=now+2000;
+        PortalVrLog("Auto calibration: preserved position, floor height and heading after tracking-origin change");
+    }
+    vr::InputAnalogActionData_t walk{};
+    const bool moving=GetAnalogActionData(m_ActionWalk,walk) && walk.bActive && walk.x*walk.x+walk.y*walk.y>.36f;
+    const bool stable=m_CalibrationStability.Step(dt,m_HmdPose.TrackedDevicePos,m_HmdPose.TrackedDeviceAng,tracked);
+    vr::InputAnalogActionData_t turn{};
+    const bool turning=GetAnalogActionData(m_ActionTurn,turn) && turn.bActive && fabsf(turn.x)>.2f;
+    auto* player=reinterpret_cast<C_BasePlayer*>(m_Game->GetLocalPortalPlayer());
+    bool eligible=m_AutoCalibration && m_6DOF && stable && !turning
+        && m_Game->IsInGame() && !m_Game->IsCursorVisible() && now>=m_CalibrationSuppressUntil
+        && player
+        && now-m_LastCarryUpdate>500 && moving && dt>0 && playerDelta.LengthSqr()<dt*dt
+        && m_HmdPose.TrackedDeviceVel.LengthSqr()<.04f*.04f
+        && Vector(m_HmdPose.TrackedDeviceAngVel.x,m_HmdPose.TrackedDeviceAngVel.y,m_HmdPose.TrackedDeviceAngVel.z).LengthSqr()<15.f*15.f
+        && fabsf(m_HmdPose.TrackedDeviceAng.x)<25 && fabsf(m_HmdPose.TrackedDeviceAng.z)<25
+        && !PressedDigitalAction(m_ActionPrimaryAttack) && !PressedDigitalAction(m_ActionSecondaryAttack)
+        && !PressedDigitalAction(m_ActionUse) && !PressedDigitalAction(m_ActionCrouch);
+    if(eligible) {
+        Vector forward,right;
+        QAngle::AngleVectors({0,m_HmdAngAbs.y,0},&forward,&right,nullptr);
+        Vector movement=forward*walk.y+right*walk.x;
+        VectorNormalize(movement);movement*=24.f;
+        const Vector mins(-16,-16,-1),maxs(16,16,1);
+        Ray_t bodyRay{},headRay{};
+        Vector headOffset=m_CalibrationStability.mean-m_Center;
+        headOffset.z=0;
+        VectorPivotXY(headOffset,{0,0,0},m_RotationOffset.y);
+        headOffset*=m_VRScale;
+        bodyRay.Init(m_SetupOrigin,m_SetupOrigin+movement,mins,maxs);
+        headRay.Init(m_SetupOrigin+headOffset,m_SetupOrigin+headOffset+movement,mins,maxs);
+        CGameTrace bodyTrace{},headTrace{};
+        CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity*>(player),0);
+        static const auto binding=PortalTrace::Binding::Resolve(m_Game->m_BaseClient);
+        constexpr unsigned mask=CONTENTS_SOLID|CONTENTS_WINDOW|CONTENTS_GRATE|CONTENTS_MOVEABLE;
+        auto trace=[&](Ray_t& ray,CGameTrace& hit) {
+            return binding.Trace(player,ray,mask,&filter,&hit) || m_Game->TraceRay(ray,mask,&filter,&hit);
+        };
+        eligible=trace(bodyRay,bodyTrace) && trace(headRay,headTrace)
+            && AutoCalibration::NeedsBodyAlignment(bodyTrace.fraction,bodyTrace.startsolid||bodyTrace.allsolid,
+                headTrace.fraction,headTrace.startsolid||headTrace.allsolid);
+    }
+    const bool wasActive=m_CalibrationDrift.active;
+    const Vector adjustment=m_CalibrationDrift.Step(dt,m_CalibrationStability.mean-m_Center,eligible);
+    if(adjustment.LengthSqr()>0) {
+        m_Center+=adjustment;
+        m_HmdPosRelativeRawPrev=m_HmdPose.TrackedDevicePos-m_Center;
+        if(!wasActive) PortalVrLog("Auto calibration: stable headset/player, blocked body and clear head route; easing horizontal alignment");
+    } else if(wasActive) m_CalibrationSuppressUntil=now+10000;
 }
 
 void VR::SnapshotGrabPose()
@@ -1204,11 +1372,22 @@ void VR::SnapshotGrabPose()
     m_GrabControllerAng = PickupTrace::CarryAngles(m_RightControllerForward,m_RightControllerUp);
     m_GrabHandRelative = PortalPose::RelativeHand(
         m_GrabControllerPos - m_SetupOrigin, m_GrabControllerAng, m_HmdAngAbs);
+    // Selection follows the visible gun's centerline. Carry physics continues
+    // to use the wrist snapshot above, so acquiring a prop does not move it.
+    Vector aimOrigin,aimDirection;
+    m_PickupAimValid = GetPortalAimRay(aimOrigin,aimDirection);
+    if (m_PickupAimValid) {
+        QAngle aimAngles;
+        QAngle::VectorAngles(aimDirection,m_RightControllerUp,aimAngles);
+        m_PickupAimRelative = PortalPose::RelativeHand(
+            aimOrigin-m_SetupOrigin,aimAngles,m_HmdAngAbs);
+    }
 }
 
 void VR::UpdateTracking()
 {
     GetPoses();
+    UpdateAutoCalibration();
     if (m_CenterPending && m_HmdPose.isValid) ResetPosition();
 
     // HMD tracking
@@ -1486,7 +1665,9 @@ bool VR::GetPortalAimRay(Vector& origin, Vector& direction) {
     if (!m_IsVREnabled || !m_RightControllerPose.isValid) return false;
     origin = GetRightHandAbsPos();
     direction = m_RightControllerForward;
-    if (m_PortalAimLastSeen && GetTickCount64()-m_PortalAimLastSeen < 250) {
+    // This is model-local metadata, not a cached world pose. Keep it while the
+    // same weapon is equipped, including when an overhead gun is culled.
+    if (m_PortalAimLastSeen) {
         const auto controller = HandPose::Frame(-m_RightControllerRight,
             m_RightControllerUp,m_RightControllerForward,origin);
         return GunRay::FromBarrel(HandPose::Concat(controller,m_PortalAimFromController),
@@ -1810,6 +1991,8 @@ void VR::ParseConfigFile()
     parseOrDefault("VRScale", m_VRScale, 43.2f);
     parseOrDefault("IPDScale", m_IpdScale, 1.0f);
     parseOrDefault("6DOF", m_6DOF, true);
+    // Optional in older configs: upgrading must not introduce a modal warning.
+    if (userConfig.count("AutoCalibration")) parseOrDefault("AutoCalibration", m_AutoCalibration, true);
     /*parseOrDefault("HudDistance", m_HudDistance, 1.3f);
     parseOrDefault("HudSize", m_HudSize, 4.0f);
     parseOrDefault("HudAlwaysVisible", m_HudAlwaysVisible, false);*/

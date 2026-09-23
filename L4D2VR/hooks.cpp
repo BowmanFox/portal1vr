@@ -11,10 +11,14 @@
 #include "handpose.h"
 #include "optionalgungrip.h"
 #include "gunattachments.h"
+#include "gunray.h"
+#include "portalshotfx.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
 #include "pickuptrace.h"
+#include "nativepose.h"
+#include <intrin.h>
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -35,6 +39,11 @@ static void *s_RightViewmodelRenderable = nullptr;
 static void *s_GunAttachmentRenderable = nullptr;
 static const void *s_GunAttachmentModel = nullptr;
 static GunAttachments::Model s_GunAttachments;
+static float s_DrawnBarrelDirectionError = 0;
+static float s_DrawnBarrelLineError = 0;
+static float s_NativeGunBasisError = 0;
+static CViewSetup s_EyeWorldView;
+static thread_local struct { bool pending=false; matrix3x4_t muzzle; } s_PortalBlast;
 static void *s_LeftArmRenderable = nullptr;
 static void *s_LocalPlayerEntity = nullptr;
 static void *s_LocalPlayerRenderable = nullptr;
@@ -86,6 +95,8 @@ Hook<tGetFullScreenTexture> Hooks::hkGetFullScreenTexture = {};
 Hook<tEyePosition> Hooks::hkEyePosition = {};
 Hook<tWeapon_ShootPosition> Hooks::hkWeapon_ShootPosition = {};
 Hook<tTraceFirePortal> Hooks::hkTraceFirePortal = {};
+Hook<tDispatchEffect> Hooks::hkDispatchEffect = {};
+Hook<tSettingsClientCmd> Hooks::hkSettingsClientCmd = {},Hooks::hkSettingsClientCmdUnrestricted = {};
 
 Hook<tGetModeHeight> Hooks::hkGetModeHeight = {};
 Hook<tDrawSelf> Hooks::hkDrawSelf = {};
@@ -137,6 +148,12 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	thread_local void* s_CarryPlayer = nullptr;
+	struct ScopedCarryPlayer {
+		void* previous = s_CarryPlayer;
+		explicit ScopedCarryPlayer(void* player) { s_CarryPlayer=player; }
+		~ScopedCarryPlayer() { s_CarryPlayer=previous; }
+	};
 	struct PickupQueryPose { void* player; Vector origin; QAngle angles; };
 	thread_local PickupQueryPose* s_PickupQuery = nullptr;
 	struct ScopedPickupQuery {
@@ -157,6 +174,21 @@ namespace
 			*actualEye, Hooks::hkEyeAngles.fOriginal(player));
 		position = PortalPose::Position(hand);
 		angles = PortalPose::Angles(hand);
+		return true;
+	}
+
+	bool ServerPickupAim(void *player, Vector &position, QAngle &angles)
+	{
+		auto *vr = Hooks::m_VR;
+		if (!vr || !vr->m_PickupAimValid || !Hooks::hkEyePosition.isCreated()
+			|| !Hooks::hkEyeAngles.isCreated()) return false;
+		Vector eye;
+		const auto *actualEye = Hooks::hkEyePosition.fOriginal(player,&eye);
+		if (!actualEye) return false;
+		const auto aim = PortalPose::WorldHand(vr->m_PickupAimRelative,
+			*actualEye,Hooks::hkEyeAngles.fOriginal(player));
+		position = PortalPose::Position(aim);
+		angles = PortalPose::Angles(aim);
 		return true;
 	}
 
@@ -565,6 +597,9 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkPopView);
 	EnableIfCreated(hkPush3DViewDepth);
 	EnableIfCreated(hkTraceFirePortal);
+	EnableIfCreated(hkDispatchEffect);
+	EnableIfCreated(hkSettingsClientCmd);
+	EnableIfCreated(hkSettingsClientCmdUnrestricted);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
 	EnableIfCreated(hkEyePosition);
 	EnableIfCreated(hkWeapon_ShootPosition);
@@ -596,6 +631,12 @@ Hooks::~Hooks()
 
 int Hooks::initSourceHooks()
 {
+	// VEngineClient013: both entry points are used by GameUI menu commands.
+	void* settingsEngine=m_Game->GetEngineClient();
+	CreateHookAt(hkSettingsClientCmd,SigScanner::GetVirtualFunction(settingsEngine,7),
+		reinterpret_cast<LPVOID>(&dSettingsClientCmd),"VR menu ClientCmd",false);
+	CreateHookAt(hkSettingsClientCmdUnrestricted,SigScanner::GetVirtualFunction(settingsEngine,106),
+		reinterpret_cast<LPVOID>(&dSettingsClientCmdUnrestricted),"VR menu ClientCmd_Unrestricted",false);
 	const bool hasOffsets = m_Game->m_Offsets != nullptr;
 	if (hasOffsets) {
 		CreateHookAt(hkGetAttachmentMatrix, m_Game->m_Offsets->GetAttachmentMatrix.address,
@@ -674,6 +715,8 @@ int Hooks::initSourceHooks()
 
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
+	CreateHookAt(hkDispatchEffect,NativePose::PortalBlastDispatch(m_Game->m_BaseServer),
+		reinterpret_cast<LPVOID>(&dDispatchEffect),"Portal1::PortalBlastDispatch",false);
 	if (hasOffsets) {
 		CreateHookAt(hkPlayerUse, SigScanner::FindRttiVtableFunction("server.dll",
 			".?AVCPortal_Player@@", Portal1::VTableIndex::kPortalPlayer_PlayerUse),
@@ -789,8 +832,22 @@ void __fastcall Hooks::dPush3DView(void *ecx, void *edx, const CViewSetup &view,
 void __fastcall Hooks::dPush3DViewDepth(void *ecx, void *edx, const CViewSetup &view, int flags, ITexture *target, void *frustum, ITexture *depth)
 {
     if (!target && m_ActiveEyeTexture) target = m_ActiveEyeTexture;
-    hkPush3DViewDepth.fOriginal(ecx, view, flags, target, frustum, depth);
-    s_BodyViewStack.push_back(IsBodyWorldView(view, target, depth));
+    CViewSetup corrected = view;
+    static const uintptr_t viewmodelCall = NativePose::ViewmodelProjectionReturn(m_Game->m_BaseClient);
+    if (m_ActiveEyeTexture && viewmodelCall
+        && reinterpret_cast<uintptr_t>(_ReturnAddress()) == viewmodelCall) {
+        // The gun uses world-space tracked bones. Match the complete active
+        // eye camera, including origin, angles and off-center projection.
+        memcpy(&corrected,&s_EyeWorldView,sizeof(corrected));
+        corrected.zNear = view.zNear;
+        corrected.zFar = view.zFar;
+        static unsigned logged = 0;
+        if (logged++ < 4) PortalVrLog("Viewmodel eye camera originalAspect=%f eyeAspect=%f originalFov=%f eyeFov=%f originDelta=%f angleDelta=%f",
+            view.m_flAspectRatio,corrected.m_flAspectRatio,view.fov,corrected.fov,
+            sqrtf((view.origin-corrected.origin).LengthSqr()),sqrtf((view.angles-corrected.angles).LengthSqr()));
+    }
+    hkPush3DViewDepth.fOriginal(ecx, corrected, flags, target, frustum, depth);
+    s_BodyViewStack.push_back(IsBodyWorldView(corrected, target, depth));
 }
 
 void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSetup, int nClearFlags, int whatToDraw)
@@ -878,6 +935,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		static_cast<int>(m_VR->m_RenderHeight));
 	m_VR->m_BindingEyeTexture = VR::Texture_None;
 	m_ActiveEyeTexture = m_VR->m_LeftEyeTexture;
+	memcpy(&s_EyeWorldView,&leftEyeView,sizeof(s_EyeWorldView));
 	s_HasLocalPlayerBodyTransform = false;
 	s_BodyDrawTriggered = false;
 	s_InlineBodyDrawEligible = true;
@@ -902,6 +960,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		static_cast<int>(m_VR->m_RenderHeight));
 	m_VR->m_BindingEyeTexture = VR::Texture_None;
 	m_ActiveEyeTexture = m_VR->m_RightEyeTexture;
+	memcpy(&s_EyeWorldView,&rightEyeView,sizeof(s_EyeWorldView));
 	s_HasLocalPlayerBodyTransform = false;
 	s_BodyDrawTriggered = false;
 	s_InlineBodyDrawEligible = true;
@@ -1055,6 +1114,15 @@ void __fastcall Hooks::dCreateViewModel(void *ecx, void *edx, int index)
     }
 }
 
+void __fastcall Hooks::dSettingsClientCmd(void* self,void*,const char* command) {
+	if(m_VR && m_VR->HandleSettingsCommand(command)) return;
+	hkSettingsClientCmd.fOriginal(self,command);
+}
+void __fastcall Hooks::dSettingsClientCmdUnrestricted(void* self,void*,const char* command) {
+	if(m_VR && m_VR->HandleSettingsCommand(command)) return;
+	hkSettingsClientCmdUnrestricted.fOriginal(self,command);
+}
+
 namespace {
     bool TrackedGunAttachment(void *renderable, int number, matrix3x4_t& output) {
         auto *vr = Hooks::m_VR;
@@ -1111,7 +1179,14 @@ void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &ey
 		for (int index = 0; index < 2; ++index) {
 			void *vm = reinterpret_cast<GetViewModelFn>(m_Game->m_Offsets->GetViewModel.address)(ecx, index, false);
 			if (vm) {
-				if (index == 0) s_RightViewmodelRenderable = static_cast<unsigned char *>(vm) + 4;
+				if (index == 0) {
+					s_RightViewmodelRenderable = static_cast<unsigned char *>(vm) + 4;
+					const auto getModel = SigScanner::GetVirtualFunction(s_RightViewmodelRenderable,
+						Portal1::VTableIndex::kClientRenderable_GetModel);
+					using GetModelFn = const void *(__thiscall *)(void *);
+					if (!getModel || reinterpret_cast<GetModelFn>(getModel)(s_RightViewmodelRenderable) != s_GunAttachmentModel)
+						m_VR->m_PortalAimLastSeen = 0;
+				}
 				if (index == 1) s_LeftArmRenderable = static_cast<unsigned char *>(vm) + 4;
 				using GetWeaponFn = void *(__thiscall *)(void *);
 				const auto getWeapon = SigScanner::GetVirtualFunction(vm, 209);
@@ -1347,6 +1422,25 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                         }
                     }
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
+                    if (info.pRenderable == s_GunAttachmentRenderable && s_GunAttachments.hasBarrel) {
+                        // Compare the actual submitted skeleton with the shot
+                        // line; synthetic rigid-bone tests cannot expose a
+                        // native animation or viewmodel basis distortion.
+                        const auto& muzzle = s_GunAttachments.attachments[0];
+                        const auto drawn = HandPose::Concat(tracked[muzzle.bone],muzzle.local);
+                        Vector drawOrigin,drawDirection,aimOrigin,aimDirection;
+                        if (GunRay::FromBarrel(drawn,rightPosition,drawOrigin,drawDirection)
+                            && m_VR->GetPortalAimRay(aimOrigin,aimDirection)) {
+                            s_DrawnBarrelDirectionError = sqrtf((drawDirection-aimDirection).LengthSqr());
+                            s_DrawnBarrelLineError = sqrtf((drawOrigin-aimOrigin).LengthSqr());
+                        }
+                        s_NativeGunBasisError = 0;
+                        for (int r=0;r<3;++r) for (int c=0;c<3;++c) {
+                            float dot=0;
+                            for (int k=0;k<3;++k) dot+=bones[24][k][r]*bones[24][k][c];
+                            s_NativeGunBasisError=std::fmax(s_NativeGunBasisError,fabsf(dot-(r==c?1.f:0.f)));
+                        }
+                    }
                     HandPose::ApplyGunGrip(reference, tracked, m_VR->m_RightFingerCurl);
                     matrix3x4_t socket;
                     if (modelLength >= 248 && modelLength <= 64 * 1024 * 1024
@@ -1524,17 +1618,67 @@ float __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, bool secondary,
     Vector shotStart = start;
     Vector shotDirection = direction;
     Vector aimStart, aimDirection;
+    if (!test) s_PortalBlast.pending=false;
     if (placedBy == 2 && m_VR->GetPortalAimRay(aimStart,aimDirection)) {
         shotStart = aimStart;
         shotDirection = aimDirection;
+        if (!test && m_VR->m_PortalAimLastSeen) {
+            const auto controller = HandPose::Frame(-m_VR->m_RightControllerRight,
+                m_VR->m_RightControllerUp,m_VR->m_RightControllerForward,m_VR->GetRightHandAbsPos());
+            s_PortalBlast.muzzle = HandPose::Concat(controller,m_VR->m_PortalAimFromController);
+            s_PortalBlast.pending = true;
+        }
         static int logged = 0;
         if (!test && logged++ < 20)
             PortalVrLog("Controller portal shot secondary=%d hand=%f,%f,%f direction=%f,%f,%f headDirection=%f,%f,%f",
                 secondary,shotStart.x,shotStart.y,shotStart.z,
                 shotDirection.x,shotDirection.y,shotDirection.z,direction.x,direction.y,direction.z);
     }
-    return hkTraceFirePortal.fOriginal(ecx, secondary, shotStart, shotDirection, trace,
+    const float result = hkTraceFirePortal.fOriginal(ecx, secondary, shotStart, shotDirection, trace,
         finalPosition, finalAngles, placedBy, test);
+    static unsigned diagnosed=0;
+    if (!test && placedBy==2 && diagnosed++<2000 && trace) {
+        const auto& hit=*static_cast<const CGameTrace*>(trace);
+        const auto delta=hit.endpos-shotStart;
+        const float along=delta.x*shotDirection.x+delta.y*shotDirection.y+delta.z*shotDirection.z;
+        const float lineError=sqrtf((delta-shotDirection*along).LengthSqr());
+        PortalVrLog("Portal aim audit result=%f roll=%f cacheAge=%llu drawDirectionError=%f drawLineError=%f nativeBasisError=%f traceLineError=%f placementShift=%f origin=%f,%f,%f direction=%f,%f,%f hit=%f,%f,%f final=%f,%f,%f normal=%f,%f,%f",
+            result,m_VR->m_RightControllerAngAbs.z,
+            m_VR->m_PortalAimLastSeen?GetTickCount64()-m_VR->m_PortalAimLastSeen:0,
+            s_DrawnBarrelDirectionError,s_DrawnBarrelLineError,s_NativeGunBasisError,lineError,
+            sqrtf((finalPosition-hit.endpos).LengthSqr()),shotStart.x,shotStart.y,shotStart.z,
+            shotDirection.x,shotDirection.y,shotDirection.z,hit.endpos.x,hit.endpos.y,hit.endpos.z,
+            finalPosition.x,finalPosition.y,finalPosition.z,hit.plane.normal.x,hit.plane.normal.y,hit.plane.normal.z);
+    }
+    return result;
+}
+
+void __cdecl Hooks::dDispatchEffect(const char* name,const void* data)
+{
+    // Native FirePortal builds the blast after TraceFirePortal returns. Its
+    // unchanged locals still describe head aim, even when placement was fixed.
+    // Only replace this verified call's launch frame; retain its destination.
+    if (s_PortalBlast.pending && m_VR->m_IsVREnabled
+        && reinterpret_cast<uintptr_t>(_ReturnAddress())==m_Game->m_BaseServer+0x46ae40
+        && name && !strcmp(name,"PortalBlast")) {
+        s_PortalBlast.pending=false;
+        if (data && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(data),sizeof(PortalShotFx::Data))) {
+            PortalShotFx::Data corrected;
+            memcpy(&corrected,data,sizeof(corrected));
+            const auto before=corrected;
+            if (PortalShotFx::Align(corrected,s_PortalBlast.muzzle)) {
+                Vector originalDirection,direction;
+                QAngle::AngleVectors(before.angles,&originalDirection,nullptr,nullptr);
+                QAngle::AngleVectors(corrected.angles,&direction,nullptr,nullptr);
+                static unsigned reports=0;
+                if (reports++<2000) PortalVrLog("Portal blast aligned originShift=%f directionChange=%f muzzle=%f,%f,%f target=%f,%f,%f",
+                    sqrtf((before.origin-corrected.origin).LengthSqr()),sqrtf((originalDirection-direction).LengthSqr()),
+                    corrected.origin.x,corrected.origin.y,corrected.origin.z,corrected.start.x,corrected.start.y,corrected.start.z);
+                return hkDispatchEffect.fOriginal(name,&corrected);
+            }
+        }
+    }
+    hkDispatchEffect.fOriginal(name,data);
 }
 
 void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* portal)
@@ -1556,6 +1700,8 @@ void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* portal)
 		PortalPose::Frame(m_VR->m_SetupOrigin, {0,0,0})));
 	m_VR->m_CameraCollisionOffset = {0,0,0};
 	m_VR->m_CameraBlocked = false;
+	m_VR->m_CalibrationDrift.Reset();
+	m_VR->m_CalibrationSuppressUntil=GetTickCount64()+2000;
 	// Update both hands and the roomscale offset in this callback, before a
 	// render or pickup update can consume an entry-side pose. No distance gate.
 	m_VR->UpdateTracking();
@@ -1574,11 +1720,35 @@ void __fastcall Hooks::dPlayerUse(void* ecx, void* edx)
 
 void* __fastcall Hooks::dFindUseEntity(void* ecx, void* edx)
 {
-	void* entity = hkFindUseEntity.fOriginal(ecx);
-	if (entity || !m_Game || !m_VR || !m_VR->m_IsVREnabled
+	if (!m_Game || !m_VR || !m_VR->m_IsVREnabled
 		|| !m_VR->m_OverrideEyeAngles || !m_VR->m_RightControllerPose.isValid
 		|| m_Game->GetLocalPlayerIndex() <= 0
-		|| ServerEntityIndex(ecx) != m_Game->GetLocalPlayerIndex()) return entity;
+		|| ServerEntityIndex(ecx) != m_Game->GetLocalPlayerIndex())
+		return hkFindUseEntity.fOriginal(ecx);
+
+	PickupQueryPose selection{ecx};
+	const bool aligned = ServerPickupAim(ecx,selection.origin,selection.angles);
+	void* entity;
+	if (aligned) {
+		// Only selection sees the barrel ray. Keep native reach, usability,
+		// visibility, and portal checks; never return a raw trace hit as usable.
+		ScopedPickupQuery scope(selection);
+		entity = hkFindUseEntity.fOriginal(ecx);
+	} else entity = hkFindUseEntity.fOriginal(ecx);
+	static unsigned aimReports=0;
+	if (aligned && aimReports++<256) {
+		Vector visibleOrigin,visibleDirection;
+		if (m_VR->GetPortalAimRay(visibleOrigin,visibleDirection)) {
+			Vector serverDirection;
+			QAngle::AngleVectors(selection.angles,&serverDirection,nullptr,nullptr);
+			PortalVrLog("Pickup barrel query entity=%p origin=%f,%f,%f direction=%f,%f,%f visibleOriginDelta=%f visibleDirectionDelta=%f",
+				entity,selection.origin.x,selection.origin.y,selection.origin.z,
+				serverDirection.x,serverDirection.y,serverDirection.z,
+				sqrtf((selection.origin-visibleOrigin).LengthSqr()),
+				sqrtf((serverDirection-visibleDirection).LengthSqr()));
+		}
+	}
+	if (entity) return entity;
 
 	Vector hand, eye;
 	QAngle handAngles;
@@ -1808,10 +1978,13 @@ float __fastcall Hooks::dComputeError(void* ecx, void* edx) {
 
 bool __fastcall Hooks::dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError) {
 	const bool wasTrue = m_VR->m_OverrideEyeAngles;
+	ScopedCarryPlayer carry(pPlayer);
 
 	m_VR->m_OverrideEyeAngles = true;
 
 	const bool value = hkUpdateObject.fOriginal(ecx, pPlayer, flError);
+	if (value && m_VR->m_IsVREnabled && ServerEntityIndex(pPlayer)==m_Game->GetLocalPlayerIndex())
+		m_VR->m_LastCarryUpdate = GetTickCount64();
 
 	m_VR->m_OverrideEyeAngles = wasTrue;
 
@@ -1824,6 +1997,8 @@ bool __fastcall Hooks::dUpdateObjectVM(void* ecx, void* edx, void* pPlayer, floa
 	m_VR->m_OverrideEyeAngles = true;
 
 	bool value = hkUpdateObjectVM.fOriginal(ecx, pPlayer, flError);
+	if (value && m_VR->m_IsVREnabled && ServerEntityIndex(pPlayer)==m_Game->GetLocalPlayerIndex())
+		m_VR->m_LastCarryUpdate = GetTickCount64();
 
 	if (!wasTrue)
 		m_VR->m_OverrideEyeAngles = false;
@@ -1866,8 +2041,17 @@ QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
 					logged = true;
 				}
 				Vector hand;
-				if (ServerHandPose(ecx, hand, m_VR->m_ServerGrabAngles))
+				if (ServerHandPose(ecx, hand, m_VR->m_ServerGrabAngles)) {
+					static const uintptr_t directionCall = NativePose::CarryDirectionReturn(
+						m_Game->m_Offsets->UpdateObject.address);
+					if (s_CarryPlayer==ecx && directionCall
+						&& reinterpret_cast<uintptr_t>(_ReturnAddress())==directionCall) {
+						m_VR->m_ServerGrabAngles=PickupTrace::CarryDirectionAngles(m_VR->m_ServerGrabAngles);
+						static bool loggedCarry=false;
+						if (!loggedCarry) { PortalVrLog("Carry ray roll isolated; prop orientation retains wrist roll"); loggedCarry=true; }
+					}
 					return m_VR->m_ServerGrabAngles;
+				}
 				return hkEyeAngles.fOriginal(ecx);
 			}
 			if (m_VR->m_OverrideEyeAngles && vrPlayer.isUsingVR)

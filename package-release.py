@@ -13,7 +13,7 @@ for name in ['Release/d3d9.dll','Launch Portal VR.cmd','L4D2VR/copy-to-portal.ps
              'L4D2VR/custom/bowman_portal1.zip','thirdparty/openvr/bin/win32/openvr_api.dll',
              'thirdparty/openvr/LICENSE','thirdparty/minhook/LICENSE.txt','dxvk/LICENSE']:
     files[name]=(repo/name).read_bytes()
-for folder in ['L4D2VR/SteamVRActionManifest','L4D2VR/materials']:
+for folder in ['L4D2VR/SteamVRActionManifest','L4D2VR/materials','L4D2VR/resource']:
     for path in (repo/folder).rglob('*'):
         if path.is_file():files[path.relative_to(repo).as_posix()]=path.read_bytes()
 files['Install.ps1']=b'''param([string]$PortalDirectory)
@@ -48,12 +48,32 @@ Left-hand support is optional; release grip to resume independent tracking.
 The body retains 136 expression targets, QC eyes, and 12 jiggle bones.
 
 Held objects now follow the corrected carry direction from the visible wrist.
-Portal shots and the aim marker follow the barrel centerline at every range;
-the aim marker uses the current frame's controller pose.
+Prop selection uses the barrel centerline separately from the wrist carry pose;
+native reach, visibility and contact-pickup checks remain enabled.
+Portal shots and the aim marker use the compiled barrel centerline and the
+current controller pose. The user confirmed angled/ceiling aiming now lines up.
+The gun render pass uses the current eye camera. The travelling PortalBlast
+shot effect now starts and points along the actual muzzle; its native target,
+timing and portal color are retained. Angled aiming passed the user headset test.
+Wrist roll rotates props without triggering the native downward carry shift.
 
-This is a prerelease: compiled geometry, attachment, and installer checks
-passed. The newest carry, aim, and portal-crossing behavior still need headset
-confirmation. Click the left stick to recenter if a doorway seems blocked.
+Choose "VR: use left-handed controls" or "VR: use right-handed controls" in
+Portal's main/pause menu. The choice is saved. Left-handed mode mirrors gun,
+buttons and sticks; manual recenter is on the movement-stick click (right stick
+in left-handed mode), or use "VR: recenter headset" in the menu. Saved custom
+SteamVR bindings may need the new left-handed action set configured.
+
+AutoCalibration=true preserves position, height and heading after explicit
+SteamVR tracking-origin changes, including slow accumulated changes. It uses
+stable tracking samples and checks for a blocked player-body route with a clear
+route at the visible headset before gently correcting horizontal alignment.
+It pauses during unreliable tracking, crouching, aiming, carrying and portals.
+AutoCalibration=false disables automatic recovery. Use manual recenter for
+an incorrect initial setup.
+
+This is a prerelease: compiled geometry, attachment, and regression checks
+passed. Wrist-twist carry stability was confirmed in an earlier headset test.
+Pickup accuracy, left-handed controller use and calibration need headset tests.
 
 The included instrumental radio is derived from thecybercat's
 The Device has Been Modified v2 - HD Remaster:

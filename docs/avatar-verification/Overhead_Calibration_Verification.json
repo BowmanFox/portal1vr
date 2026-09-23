@@ -1,0 +1,183 @@
+{
+  "release_x86_build_passed": true,
+  "regression_checks": {
+    "wrist_roll_cases": 1095,
+    "old_maximum_drop_source_units": 64,
+    "corrected_drop": 0,
+    "projection_checks": 15,
+    "calibration_checks_passed": true,
+    "installed_binary_guards": true,
+    "passed": true
+  },
+  "existing_portal_pickup_collision_attachment_regressions_passed": true,
+  "runtime_sha256": "13c2b859549e276c529d37f707c18d0e650e56d5d8b8bde18fa16cce7dd58b81",
+  "viewmodel_projection": {
+    "potential_mismatch": "DrawViewModels queries desktop aspect ratio for the gun pass",
+    "live_startup_aspects": {
+      "queried_aspect": 1.0,
+      "headset_aspect": 1.0
+    },
+    "reported_overhead_miss_resolved": true,
+    "verified_client_timestamp": "0x68362d89",
+    "verified_push3dview_return_rva": "0x1e0c62",
+    "change": "copy active eye camera at the verified viewmodel call; keep native gun depth range",
+    "world_and_portal_views_unchanged": true
+  },
+  "aiming_live_verification": {
+    "user_confirmation": "Aiming now lines up",
+    "test": "clear wall at an angle and clear ceiling, inside headset",
+    "runtime_sha256": "13c2b859549e276c529d37f707c18d0e650e56d5d8b8bde18fa16cce7dd58b81",
+    "portal_blast_events": 32,
+    "live_effect_correction_observed": true,
+    "origin_shift_range_source_units": [
+      3.128248,
+      32.00692
+    ],
+    "live_log": "Live_Test_Aiming_Confirmed.log",
+    "automatic_calibration_comfort_confirmed": false,
+    "left_handed_controller_mapping_confirmed": false,
+    "prop_selection_accuracy_confirmed": false
+  },
+  "portal_blast": {
+    "change": "align native travelling effect origin and orientation with captured muzzle",
+    "preserves": [
+      "native destination",
+      "timing",
+      "portal color",
+      "entity"
+    ],
+    "compiled_pose_checks": 196,
+    "native_dispatch_rva": "0x47b610",
+    "headset_tested": true
+  },
+  "left_handed_menu": {
+    "commands": [
+      "VR: use left-handed controls",
+      "VR: use right-handed controls",
+      "VR: recenter headset"
+    ],
+    "saves_choice": true,
+    "mirrors_gameplay_buttons_and_sticks": true,
+    "bindings": {
+      "mirrored_action_count": 23,
+      "binding_checks": 63,
+      "controller_types": 3,
+      "menu_commands": 3,
+      "passed": true
+    },
+    "native_gameui_dispatch_slot": 106,
+    "live_menu_verification": {
+      "main_menu_visible": true,
+      "left_command_saved_true": true,
+      "right_command_saved_false": true,
+      "manual_recenter_dispatched": true,
+      "original_config_sha256_restored": "2d23d68a9735fd1c403758992f22a7ed5540c5565767dc0b09ce3aaa070a037e",
+      "log_messages": [
+        "[18:24:45.169][tid=208552] VR menu: left-handed controls selected and saved",
+        "[18:24:59.779][tid=208552] VR menu: right-handed controls selected and saved",
+        "[18:25:11.574][tid=208552] VR menu: manual recenter requested"
+      ],
+      "headset_controller_mapping_tested": false
+    },
+    "headset_tested": false
+  },
+  "carry_roll": {
+    "cause": "native negative right.z/up.z corrections lower carry origin by player view offset",
+    "verified_server_timestamp": "0x67578384",
+    "verified_direction_eyeangles_return_rva": "0x4683fa",
+    "change": "zero roll only for carry-position EyeAngles call, preserving full roll for prop orientation",
+    "native_collision_and_release_checks_preserved": true,
+    "headset_user_confirmation": "Cube feels stable now",
+    "headset_tested_runtime_sha256": "75b6fdfcd239f62079ed36a541fc25bcb96805a02685b47fc58e817f29e2e165",
+    "live_hook_log": "17:38:40.999 Carry ray roll isolated; prop orientation retains wrist roll"
+  },
+  "pickup_selection": {
+    "change": "Native prop selection uses the compiled barrel line instead of the parallel wrist line",
+    "held_object_pose_unchanged": true,
+    "native_reach_visibility_usability_checks_retained": true,
+    "near_contact_recovery_retained": true,
+    "compiled_model_regressions": {
+      "attachments": 18,
+      "angle_poses": 196,
+      "queries": 3528,
+      "maximum_matrix_error": 3.8147e-05,
+      "range_checks": 2940,
+      "maximum_barrel_ray_error": 0.00055459,
+      "pickup_barrel_checks": 588,
+      "maximum_pickup_error_at_1024": 0.00451934,
+      "blast_pose_checks": 196,
+      "passed": true
+    },
+    "headset_tested": false
+  },
+  "auto_calibration": {
+    "setting": "AutoCalibration=true",
+    "manual_movement_stick_and_menu_recenter_retained": true,
+    "origin_changes": "compensate explicit SteamVR tracking-origin translation, floor height and yaw",
+    "horizontal_drift": "above 0.25 meters, stable samples for 0.75 sec, stick held against stationary player for 1 sec, blocked body route but clear head route",
+    "maximum_horizontal_correction_meters_per_second": 0.12,
+    "maximum_horizontal_acceleration_meters_per_second_squared": 0.25,
+    "slow_origin_changes_accumulate": true,
+    "invalid_reflected_or_tilted_origins_rejected": true,
+    "tracking_loss_resets_movement_baseline": true,
+    "tested_refresh_rates": [
+      72,
+      90,
+      120,
+      144
+    ],
+    "inhibited_during": [
+      "crouching",
+      "aiming",
+      "object use",
+      "held props",
+      "portal transitions",
+      "menus",
+      "tracking loss"
+    ],
+    "ordinary_head_turns_and_crouches_do_not_recalibrate_floor_or_heading": true,
+    "does_not_detect_arbitrary_subjective_heading_or_height_drift": true,
+    "config_upgrade_all_22_keys_passed": true
+  },
+  "installed_dll_matches_tested_package": true,
+  "existing_settings_preserved": true,
+  "added_auto_calibration_default": true,
+  "compiled_models_byte_exact": true,
+  "installer": {
+    "fresh_install": true,
+    "menu_bindings_match": true,
+    "archive_sha256": "ea6c6038ca175b10c5918b345b5960a8ada9d62d5a8f30e1b30cb474a9b7b606",
+    "repeated_install_idempotent": true,
+    "upgrade_preserves_settings": true,
+    "model_runtime_hashes_match": true,
+    "documentation_only_repack": {
+      "previous_archive_sha256": "c714f03408835834f785e6181867f1031f27b1f57955eb6024b76b8a48d94a07",
+      "changed_files": [
+        "README.txt",
+        "SHA256SUMS.txt"
+      ],
+      "all_installer_runtime_assets_identical": true
+    }
+  },
+  "assets": [
+    {
+      "name": "Portal1VR-Windows-x86-2026.09.23.2.zip",
+      "bytes": 32091329,
+      "sha256": "ea6c6038ca175b10c5918b345b5960a8ada9d62d5a8f30e1b30cb474a9b7b606"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 106,
+      "sha256": "2c7d02b9caa7517fa2f69950ed769631cf47b60f5b8221ef6eaec509d0346248"
+    }
+  ],
+  "editable_blend_in_release": false,
+  "headset_tested": "angled wall/ceiling aim confirmed; remaining feature checks listed below",
+  "prior_build_headset_result": "Carry stability confirmed; angled portal aim and pickup targeting still offset in first test",
+  "current_test_build": "Aligns PortalBlast with muzzle, copies eye camera, adds saved handedness menu and improves calibration evidence; angled aiming confirmed inside headset",
+  "pending_headset_checks": [
+    "prop selection accuracy",
+    "automatic calibration comfort",
+    "left-handed gameplay controls"
+  ]
+}
