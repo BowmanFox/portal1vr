@@ -20,6 +20,7 @@
 #include "nativepose.h"
 #include <intrin.h>
 #include <iostream>
+#include <mutex>
 
 Game *Hooks::m_Game = nullptr;
 VR *Hooks::m_VR = nullptr;
@@ -44,6 +45,8 @@ static float s_DrawnBarrelLineError = 0;
 static float s_NativeGunBasisError = 0;
 static CViewSetup s_EyeWorldView;
 static thread_local struct { bool pending=false; matrix3x4_t muzzle; } s_PortalBlast;
+static PortalShotFx::LaunchHistory s_PortalLaunches;
+static std::mutex s_PortalLaunchMutex;
 static void *s_LeftArmRenderable = nullptr;
 static void *s_LocalPlayerEntity = nullptr;
 static void *s_LocalPlayerRenderable = nullptr;
@@ -96,6 +99,7 @@ Hook<tEyePosition> Hooks::hkEyePosition = {};
 Hook<tWeapon_ShootPosition> Hooks::hkWeapon_ShootPosition = {};
 Hook<tTraceFirePortal> Hooks::hkTraceFirePortal = {};
 Hook<tDispatchEffect> Hooks::hkDispatchEffect = {};
+Hook<tPortalBlastCallback> Hooks::hkPortalBlastCallback = {};
 Hook<tSettingsClientCmd> Hooks::hkSettingsClientCmd = {},Hooks::hkSettingsClientCmdUnrestricted = {};
 
 Hook<tGetModeHeight> Hooks::hkGetModeHeight = {};
@@ -598,6 +602,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkPush3DViewDepth);
 	EnableIfCreated(hkTraceFirePortal);
 	EnableIfCreated(hkDispatchEffect);
+	EnableIfCreated(hkPortalBlastCallback);
 	EnableIfCreated(hkSettingsClientCmd);
 	EnableIfCreated(hkSettingsClientCmdUnrestricted);
 	EnableIfCreated(hkCWeaponPortalgun_FirePortal);
@@ -717,6 +722,8 @@ int Hooks::initSourceHooks()
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 	CreateHookAt(hkDispatchEffect,NativePose::PortalBlastDispatch(m_Game->m_BaseServer),
 		reinterpret_cast<LPVOID>(&dDispatchEffect),"Portal1::PortalBlastDispatch",false);
+	CreateHookAt(hkPortalBlastCallback,NativePose::PortalBlastCallback(m_Game->m_BaseClient),
+		reinterpret_cast<LPVOID>(&dPortalBlastCallback),"Portal1::PortalBlastCallback",false);
 	if (hasOffsets) {
 		CreateHookAt(hkPlayerUse, SigScanner::FindRttiVtableFunction("server.dll",
 			".?AVCPortal_Player@@", Portal1::VTableIndex::kPortalPlayer_PlayerUse),
@@ -1184,8 +1191,10 @@ void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &ey
 					const auto getModel = SigScanner::GetVirtualFunction(s_RightViewmodelRenderable,
 						Portal1::VTableIndex::kClientRenderable_GetModel);
 					using GetModelFn = const void *(__thiscall *)(void *);
-					if (!getModel || reinterpret_cast<GetModelFn>(getModel)(s_RightViewmodelRenderable) != s_GunAttachmentModel)
+					if (!getModel || reinterpret_cast<GetModelFn>(getModel)(s_RightViewmodelRenderable) != s_GunAttachmentModel) {
 						m_VR->m_PortalAimLastSeen = 0;
+						m_VR->m_SupportLastSeen = 0;
+					}
 				}
 				if (index == 1) s_LeftArmRenderable = static_cast<unsigned char *>(vm) + 4;
 				using GetWeaponFn = void *(__thiscall *)(void *);
@@ -1215,6 +1224,7 @@ void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &ey
 			}
 		}
 	}
+	if (!s_RightViewmodelRenderable) m_VR->m_SupportLastSeen = 0;
 	static int logged = 0;
 	if (logged++ < 3) PortalVrLog("Controller viewmodel update player=%p hand=%f,%f,%f", ecx,
 		m_VR->m_RightControllerPosRel.x,m_VR->m_RightControllerPosRel.y,m_VR->m_RightControllerPosRel.z);
@@ -1642,8 +1652,8 @@ float __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, bool secondary,
         const auto delta=hit.endpos-shotStart;
         const float along=delta.x*shotDirection.x+delta.y*shotDirection.y+delta.z*shotDirection.z;
         const float lineError=sqrtf((delta-shotDirection*along).LengthSqr());
-        PortalVrLog("Portal aim audit result=%f roll=%f cacheAge=%llu drawDirectionError=%f drawLineError=%f nativeBasisError=%f traceLineError=%f placementShift=%f origin=%f,%f,%f direction=%f,%f,%f hit=%f,%f,%f final=%f,%f,%f normal=%f,%f,%f",
-            result,m_VR->m_RightControllerAngAbs.z,
+        PortalVrLog("Portal aim audit color=%s result=%f roll=%f cacheAge=%llu drawDirectionError=%f drawLineError=%f nativeBasisError=%f traceLineError=%f placementShift=%f origin=%f,%f,%f direction=%f,%f,%f hit=%f,%f,%f final=%f,%f,%f normal=%f,%f,%f",
+            secondary?"orange":"blue",result,m_VR->m_RightControllerAngAbs.z,
             m_VR->m_PortalAimLastSeen?GetTickCount64()-m_VR->m_PortalAimLastSeen:0,
             s_DrawnBarrelDirectionError,s_DrawnBarrelLineError,s_NativeGunBasisError,lineError,
             sqrtf((finalPosition-hit.endpos).LengthSqr()),shotStart.x,shotStart.y,shotStart.z,
@@ -1667,18 +1677,53 @@ void __cdecl Hooks::dDispatchEffect(const char* name,const void* data)
             memcpy(&corrected,data,sizeof(corrected));
             const auto before=corrected;
             if (PortalShotFx::Align(corrected,s_PortalBlast.muzzle)) {
+                {
+                    std::lock_guard<std::mutex> lock(s_PortalLaunchMutex);
+                    s_PortalLaunches.Record(corrected,GetTickCount64());
+                }
                 Vector originalDirection,direction;
                 QAngle::AngleVectors(before.angles,&originalDirection,nullptr,nullptr);
                 QAngle::AngleVectors(corrected.angles,&direction,nullptr,nullptr);
                 static unsigned reports=0;
-                if (reports++<2000) PortalVrLog("Portal blast aligned originShift=%f directionChange=%f muzzle=%f,%f,%f target=%f,%f,%f",
+                if (reports++<2000) PortalVrLog("Portal blast aligned color=%u originShift=%f directionChange=%f muzzle=%f,%f,%f target=%f,%f,%f direction=%f,%f,%f",
+                    PortalShotFx::Color(corrected),
                     sqrtf((before.origin-corrected.origin).LengthSqr()),sqrtf((originalDirection-direction).LengthSqr()),
-                    corrected.origin.x,corrected.origin.y,corrected.origin.z,corrected.start.x,corrected.start.y,corrected.start.z);
+                    corrected.origin.x,corrected.origin.y,corrected.origin.z,corrected.start.x,corrected.start.y,corrected.start.z,
+                    direction.x,direction.y,direction.z);
                 return hkDispatchEffect.fOriginal(name,&corrected);
             }
         }
     }
     hkDispatchEffect.fOriginal(name,data);
+}
+
+void __cdecl Hooks::dPortalBlastCallback(const void* data)
+{
+    // Restore the matched shot's exact launch after lossy effect serialization.
+    // Retain the received target, timing, color and all other engine metadata.
+    if (m_VR->m_IsVREnabled && data
+        && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(data),PortalShotFx::ClientPayloadSize)) {
+        static unsigned reports=0;
+        PortalShotFx::Data effect{};
+        memcpy(&effect,data,PortalShotFx::ClientPayloadSize);
+        Vector direction;QAngle::AngleVectors(effect.angles,&direction,nullptr,nullptr);
+        if (reports++<2000) PortalVrLog("Portal blast received color=%u muzzle=%f,%f,%f target=%f,%f,%f direction=%f,%f,%f",
+            PortalShotFx::Color(effect),effect.origin.x,effect.origin.y,effect.origin.z,
+            effect.start.x,effect.start.y,effect.start.z,direction.x,direction.y,direction.z);
+        bool restored;
+        {
+            std::lock_guard<std::mutex> lock(s_PortalLaunchMutex);
+            restored=s_PortalLaunches.Restore(effect,GetTickCount64());
+        }
+        if(restored) {
+            QAngle::AngleVectors(effect.angles,&direction,nullptr,nullptr);
+            if(reports<=2000) PortalVrLog("Portal blast precision restored color=%u muzzle=%f,%f,%f direction=%f,%f,%f",
+                PortalShotFx::Color(effect),effect.origin.x,effect.origin.y,effect.origin.z,
+                direction.x,direction.y,direction.z);
+            return hkPortalBlastCallback.fOriginal(&effect);
+        }
+    }
+    hkPortalBlastCallback.fOriginal(data);
 }
 
 void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* portal)

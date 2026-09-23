@@ -3,10 +3,12 @@
 #include <fstream>
 #include <vector>
 #include <iterator>
+#include <limits>
 #include "portalpose.h"
 #include "gunattachments.h"
 #include "gunray.h"
 #include "portalshotfx.h"
+#include "optionalgungrip.h"
 
 // Optional regression using the actual compiled custom v_portalgun.mdl.
 int main(int argc,char **argv) {
@@ -25,6 +27,10 @@ int main(int argc,char **argv) {
     GunAttachments::Model model;assert(model.Read(data.data(),data.size(),bind));
     assert(model.count==18);
     assert(model.hasBarrel);
+    matrix3x4_t support;
+    assert(OptionalGunGrip::ReadSocket(data.data(),data.size(),support));
+    assert(fabsf(support[0][3]-2.5f)<.001f && fabsf(support[1][3]+3.2f)<.001f
+        && fabsf(support[2][3]-15.3f)<.001f);
     auto source=bind[24];for(int r=0;r<3;++r)source[r][3]=bind[8][r][3];
     float maxError=0,maxRayError=0,maxPickupError=0;int cases=0,rangeCases=0,pickupCases=0;
     for(float pitch:{-90.f,-75.f,-30.f,0.f,45.f,80.f,90.f})
@@ -36,14 +42,21 @@ int main(int argc,char **argv) {
         Vector forward,right,up;QAngle::AngleVectors({pitch,yaw,roll},&forward,&right,&up);
         const auto controller=HandPose::Frame(-right,up,forward,{-30,10,60});
         const auto gun=HandPose::Reanchor(HandPose::FitGunToPalm(bind[24]),source,controller);
+        const auto supportLocal=HandPose::Concat(model.gunFromController,support);
+        const auto supportWorld=HandPose::RigidOrientation(HandPose::Concat(controller,supportLocal));
+        const auto drawnSupport=HandPose::RigidOrientation(HandPose::Concat(gun,support));
+        for(int r=0;r<3;++r)for(int c=0;c<4;++c)
+            assert(fabsf(supportWorld[r][c]-drawnSupport[r][c])<.001f);
         const auto barrel=HandPose::Concat(controller,model.barrelFromController);
         const auto& muzzle=model.attachments[0];
         const auto authored=HandPose::Concat(HandPose::Reanchor(bind[muzzle.bone],bind[24],gun),muzzle.local);
         const auto rigid=HandPose::RigidOrientation(authored);
         const Vector barrelForward(rigid[0][0],rigid[1][0],rigid[2][0]);
         const Vector wrist=PortalPose::Position(controller);
+        for(unsigned color:{1u,2u}) {
         PortalShotFx::Data effect;
         memset(&effect,0xa5,sizeof(effect));
+        reinterpret_cast<unsigned char*>(&effect)[0x58]=static_cast<unsigned char>(color);
         effect.origin={500,90,12};effect.start={200,-300,40};effect.angles={10,40,25};
         const auto oldEffect=effect;
         assert(PortalShotFx::Align(effect,authored));
@@ -52,6 +65,22 @@ int main(int argc,char **argv) {
         assert((effectDirection-barrelForward).LengthSqr()<1e-8f);
         assert(!memcmp(&effect.start,&oldEffect.start,2*sizeof(Vector)));
         assert(!memcmp(effect.remaining,oldEffect.remaining,sizeof(effect.remaining)));
+        assert(PortalShotFx::Color(effect)==color);
+        PortalShotFx::LaunchHistory history;
+        history.Record(effect,100);
+        auto received=effect;
+        received.origin+=Vector(.1f,-.1f,.1f);
+        received.start+=Vector(.1f,.1f,-.1f);
+        // Reproduce the received angle error measured in the headset run.
+        received.angles.x+=1.40393f;received.angles.y+=.87853f;
+        const auto beforeRestore=received;
+        assert(history.Restore(received,102));
+        assert((received.origin-effect.origin).LengthSqr()==0);
+        assert(!memcmp(&received.angles,&effect.angles,sizeof(QAngle)));
+        assert(!memcmp(&received.start,&beforeRestore.start,2*sizeof(Vector)));
+        assert(!memcmp(received.remaining,beforeRestore.remaining,sizeof(received.remaining)));
+        assert(!history.Restore(received,103)); // consume exactly once
+        }
         Vector rayStart,rayDirection;
         assert(GunRay::FromBarrel(barrel,wrist,rayStart,rayDirection));
         assert((rayStart-wrist).LengthSqr()>.5f); // reproduces the old wrist-ray parallax
@@ -108,5 +137,31 @@ int main(int argc,char **argv) {
     // Float matrix/Euler round trips stay below 0.25 mm even at 24 m,
     // far beyond native pickup reach, including exactly vertical poses.
     assert(maxPickupError<.01f);
-    printf("{\"attachments\":%d,\"angle_poses\":%d,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"range_checks\":%d,\"maximum_barrel_ray_error\":%.9f,\"pickup_barrel_checks\":%d,\"maximum_pickup_error_at_1024\":%.9f,\"blast_pose_checks\":%d,\"passed\":true}\n",model.count,cases/model.count,cases,maxError,rangeCases,maxRayError,pickupCases,maxPickupError,cases/model.count);
+    PortalShotFx::LaunchHistory history;
+    PortalShotFx::Data blue{},orange{};
+    reinterpret_cast<unsigned char*>(&blue)[0x58]=1;
+    reinterpret_cast<unsigned char*>(&orange)[0x58]=2;
+    blue.origin={1,2,3};orange.origin=blue.origin;
+    blue.start={40,50,60};orange.start=blue.start;
+    blue.angles={15,40,0};orange.angles={-80,120,90};
+    history.Record(blue,10);history.Record(orange,20);
+    auto receivedOrange=orange;receivedOrange.angles={0,0,0};
+    assert(history.Restore(receivedOrange,30));
+    assert(!memcmp(&receivedOrange.angles,&orange.angles,sizeof(QAngle)));
+    auto receivedBlue=blue;receivedBlue.angles={0,0,0};
+    assert(history.Restore(receivedBlue,40));
+    assert(!memcmp(&receivedBlue.angles,&blue.angles,sizeof(QAngle)));
+    history.Record(blue,50);
+    auto unrelated=blue;unrelated.start.x+=10;
+    assert(!history.Restore(unrelated,51));
+    unrelated=blue;unrelated.origin.x+=10;
+    assert(!history.Restore(unrelated,51));
+    assert(!history.Restore(blue,2051)); // expired shot cannot affect a later effect
+    history.Record(blue,2100);assert(!history.Restore(blue,2099));
+    auto invalid=blue;invalid.origin.x=std::numeric_limits<float>::quiet_NaN();
+    history.Record(invalid,2200);assert(!history.Restore(blue,2201));
+    for(int i=0;i<20;++i){blue.origin.x=float(i*4);history.Record(blue,2300+i);}
+    receivedBlue=blue;receivedBlue.origin.x=0;assert(!history.Restore(receivedBlue,2330));
+    assert(history.Restore(blue,2330)); // bounded history retains recent shots
+    printf("{\"attachments\":%d,\"angle_poses\":%d,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"range_checks\":%d,\"maximum_barrel_ray_error\":%.9f,\"pickup_barrel_checks\":%d,\"maximum_pickup_error_at_1024\":%.9f,\"blast_pose_checks_both_colors\":%d,\"support_pose_checks\":%d,\"passed\":true}\n",model.count,cases/model.count,cases,maxError,rangeCases,maxRayError,pickupCases,maxPickupError,2*cases/model.count,cases/model.count);
 }

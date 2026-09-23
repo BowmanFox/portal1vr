@@ -1,0 +1,231 @@
+{
+  "utc": "2026-09-23T23:55:59.823517+00:00",
+  "scope": "Support hand contact and exact shot-time launch restoration after lossy client effect transfer",
+  "support": {
+    "before": {
+      "palm": {
+        "count": 451,
+        "minimum": 1.4685722589492798,
+        "p10": 1.7847764492034912,
+        "median": 3.299077272415161,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          7.963922500610352,
+          2.579148292541504,
+          -12.4966459274292
+        ]
+      },
+      "thumb": {
+        "count": 131,
+        "minimum": 1.622973918914795,
+        "p10": 1.855185866355896,
+        "median": 2.8194518089294434,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          8.815835952758789,
+          1.080122709274292,
+          -14.47725772857666
+        ]
+      },
+      "index": {
+        "count": 317,
+        "minimum": 1.48623526096344,
+        "p10": 1.6426416635513306,
+        "median": 2.4012460708618164,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          8.56272029876709,
+          -2.1621291637420654,
+          -12.774483680725098
+        ]
+      },
+      "middle": {
+        "count": 276,
+        "minimum": 1.477264404296875,
+        "p10": 1.8549292087554932,
+        "median": 2.68257474899292,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          8.0226469039917,
+          -2.398759365081787,
+          -11.554352760314941
+        ]
+      },
+      "ring": {
+        "count": 297,
+        "minimum": 1.2125829458236694,
+        "p10": 1.4954622983932495,
+        "median": 2.241780996322632,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          6.217723846435547,
+          -2.3553214073181152,
+          -9.163783073425293
+        ]
+      }
+    },
+    "after": {
+      "palm": {
+        "count": 451,
+        "minimum": 0.041095878928899765,
+        "p10": 0.40372201800346375,
+        "median": 1.8183099031448364,
+        "within_0_15": 7,
+        "nearest_vertex": [
+          9.180479049682617,
+          2.323868751525879,
+          -11.720325469970703
+        ]
+      },
+      "thumb": {
+        "count": 131,
+        "minimum": 0.10251793265342712,
+        "p10": 0.4590407609939575,
+        "median": 1.436482310295105,
+        "within_0_15": 2,
+        "nearest_vertex": [
+          9.847603797912598,
+          0.7201225161552429,
+          -13.410181999206543
+        ]
+      },
+      "index": {
+        "count": 317,
+        "minimum": 0.3366515636444092,
+        "p10": 0.4838661551475525,
+        "median": 1.3554935455322266,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          8.727408409118652,
+          -0.0779455378651619,
+          -12.190991401672363
+        ]
+      },
+      "middle": {
+        "count": 276,
+        "minimum": 0.7205909490585327,
+        "p10": 0.8471366167068481,
+        "median": 1.5575395822525024,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          9.103103637695312,
+          -3.478893756866455,
+          -9.834163665771484
+        ]
+      },
+      "ring": {
+        "count": 297,
+        "minimum": 0.1579185426235199,
+        "p10": 0.4048265814781189,
+        "median": 1.0574790239334106,
+        "within_0_15": 0,
+        "nearest_vertex": [
+          6.614134311676025,
+          -0.7008419036865234,
+          -9.111867904663086
+        ]
+      }
+    },
+    "gun_local_socket_delta": [
+      -0.3,
+      1.2,
+      0.3
+    ],
+    "arm_gun_triangle_intersections": 0,
+    "method": "Actual compiled MDL/VVD/VTX meshes skinned by rebuilt C++ runtime helpers; Blender BVH nearest surface and full triangle intersection checks; side and underside renders inspected.",
+    "metadata": "Recompose cached model-local socket with current controllers; invalidate on weapon/model changes, not offscreen draw timeout.",
+    "headset_confirmed": true,
+    "user_confirmation": "Yes, it now touches the shell"
+  },
+  "orange_aim": {
+    "status": "Precision restoration implemented; updated headset aiming test pending.",
+    "user_followup": "Yes, orange now lines up",
+    "followup_limit": "The latest log predates installation of the final precision-restoration DLL, so that response is not treated as proof that this exact binary ran.",
+    "native_inspection": "Both colors share server TraceFirePortal, PortalBlast dispatch and client callback; color selects particles, with common launch geometry.",
+    "live_diagnostic_colors": {
+      "blue": {
+        "shots": 2,
+        "max_draw_direction_error": 0,
+        "max_draw_line_error": 3.4e-05,
+        "max_trace_line_error": 6.8e-05,
+        "max_placement_shift": 5.276578,
+        "blasts_sent": 2,
+        "blasts_received": 2,
+        "matched_effects": 2,
+        "max_received_origin_error": 0.13886993860804034,
+        "max_received_direction_error_degrees": 1.363123740985021,
+        "max_received_target_error": 0.15688416499445096
+      },
+      "orange": {
+        "shots": 117,
+        "max_draw_direction_error": 1e-06,
+        "max_draw_line_error": 5.3e-05,
+        "max_trace_line_error": 0.000107,
+        "max_placement_shift": 23.4729,
+        "blasts_sent": 117,
+        "blasts_received": 117,
+        "matched_effects": 117,
+        "max_received_origin_error": 0.1657390782344496,
+        "max_received_direction_error_degrees": 1.810781896223781,
+        "max_received_target_error": 0.17695628351094012
+      }
+    },
+    "correction": "Restore captured origin and angles after matching local callback color, launch and target within one Source unit, age at most two seconds and single use. Preserve received target/timing/color. Unmatched effects pass through.",
+    "automated_restoration_checks": 392,
+    "headset_confirmed": false
+  },
+  "build": {
+    "configuration": "Release x86",
+    "errors": 0,
+    "warnings": 0,
+    "runtime_sha256": "42793081222d2ab534c65f9c22aa9c84935c47550b711834e370e21f4bed092d",
+    "regressions": [
+      {
+        "wrist_roll_cases": 1095,
+        "old_maximum_drop_source_units": 64,
+        "corrected_drop": 0,
+        "projection_checks": 15,
+        "calibration_checks_passed": true,
+        "installed_binary_guards": false,
+        "passed": true
+      },
+      {
+        "attachments": 18,
+        "angle_poses": 196,
+        "queries": 3528,
+        "maximum_matrix_error": 3.8147e-05,
+        "range_checks": 2940,
+        "maximum_barrel_ray_error": 0.00055459,
+        "pickup_barrel_checks": 588,
+        "maximum_pickup_error_at_1024": 0.00451934,
+        "blast_pose_checks_both_colors": 392,
+        "support_pose_checks": 196,
+        "passed": true
+      }
+    ],
+    "installed_client_server_guards_passed": true
+  },
+  "compiled_model_sha256": {
+    "v_portalgun.mdl": "31a8136988f331f9867655af029d175ae2f53f7a36e0128937e153b4af32000d",
+    "v_portalgun.vvd": "e49b8f331f8483c333317c98897ab8007d33d0373da71943abd6115d56f2b3a8",
+    "v_portalgun.dx90.vtx": "670b1b0f98e4bbb2be1fec0622abcf44be41bcf6b1fd766a88b661821a7de16a",
+    "v_hands.mdl": "d6cfb8d27cc78ad5a514c924d7ba78aa79d29f67251cd857e96a9da48c90ae5c",
+    "v_hands.vvd": "e86d37c67a24ffe9be212f689c6309308e0773a40ad0402f2c4b26307d739ac9",
+    "v_hands.dx90.vtx": "1085a2139173020ccc852453afe2bd88d91892cf40a422eb9b637e6e7704bbb5"
+  },
+  "package": {
+    "file": "Portal1VR-Windows-x86-2026.09.23.3.zip",
+    "sha256": "13fd33b3bbe29cdcf21884f5a83585232c657f43a462aa9a4a0aaa35c49cda35",
+    "no_editable_blend_files": true
+  },
+  "installer": {
+    "fresh_install": true,
+    "repeated_install_idempotent": true,
+    "upgrade_preserves_settings": true,
+    "menu_bindings_match": true,
+    "archive_sha256": "13fd33b3bbe29cdcf21884f5a83585232c657f43a462aa9a4a0aaa35c49cda35",
+    "model_runtime_hashes_match": true
+  },
+  "installed_runtime_matches_package": true,
+  "config_and_model_unchanged": true
+}

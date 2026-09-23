@@ -44,17 +44,22 @@ Back up an existing custom avatar or runtime before replacement.
 
 The gun housing has inward thickness, two-sided rendering, and a relieved
 rear opening for the wrist. The gun is uniformly scaled to 1.2 for the paw.
-Left-hand support is optional; release grip to resume independent tracking.
+Left-hand support is optional and seats the palm against the underside shell;
+release grip to resume independent tracking. Looking away no longer expires
+the support socket while the same gun remains equipped.
 The body retains 136 expression targets, QC eyes, and 12 jiggle bones.
 
 Held objects now follow the corrected carry direction from the visible wrist.
 Prop selection uses the barrel centerline separately from the wrist carry pose;
 native reach, visibility and contact-pickup checks remain enabled.
 Portal shots and the aim marker use the compiled barrel centerline and the
-current controller pose. The user confirmed angled/ceiling aiming now lines up.
+current controller pose. A live orange-shot test found the effect transfer
+rounded the launch direction by up to 1.81 degrees. The client now restores
+the exact shot-time launch frame for matching local shots of either color.
 The gun render pass uses the current eye camera. The travelling PortalBlast
 shot effect now starts and points along the actual muzzle; its native target,
-timing and portal color are retained. Angled aiming passed the user headset test.
+timing and portal color are retained. Native portal placement stays enabled.
+The latest precision correction still needs headset confirmation.
 Wrist roll rotates props without triggering the native downward carry shift.
 
 Choose "VR: use left-handed controls" or "VR: use right-handed controls" in

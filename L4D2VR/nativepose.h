@@ -2,6 +2,26 @@
 #include "sigscanner.h"
 
 namespace NativePose {
+inline uintptr_t PortalBlastCallback(uintptr_t client) {
+    // Verify both callback registration and its color/timing/entity reads.
+    const unsigned char entry[]={0x55,0x8b,0xec,0x51,0x53,0x56,0x57,0x8b,0x7d,0x08,
+        0x68,0x40,0x05,0,0,0x80,0x7f,0x58,0x01,0xf3,0x0f,0x10,0x47,0x38,0x8b,0x5f,0x50};
+    const unsigned char arguments[]={0xd9,0x45,0x08,0x8d,0x47,0x24,0x51,0xd9,0x1c,0x24,
+        0x50,0x8d,0x47,0x0c,0x8b,0xce,0x50,0x57,0x53,0xff,0x75,0xfc,
+        0xe8,0x9d,0xfd,0xff,0xff,0x5f,0x5e,0x5b,0x8b,0xe5,0x5d,0xc3};
+    if(!client || !SigScanner::IsReadable(client+0x6ea00,10)
+        || !SigScanner::IsReadable(client+0x22f830,sizeof(entry))
+        || !SigScanner::IsReadable(client+0x22f888,sizeof(arguments))
+        || !SigScanner::IsReadable(client+0x3fb71c,sizeof("PortalBlast"))) return 0;
+    const auto* registration=reinterpret_cast<const unsigned char*>(client+0x6ea00);
+    uintptr_t callback=0,name=0;
+    memcpy(&callback,registration+1,4);memcpy(&name,registration+6,4);
+    return registration[0]==0x68 && registration[5]==0x68
+        && callback==client+0x22f830 && name==client+0x3fb71c
+        && !memcmp(reinterpret_cast<void*>(name),"PortalBlast",sizeof("PortalBlast"))
+        && !memcmp(reinterpret_cast<void*>(callback),entry,sizeof(entry))
+        && !memcmp(reinterpret_cast<void*>(client+0x22f888),arguments,sizeof(arguments)) ? callback : 0;
+}
 inline uintptr_t PortalBlastDispatch(uintptr_t server) {
     // Verify the native FirePortal -> DispatchEffect("PortalBlast", data)
     // call and the CEffectData constructor's last field before copying 0x88.

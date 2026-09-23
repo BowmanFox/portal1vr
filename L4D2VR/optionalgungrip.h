@@ -65,6 +65,16 @@ inline bool ReadSocket(const unsigned char *hdr, size_t size, matrix3x4_t& local
             for (int r = 0; r < 3; ++r) norm += local[r][axis] * local[r][axis];
             if (std::fabs(norm - 1.0f) > 0.01f || std::fabs(local[axis][3]) > 64) return false;
         }
+        // This compiled socket predates the enlarged rear shell. Its palm
+        // floated 1.47 units below the surface. Seat that legacy socket against
+        // the underside; leave newly authored/custom sockets unchanged.
+        if (std::fabs(local[0][3]-2.8f)<.001f
+            && std::fabs(local[1][3]+4.4f)<.001f
+            && std::fabs(local[2][3]-15.f)<.001f) {
+            local[0][3] -= .3f;
+            local[1][3] += 1.2f;
+            local[2][3] += .3f;
+        }
         return true;
     }
     return false;

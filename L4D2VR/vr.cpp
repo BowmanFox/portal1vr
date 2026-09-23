@@ -893,12 +893,19 @@ bool VR::UpdateOptionalGunSupport(matrix3x4_t *target)
         m_RightControllerUp, m_RightControllerForward, GetRightHandAbsPos());
     const auto support = HandPose::RigidOrientation(HandPose::Concat(controller, m_SupportFromController));
     const Vector position(support[0][3],support[1][3],support[2][3]);
-    const bool fresh = m_SupportLastSeen && GetTickCount64() - m_SupportLastSeen < 100;
+    // This is model-local metadata, recomposed with current controller poses.
+    // Looking away must not release a grip merely because the gun was culled.
+    // CalcViewModelView invalidates it when the weapon/model changes.
+    const bool fresh = m_SupportLastSeen != 0;
+    const bool previouslyActive = m_OptionalSupportActive;
     m_OptionalSupportActive = m_OptionalGripState.Update(m_LeftHandGunGrip && m_IsVREnabled,
         m_LeftControllerPose.isValid && m_RightControllerPose.isValid,
         fresh && OptionalGunGrip::Finite(support), m_LeftGripPressed,
         sqrtf((GetLeftHandAbsPos()-position).LengthSqr()), m_LeftHandGunGripRadius);
     if (m_OptionalSupportActive && target) *target = support;
+    if (previouslyActive != m_OptionalSupportActive)
+        PortalVrLog("Optional support active=%d socketValid=%d pressed=%d distance=%f",
+            m_OptionalSupportActive,fresh,m_LeftGripPressed,sqrtf((GetLeftHandAbsPos()-position).LengthSqr()));
     return m_OptionalSupportActive;
 }
 

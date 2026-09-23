@@ -131,6 +131,7 @@ int main(int argc,char** argv) {
         assert(NativePose::ViewmodelProjectionReturn(reinterpret_cast<uintptr_t>(client)));
         assert(NativePose::CarryDirectionReturn(reinterpret_cast<uintptr_t>(server)+0x468300));
         assert(NativePose::PortalBlastDispatch(reinterpret_cast<uintptr_t>(server)));
+        assert(NativePose::PortalBlastCallback(reinterpret_cast<uintptr_t>(client)));
         FreeLibrary(server);FreeLibrary(client);
     }
     printf("{\"wrist_roll_cases\":%d,\"old_maximum_drop_source_units\":64,\"corrected_drop\":0,\"projection_checks\":15,\"calibration_checks_passed\":true,\"installed_binary_guards\":%s,\"passed\":true}\n",cases,argc==3?"true":"false");
