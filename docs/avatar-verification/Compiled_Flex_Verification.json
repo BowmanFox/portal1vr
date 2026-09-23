@@ -1,0 +1,828 @@
+{
+  "triangles": 64261,
+  "shape_descriptors": 138,
+  "requested_shapes": 136,
+  "controllers": 92,
+  "bone_count": 95,
+  "rest_position_max_error_source_units": 2.7151469112141058e-05,
+  "header_flags": 65545,
+  "maximum_shape_error_source_units": 0.0013514646708308944,
+  "shapes": [
+    {
+      "shape_key": "Key 1 - Reversed",
+      "max_error_source_units": 0.0012455851987607726,
+      "rms_error_source_units": 0.0002570171820136405,
+      "nonzero_compiled_vertices": 9602
+    },
+    {
+      "shape_key": "jawOpen",
+      "max_error_source_units": 0.0012455851987607726,
+      "rms_error_source_units": 0.00024347972289644578,
+      "nonzero_compiled_vertices": 9486
+    },
+    {
+      "shape_key": "Blink",
+      "max_error_source_units": 0.0010592332484514306,
+      "rms_error_source_units": 0.00019802394153313918,
+      "nonzero_compiled_vertices": 19144
+    },
+    {
+      "shape_key": "eyeLookDownLeft",
+      "max_error_source_units": 0.0009995592585335196,
+      "rms_error_source_units": 0.00012253794425184594,
+      "nonzero_compiled_vertices": 2543
+    },
+    {
+      "shape_key": "eyeLookDownRight",
+      "max_error_source_units": 0.0009967301922143865,
+      "rms_error_source_units": 0.0001636478867340799,
+      "nonzero_compiled_vertices": 3017
+    },
+    {
+      "shape_key": "eyeLookInLeft",
+      "max_error_source_units": 0.0009621003859808182,
+      "rms_error_source_units": 3.512488290410591e-05,
+      "nonzero_compiled_vertices": 1977
+    },
+    {
+      "shape_key": "eyeLookOutLeft",
+      "max_error_source_units": 0.000992182633710282,
+      "rms_error_source_units": 4.230560391843244e-05,
+      "nonzero_compiled_vertices": 1980
+    },
+    {
+      "shape_key": "eyeLookUpLeft",
+      "max_error_source_units": 0.0009816600900255535,
+      "rms_error_source_units": 3.9775366350382117e-05,
+      "nonzero_compiled_vertices": 2097
+    },
+    {
+      "shape_key": "eyeSquintLeft",
+      "max_error_source_units": 0.0009951667175315908,
+      "rms_error_source_units": 4.834821564001953e-05,
+      "nonzero_compiled_vertices": 2351
+    },
+    {
+      "shape_key": "eyeBlinkRight",
+      "max_error_source_units": 0.0010592332484514306,
+      "rms_error_source_units": 0.00014456036759140565,
+      "nonzero_compiled_vertices": 9900
+    },
+    {
+      "shape_key": "eyeBlinkLeft",
+      "max_error_source_units": 0.0010270494103976724,
+      "rms_error_source_units": 0.0001396467515326454,
+      "nonzero_compiled_vertices": 9728
+    },
+    {
+      "shape_key": "eyeLookInRight",
+      "max_error_source_units": 0.0009578255960850286,
+      "rms_error_source_units": 3.474378151842368e-05,
+      "nonzero_compiled_vertices": 1979
+    },
+    {
+      "shape_key": "eyeLookOutRight",
+      "max_error_source_units": 0.0009750563284964488,
+      "rms_error_source_units": 4.2230904644317546e-05,
+      "nonzero_compiled_vertices": 1982
+    },
+    {
+      "shape_key": "eyeLookUpRight",
+      "max_error_source_units": 0.0009816922848992708,
+      "rms_error_source_units": 3.9864797503539325e-05,
+      "nonzero_compiled_vertices": 2100
+    },
+    {
+      "shape_key": "eyeSquintRight",
+      "max_error_source_units": 0.0009992913365281103,
+      "rms_error_source_units": 5.1572508443731664e-05,
+      "nonzero_compiled_vertices": 2673
+    },
+    {
+      "shape_key": "eyeWideRight",
+      "max_error_source_units": 0.0009998279473293784,
+      "rms_error_source_units": 4.244498114699302e-05,
+      "nonzero_compiled_vertices": 2022
+    },
+    {
+      "shape_key": "eyeWideLeft",
+      "max_error_source_units": 0.0009952106700112432,
+      "rms_error_source_units": 7.544683733966535e-05,
+      "nonzero_compiled_vertices": 2041
+    },
+    {
+      "shape_key": "jawForward",
+      "max_error_source_units": 0.0009983307912776564,
+      "rms_error_source_units": 0.00010019107680801297,
+      "nonzero_compiled_vertices": 7182
+    },
+    {
+      "shape_key": "jawLeft",
+      "max_error_source_units": 0.0009969697175108067,
+      "rms_error_source_units": 9.104204437063484e-05,
+      "nonzero_compiled_vertices": 7049
+    },
+    {
+      "shape_key": "jawRight",
+      "max_error_source_units": 0.0009995745773637857,
+      "rms_error_source_units": 9.111177940592835e-05,
+      "nonzero_compiled_vertices": 7046
+    },
+    {
+      "shape_key": "mouthFunnel",
+      "max_error_source_units": 0.0009992376155113275,
+      "rms_error_source_units": 0.00019593091103391392,
+      "nonzero_compiled_vertices": 10933
+    },
+    {
+      "shape_key": "mouthPucker",
+      "max_error_source_units": 0.0009910678064674796,
+      "rms_error_source_units": 7.535435618163578e-05,
+      "nonzero_compiled_vertices": 5328
+    },
+    {
+      "shape_key": "mouthRight",
+      "max_error_source_units": 0.0009966887021017573,
+      "rms_error_source_units": 9.416380804948571e-05,
+      "nonzero_compiled_vertices": 7509
+    },
+    {
+      "shape_key": "mouthLeft",
+      "max_error_source_units": 0.0009975523667902191,
+      "rms_error_source_units": 9.404056062774974e-05,
+      "nonzero_compiled_vertices": 7510
+    },
+    {
+      "shape_key": "mouthSmileLeft",
+      "max_error_source_units": 0.0009944371484103816,
+      "rms_error_source_units": 0.00014959128486488182,
+      "nonzero_compiled_vertices": 12537
+    },
+    {
+      "shape_key": "mouthSmileRight",
+      "max_error_source_units": 0.0009998863970404831,
+      "rms_error_source_units": 0.00016021853050180473,
+      "nonzero_compiled_vertices": 12353
+    },
+    {
+      "shape_key": "mouthFrownRight",
+      "max_error_source_units": 0.0009911178839252409,
+      "rms_error_source_units": 6.907598187261849e-05,
+      "nonzero_compiled_vertices": 2993
+    },
+    {
+      "shape_key": "mouthFrownLeft",
+      "max_error_source_units": 0.000991123447134466,
+      "rms_error_source_units": 6.850499038247085e-05,
+      "nonzero_compiled_vertices": 2944
+    },
+    {
+      "shape_key": "mouthDimpleLeft",
+      "max_error_source_units": 0.0009991303141562496,
+      "rms_error_source_units": 8.080500258367838e-05,
+      "nonzero_compiled_vertices": 4006
+    },
+    {
+      "shape_key": "mouthDimpleRight",
+      "max_error_source_units": 0.0009987165104237083,
+      "rms_error_source_units": 8.12646577146942e-05,
+      "nonzero_compiled_vertices": 4028
+    },
+    {
+      "shape_key": "mouthStretchLeft",
+      "max_error_source_units": 0.0009990104407411073,
+      "rms_error_source_units": 9.965173815615476e-05,
+      "nonzero_compiled_vertices": 4948
+    },
+    {
+      "shape_key": "mouthStretchRight",
+      "max_error_source_units": 0.000999825218372025,
+      "rms_error_source_units": 9.964581678498597e-05,
+      "nonzero_compiled_vertices": 4885
+    },
+    {
+      "shape_key": "mouthRollLower",
+      "max_error_source_units": 0.0009999517659334553,
+      "rms_error_source_units": 5.819534667788238e-05,
+      "nonzero_compiled_vertices": 4166
+    },
+    {
+      "shape_key": "mouthRollUpper",
+      "max_error_source_units": 0.0009976130303571507,
+      "rms_error_source_units": 6.978749605252184e-05,
+      "nonzero_compiled_vertices": 3663
+    },
+    {
+      "shape_key": "mouthShrugLower",
+      "max_error_source_units": 0.000999839563525613,
+      "rms_error_source_units": 4.709559067935715e-05,
+      "nonzero_compiled_vertices": 3173
+    },
+    {
+      "shape_key": "mouthShrugUpper",
+      "max_error_source_units": 0.0009991310039823974,
+      "rms_error_source_units": 7.832653176953507e-05,
+      "nonzero_compiled_vertices": 3175
+    },
+    {
+      "shape_key": "mouthPressLeft",
+      "max_error_source_units": 0.0009995927464005743,
+      "rms_error_source_units": 7.36208099762041e-05,
+      "nonzero_compiled_vertices": 4278
+    },
+    {
+      "shape_key": "mouthPressRight",
+      "max_error_source_units": 0.0009994575369669087,
+      "rms_error_source_units": 7.388801914910764e-05,
+      "nonzero_compiled_vertices": 4296
+    },
+    {
+      "shape_key": "mouthLowerDownLeft",
+      "max_error_source_units": 0.0009930796675522875,
+      "rms_error_source_units": 5.0347718106887665e-05,
+      "nonzero_compiled_vertices": 3081
+    },
+    {
+      "shape_key": "mouthLowerDownRight",
+      "max_error_source_units": 0.0009922957274244352,
+      "rms_error_source_units": 5.0931953635291927e-05,
+      "nonzero_compiled_vertices": 3088
+    },
+    {
+      "shape_key": "mouthUpperUpLeft",
+      "max_error_source_units": 0.0009994048415656242,
+      "rms_error_source_units": 7.79298452174258e-05,
+      "nonzero_compiled_vertices": 3580
+    },
+    {
+      "shape_key": "mouthUpperUpRight",
+      "max_error_source_units": 0.0009986752095557832,
+      "rms_error_source_units": 7.691784829755355e-05,
+      "nonzero_compiled_vertices": 3593
+    },
+    {
+      "shape_key": "browDownLeft",
+      "max_error_source_units": 0.0009990301563011059,
+      "rms_error_source_units": 5.2084147191023806e-05,
+      "nonzero_compiled_vertices": 2205
+    },
+    {
+      "shape_key": "browDownRight",
+      "max_error_source_units": 0.0009912564068775118,
+      "rms_error_source_units": 5.194890679922111e-05,
+      "nonzero_compiled_vertices": 2205
+    },
+    {
+      "shape_key": "browInnerUp",
+      "max_error_source_units": 0.0009990117707712823,
+      "rms_error_source_units": 5.266961366503238e-05,
+      "nonzero_compiled_vertices": 1328
+    },
+    {
+      "shape_key": "browOuterUpLeft",
+      "max_error_source_units": 0.0009962136241352755,
+      "rms_error_source_units": 4.2500911104749924e-05,
+      "nonzero_compiled_vertices": 786
+    },
+    {
+      "shape_key": "browOuterUpRight",
+      "max_error_source_units": 0.0009971680856231963,
+      "rms_error_source_units": 4.1281793743640354e-05,
+      "nonzero_compiled_vertices": 783
+    },
+    {
+      "shape_key": "cheekPuff",
+      "max_error_source_units": 0.0009995212127942277,
+      "rms_error_source_units": 7.271230613007465e-05,
+      "nonzero_compiled_vertices": 7215
+    },
+    {
+      "shape_key": "cheekSquintLeft",
+      "max_error_source_units": 0.0009952465673800316,
+      "rms_error_source_units": 5.1428690984878605e-05,
+      "nonzero_compiled_vertices": 2300
+    },
+    {
+      "shape_key": "cheekSquintRight",
+      "max_error_source_units": 0.000991318304644593,
+      "rms_error_source_units": 5.007724706638364e-05,
+      "nonzero_compiled_vertices": 2320
+    },
+    {
+      "shape_key": "noseSneerLeft",
+      "max_error_source_units": 0.0009947958000960265,
+      "rms_error_source_units": 8.656668719759006e-05,
+      "nonzero_compiled_vertices": 4013
+    },
+    {
+      "shape_key": "noseSneerRight",
+      "max_error_source_units": 0.0009979905615846065,
+      "rms_error_source_units": 9.163997555903505e-05,
+      "nonzero_compiled_vertices": 3947
+    },
+    {
+      "shape_key": "tongueOut",
+      "max_error_source_units": 0.0010452004856568698,
+      "rms_error_source_units": 0.00019365738657662663,
+      "nonzero_compiled_vertices": 7231
+    },
+    {
+      "shape_key": "browLowerL",
+      "max_error_source_units": 0.0009990301563011059,
+      "rms_error_source_units": 5.2084147191023806e-05,
+      "nonzero_compiled_vertices": 2205
+    },
+    {
+      "shape_key": "browLowerR",
+      "max_error_source_units": 0.0009912564068775118,
+      "rms_error_source_units": 5.194890679922111e-05,
+      "nonzero_compiled_vertices": 2205
+    },
+    {
+      "shape_key": "innerBrowRaiserL",
+      "max_error_source_units": 0.0009948335408725465,
+      "rms_error_source_units": 5.487371237273338e-05,
+      "nonzero_compiled_vertices": 1186
+    },
+    {
+      "shape_key": "innerBrowRaiserR",
+      "max_error_source_units": 0.0009990431788836733,
+      "rms_error_source_units": 5.4490085076996014e-05,
+      "nonzero_compiled_vertices": 1188
+    },
+    {
+      "shape_key": "outerBrowRaiserL",
+      "max_error_source_units": 0.0009962136241352755,
+      "rms_error_source_units": 4.2500911104749924e-05,
+      "nonzero_compiled_vertices": 786
+    },
+    {
+      "shape_key": "outerBrowRaiserR",
+      "max_error_source_units": 0.0009971680856231963,
+      "rms_error_source_units": 4.1281793743640354e-05,
+      "nonzero_compiled_vertices": 783
+    },
+    {
+      "shape_key": "eyesLookLeft",
+      "max_error_source_units": 0.0009906809884520644,
+      "rms_error_source_units": 5.101355953978217e-05,
+      "nonzero_compiled_vertices": 4475
+    },
+    {
+      "shape_key": "eyesLookRight",
+      "max_error_source_units": 0.0009798496078309688,
+      "rms_error_source_units": 5.2333031607188263e-05,
+      "nonzero_compiled_vertices": 4470
+    },
+    {
+      "shape_key": "eyesLookUp",
+      "max_error_source_units": 0.0009963941154100982,
+      "rms_error_source_units": 5.656343773874976e-05,
+      "nonzero_compiled_vertices": 4444
+    },
+    {
+      "shape_key": "eyesLookDown",
+      "max_error_source_units": 0.0009687996384848386,
+      "rms_error_source_units": 4.521950896650527e-05,
+      "nonzero_compiled_vertices": 4381
+    },
+    {
+      "shape_key": "eyesUpperLidRaiserL",
+      "max_error_source_units": 0.000999969729158916,
+      "rms_error_source_units": 4.380981482567598e-05,
+      "nonzero_compiled_vertices": 2017
+    },
+    {
+      "shape_key": "eyesUpperLidRaiserR",
+      "max_error_source_units": 0.0009998279473293784,
+      "rms_error_source_units": 4.244498114699302e-05,
+      "nonzero_compiled_vertices": 2022
+    },
+    {
+      "shape_key": "squintL",
+      "max_error_source_units": 0.0009951667175315908,
+      "rms_error_source_units": 4.834821564001953e-05,
+      "nonzero_compiled_vertices": 2351
+    },
+    {
+      "shape_key": "squintR",
+      "max_error_source_units": 0.0009992913365281103,
+      "rms_error_source_units": 5.059177740979172e-05,
+      "nonzero_compiled_vertices": 2356
+    },
+    {
+      "shape_key": "cheekRaiserL",
+      "max_error_source_units": 0.0009952465673800316,
+      "rms_error_source_units": 5.1428690984878605e-05,
+      "nonzero_compiled_vertices": 2300
+    },
+    {
+      "shape_key": "cheekRaiserR",
+      "max_error_source_units": 0.000991318304644593,
+      "rms_error_source_units": 5.007724706638364e-05,
+      "nonzero_compiled_vertices": 2320
+    },
+    {
+      "shape_key": "cheekPuffL",
+      "max_error_source_units": 0.0009976709323736388,
+      "rms_error_source_units": 6.770181504704832e-05,
+      "nonzero_compiled_vertices": 3974
+    },
+    {
+      "shape_key": "cheekPuffR",
+      "max_error_source_units": 0.0009986279658140856,
+      "rms_error_source_units": 6.762244189857653e-05,
+      "nonzero_compiled_vertices": 4019
+    },
+    {
+      "shape_key": "noseWrinklerL",
+      "max_error_source_units": 0.0009947958000960265,
+      "rms_error_source_units": 8.656668719759006e-05,
+      "nonzero_compiled_vertices": 4013
+    },
+    {
+      "shape_key": "noseWrinklerR",
+      "max_error_source_units": 0.0009979905615846065,
+      "rms_error_source_units": 9.163997555903505e-05,
+      "nonzero_compiled_vertices": 3947
+    },
+    {
+      "shape_key": "jawDropLipTowards",
+      "max_error_source_units": 0.001070926954974429,
+      "rms_error_source_units": 0.00023323458632786806,
+      "nonzero_compiled_vertices": 9548
+    },
+    {
+      "shape_key": "jawThrust",
+      "max_error_source_units": 0.0009983307912776564,
+      "rms_error_source_units": 0.00010019107680801297,
+      "nonzero_compiled_vertices": 7182
+    },
+    {
+      "shape_key": "jawSlideLeft",
+      "max_error_source_units": 0.0009969697175108067,
+      "rms_error_source_units": 9.104204437063484e-05,
+      "nonzero_compiled_vertices": 7049
+    },
+    {
+      "shape_key": "jawSlideRight",
+      "max_error_source_units": 0.0009995745773637857,
+      "rms_error_source_units": 9.111177940592835e-05,
+      "nonzero_compiled_vertices": 7046
+    },
+    {
+      "shape_key": "mouthSlideLeft",
+      "max_error_source_units": 0.0009975523667902191,
+      "rms_error_source_units": 9.404056062774974e-05,
+      "nonzero_compiled_vertices": 7510
+    },
+    {
+      "shape_key": "mouthSlideRight",
+      "max_error_source_units": 0.0009966887021017573,
+      "rms_error_source_units": 9.416380804948571e-05,
+      "nonzero_compiled_vertices": 7509
+    },
+    {
+      "shape_key": "dimplerL",
+      "max_error_source_units": 0.0009991303141562496,
+      "rms_error_source_units": 8.080500258367838e-05,
+      "nonzero_compiled_vertices": 4006
+    },
+    {
+      "shape_key": "dimplerR",
+      "max_error_source_units": 0.0009987165104237083,
+      "rms_error_source_units": 8.12646577146942e-05,
+      "nonzero_compiled_vertices": 4028
+    },
+    {
+      "shape_key": "lipCornerPullerL",
+      "max_error_source_units": 0.0009984667510646264,
+      "rms_error_source_units": 9.081807359580321e-05,
+      "nonzero_compiled_vertices": 5892
+    },
+    {
+      "shape_key": "lipCornerPullerR",
+      "max_error_source_units": 0.0009996466047072934,
+      "rms_error_source_units": 9.079207449740935e-05,
+      "nonzero_compiled_vertices": 5903
+    },
+    {
+      "shape_key": "lipCornerDepressorL",
+      "max_error_source_units": 0.000991123447134466,
+      "rms_error_source_units": 6.850499038247085e-05,
+      "nonzero_compiled_vertices": 2944
+    },
+    {
+      "shape_key": "lipCornerDepressorR",
+      "max_error_source_units": 0.0009911178839252409,
+      "rms_error_source_units": 6.907598187261849e-05,
+      "nonzero_compiled_vertices": 2993
+    },
+    {
+      "shape_key": "lipStretcherL",
+      "max_error_source_units": 0.0009990104407411073,
+      "rms_error_source_units": 9.965173815615476e-05,
+      "nonzero_compiled_vertices": 4948
+    },
+    {
+      "shape_key": "lipStretcherR",
+      "max_error_source_units": 0.000999825218372025,
+      "rms_error_source_units": 9.964581678498597e-05,
+      "nonzero_compiled_vertices": 4885
+    },
+    {
+      "shape_key": "upperLipRaiserL",
+      "max_error_source_units": 0.0009994048415656242,
+      "rms_error_source_units": 7.79298452174258e-05,
+      "nonzero_compiled_vertices": 3580
+    },
+    {
+      "shape_key": "upperLipRaiserR",
+      "max_error_source_units": 0.0009986752095557832,
+      "rms_error_source_units": 7.691784829755355e-05,
+      "nonzero_compiled_vertices": 3593
+    },
+    {
+      "shape_key": "lowerLipDepressorL",
+      "max_error_source_units": 0.0009930796675522875,
+      "rms_error_source_units": 5.0347718106887665e-05,
+      "nonzero_compiled_vertices": 3081
+    },
+    {
+      "shape_key": "lowerLipDepressorR",
+      "max_error_source_units": 0.0009922957274244352,
+      "rms_error_source_units": 5.0931953635291927e-05,
+      "nonzero_compiled_vertices": 3088
+    },
+    {
+      "shape_key": "chinRaiser",
+      "max_error_source_units": 0.0009996470525073672,
+      "rms_error_source_units": 8.055031273345798e-05,
+      "nonzero_compiled_vertices": 6770
+    },
+    {
+      "shape_key": "lipPressor",
+      "max_error_source_units": 0.0009928800317611703,
+      "rms_error_source_units": 7.975043544278223e-05,
+      "nonzero_compiled_vertices": 5019
+    },
+    {
+      "shape_key": "pucker",
+      "max_error_source_units": 0.0009910678064674796,
+      "rms_error_source_units": 7.535435618163578e-05,
+      "nonzero_compiled_vertices": 5328
+    },
+    {
+      "shape_key": "funneler",
+      "max_error_source_units": 0.0009997967912900134,
+      "rms_error_source_units": 0.0001777742076437379,
+      "nonzero_compiled_vertices": 8605
+    },
+    {
+      "shape_key": "lipSuck",
+      "max_error_source_units": 0.0009971937659782194,
+      "rms_error_source_units": 7.232693245966426e-05,
+      "nonzero_compiled_vertices": 4619
+    },
+    {
+      "shape_key": "tongueOut.001",
+      "max_error_source_units": 0.0010452004856568698,
+      "rms_error_source_units": 0.00019365738657662663,
+      "nonzero_compiled_vertices": 7231
+    },
+    {
+      "shape_key": "tongueUp",
+      "max_error_source_units": 0.000690460205078125,
+      "rms_error_source_units": 1.5488193003814372e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueBack",
+      "max_error_source_units": 0.000690460205078125,
+      "rms_error_source_units": 2.168062968686356e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueTwistLeft",
+      "max_error_source_units": 0.0009496720662939269,
+      "rms_error_source_units": 3.251046830640466e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueTwistRight",
+      "max_error_source_units": 0.0010012276385763937,
+      "rms_error_source_units": 3.4825725438279095e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueLeft",
+      "max_error_source_units": 0.0009416930263828205,
+      "rms_error_source_units": 1.8932888827322603e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueRight",
+      "max_error_source_units": 0.0009351779958327681,
+      "rms_error_source_units": 1.874221538089988e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueWide",
+      "max_error_source_units": 0.000690460205078125,
+      "rms_error_source_units": 2.0311877365803855e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueThin",
+      "max_error_source_units": 0.000690460205078125,
+      "rms_error_source_units": 1.3771757389078692e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueCurlUp",
+      "max_error_source_units": 0.0009690394317398473,
+      "rms_error_source_units": 3.5372490090075015e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "tongueCurlDown",
+      "max_error_source_units": 0.0009909123763786882,
+      "rms_error_source_units": 3.9561544818956696e-05,
+      "nonzero_compiled_vertices": 284
+    },
+    {
+      "shape_key": "Breathe1",
+      "max_error_source_units": 0.0009994590459112733,
+      "rms_error_source_units": 9.740836700189064e-05,
+      "nonzero_compiled_vertices": 2019
+    },
+    {
+      "shape_key": "Breathe2",
+      "max_error_source_units": 0.0009970115665188972,
+      "rms_error_source_units": 7.396753472064174e-05,
+      "nonzero_compiled_vertices": 1759
+    },
+    {
+      "shape_key": "eyesCloseL",
+      "max_error_source_units": 0.0010270494103976724,
+      "rms_error_source_units": 0.0001396467515326454,
+      "nonzero_compiled_vertices": 9728
+    },
+    {
+      "shape_key": "eyeCloseL",
+      "max_error_source_units": 0.0010270494103976724,
+      "rms_error_source_units": 0.0001396467515326454,
+      "nonzero_compiled_vertices": 9728
+    },
+    {
+      "shape_key": "eyesCloseR",
+      "max_error_source_units": 0.0010592332484514306,
+      "rms_error_source_units": 0.00014456036759140565,
+      "nonzero_compiled_vertices": 9900
+    },
+    {
+      "shape_key": "eyeCloseR",
+      "max_error_source_units": 0.0010592332484514306,
+      "rms_error_source_units": 0.00014456036759140565,
+      "nonzero_compiled_vertices": 9900
+    },
+    {
+      "shape_key": "Key 1",
+      "max_error_source_units": 0.0009970115665188972,
+      "rms_error_source_units": 6.776254660018747e-05,
+      "nonzero_compiled_vertices": 570
+    },
+    {
+      "shape_key": "vrc.v_e",
+      "max_error_source_units": 0.0010181495083247578,
+      "rms_error_source_units": 0.00019482085250029378,
+      "nonzero_compiled_vertices": 9778
+    },
+    {
+      "shape_key": "vrc.v_nn",
+      "max_error_source_units": 0.0009978776646962263,
+      "rms_error_source_units": 0.00014920130133941673,
+      "nonzero_compiled_vertices": 8783
+    },
+    {
+      "shape_key": "nn.001",
+      "max_error_source_units": 0.0009978776646962263,
+      "rms_error_source_units": 0.00014814996156539622,
+      "nonzero_compiled_vertices": 8678
+    },
+    {
+      "shape_key": "vrc.v_ih",
+      "max_error_source_units": 0.0009985043006928748,
+      "rms_error_source_units": 0.0001621286085651104,
+      "nonzero_compiled_vertices": 9116
+    },
+    {
+      "shape_key": "vrc.v_dd",
+      "max_error_source_units": 0.0009952422266373492,
+      "rms_error_source_units": 0.00016500692718370211,
+      "nonzero_compiled_vertices": 8664
+    },
+    {
+      "shape_key": "vrc.v_ss",
+      "max_error_source_units": 0.0009998393179048435,
+      "rms_error_source_units": 0.00014738692513749325,
+      "nonzero_compiled_vertices": 8890
+    },
+    {
+      "shape_key": "vrc.v_ff",
+      "max_error_source_units": 0.0009996338032267004,
+      "rms_error_source_units": 0.00013945730408445976,
+      "nonzero_compiled_vertices": 8619
+    },
+    {
+      "shape_key": "Key 12",
+      "max_error_source_units": 0.0009970115665188972,
+      "rms_error_source_units": 6.572406536278048e-05,
+      "nonzero_compiled_vertices": 541
+    },
+    {
+      "shape_key": "vrc.v_kk",
+      "max_error_source_units": 0.0009998695132616593,
+      "rms_error_source_units": 0.00018634833781696497,
+      "nonzero_compiled_vertices": 9834
+    },
+    {
+      "shape_key": "vrc.v_rr",
+      "max_error_source_units": 0.0009991763963407665,
+      "rms_error_source_units": 0.00022102685788340262,
+      "nonzero_compiled_vertices": 10568
+    },
+    {
+      "shape_key": "Glasses",
+      "max_error_source_units": 0.0009970115665188972,
+      "rms_error_source_units": 0.00012957268978627118,
+      "nonzero_compiled_vertices": 454
+    },
+    {
+      "shape_key": "Key 144",
+      "max_error_source_units": 0.0009970115665188972,
+      "rms_error_source_units": 6.630953956618633e-05,
+      "nonzero_compiled_vertices": 258
+    },
+    {
+      "shape_key": "vrc.v_sil",
+      "max_error_source_units": 0.0,
+      "rms_error_source_units": 0.0,
+      "nonzero_compiled_vertices": 0
+    },
+    {
+      "shape_key": "DisableShirt",
+      "max_error_source_units": 0.0009994455150955635,
+      "rms_error_source_units": 0.00017390136433149215,
+      "nonzero_compiled_vertices": 1060
+    },
+    {
+      "shape_key": "vrc.v_pp",
+      "max_error_source_units": 0.000998808890476101,
+      "rms_error_source_units": 8.51739022415114e-05,
+      "nonzero_compiled_vertices": 4699
+    },
+    {
+      "shape_key": "vrc.v_th",
+      "max_error_source_units": 0.0009991897451321358,
+      "rms_error_source_units": 0.00016060489009442737,
+      "nonzero_compiled_vertices": 8446
+    },
+    {
+      "shape_key": "vrc.v_ch",
+      "max_error_source_units": 0.0009987558958447318,
+      "rms_error_source_units": 0.0001768767368049305,
+      "nonzero_compiled_vertices": 9176
+    },
+    {
+      "shape_key": "vrc.v_aa",
+      "max_error_source_units": 0.0013514646708308944,
+      "rms_error_source_units": 0.0002516244701471345,
+      "nonzero_compiled_vertices": 9759
+    },
+    {
+      "shape_key": "vrc.v_ou",
+      "max_error_source_units": 0.00104090257525964,
+      "rms_error_source_units": 0.00022682110547727857,
+      "nonzero_compiled_vertices": 15861
+    },
+    {
+      "shape_key": "vrc.v_oh",
+      "max_error_source_units": 0.0009998535593682067,
+      "rms_error_source_units": 0.00023524777009038876,
+      "nonzero_compiled_vertices": 15680
+    },
+    {
+      "shape_key": "jawDrop",
+      "max_error_source_units": 0.0012984467690109079,
+      "rms_error_source_units": 0.00023963093231456933,
+      "nonzero_compiled_vertices": 9603
+    },
+    {
+      "shape_key": "mouthClose",
+      "max_error_source_units": 0.001298446778587348,
+      "rms_error_source_units": 0.0001910309170832915,
+      "nonzero_compiled_vertices": 7687
+    }
+  ]
+}

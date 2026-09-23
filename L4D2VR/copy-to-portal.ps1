@@ -180,8 +180,24 @@ if (Test-Path -LiteralPath $materialSource) {
 }
 
 $customVpkSource = Join-Path $PSScriptRoot "custom\bowman_portal1.vpk"
+$customVpkArchive = Join-Path $PSScriptRoot "custom\bowman_portal1.zip"
 $customVpkDestination = Join-Path $portalDir "portal\custom\bowman_portal1.vpk"
-if (Test-Path -LiteralPath $customVpkSource) {
+if (Test-Path -LiteralPath $customVpkArchive) {
+    # Store the losslessly compressed model in Git; Source still loads a VPK.
+    # Extract only the expected file so archive paths cannot escape custom/.
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $modelArchive = [IO.Compression.ZipFile]::OpenRead($customVpkArchive)
+    try {
+        if ($modelArchive.Entries.Count -ne 1 -or $modelArchive.Entries[0].FullName -ne 'bowman_portal1.vpk') {
+            throw 'The Bowman model archive must contain only bowman_portal1.vpk.'
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path $customVpkDestination) | Out-Null
+        [IO.Compression.ZipFileExtensions]::ExtractToFile($modelArchive.Entries[0], $customVpkDestination, $true)
+    } finally {
+        $modelArchive.Dispose()
+    }
+    Write-Host "Installed custom viewmodel and playermodel VPK"
+} elseif (Test-Path -LiteralPath $customVpkSource) {
     New-Item -ItemType Directory -Force -Path (Split-Path $customVpkDestination) | Out-Null
     Copy-Item -LiteralPath $customVpkSource -Destination $customVpkDestination -Force
     Write-Host "Installed custom viewmodel and playermodel VPK"

@@ -1,0 +1,20 @@
+[
+  {
+    "scene": "Bowman - Portal gun hands",
+    "wrist_bone": 8,
+    "distal_vertices_checked": 562,
+    "maximum_palm_weight_on_distal_fingers": 0
+  },
+  {
+    "scene": "Bowman - Opening hands",
+    "wrist_bone": 8,
+    "distal_vertices_checked": 562,
+    "maximum_palm_weight_on_distal_fingers": 0
+  },
+  {
+    "scene": "Bowman - Opening hands",
+    "wrist_bone": 27,
+    "distal_vertices_checked": 562,
+    "maximum_palm_weight_on_distal_fingers": 0
+  }
+]

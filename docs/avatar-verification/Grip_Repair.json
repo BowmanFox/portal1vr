@@ -1,0 +1,82 @@
+{
+  "underhand_wrist_gun_local": [
+    0,
+    -4,
+    4
+  ],
+  "palm_direction_gun_local": [
+    0,
+    1,
+    0
+  ],
+  "matching_mesh_and_skeleton_rigid_transform": true,
+  "gun_geometry_unchanged": true,
+  "finger_joint_repair": [
+    {
+      "scene": "Bowman - Portal gun hands",
+      "recentered_joints": 9,
+      "neutral_mesh_unchanged": true
+    },
+    {
+      "scene": "Bowman - Opening hands",
+      "recentered_joints": 18,
+      "neutral_mesh_unchanged": true
+    }
+  ],
+  "palm_weight_repair": [
+    {
+      "scene": "Bowman - Portal gun hands",
+      "reweighted_vertices": 1152,
+      "neutral_mesh_unchanged": true,
+      "max_influences": 3
+    },
+    {
+      "scene": "Bowman - Opening hands",
+      "reweighted_vertices": 2304,
+      "neutral_mesh_unchanged": true,
+      "max_influences": 3
+    }
+  ],
+  "resting_finger_curls": [
+    0.55,
+    0.65,
+    0.8,
+    0.8,
+    0.8
+  ],
+  "squeezed_finger_curls": [
+    0.8,
+    0.85,
+    0.9,
+    0.9,
+    0.9
+  ],
+  "left_support_socket_gun_local": [
+    2.8,
+    -4.4,
+    15
+  ],
+  "digit_ownership_repair": [
+    {
+      "scene": "Bowman - Portal gun hands",
+      "wrist": 8,
+      "vertices": 1317,
+      "harmonic_iterations": 455,
+      "distal_digits_bound_to_own_chain": true
+    },
+    {
+      "scene": "Bowman - Opening hands",
+      "wrist": 8,
+      "vertices": 1317,
+      "harmonic_iterations": 455,
+      "distal_digits_bound_to_own_chain": true
+    },
+    {
+      "scene": "Bowman - Opening hands",
+      "wrist": 27,
+      "vertices": 1317,
+      "harmonic_iterations": 455,
+      "distal_digits_bound_to_own_chain": true
+    }
+  ]
+}

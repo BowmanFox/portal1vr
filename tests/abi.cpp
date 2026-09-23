@@ -9,6 +9,7 @@
 #include "cameracollision.h"
 #include "portalpose.h"
 #include "pickuptrace.h"
+#include "optionalgungrip.h"
 #include <limits>
 
 static void CheckCameraCollision() {
@@ -162,7 +163,7 @@ static void CheckHandAttachment() {
     const float triggerOnly[5]={0,1,0,0,0};
     HandPose::ApplyGunGrip(gunBind,triggered,triggerOnly);
     assert(fabs(resting[16][2][3]-gunBind[16][2][3]) > 0.1f);
-    assert(fabs(triggered[19][2][3]-resting[19][2][3]) > 0.1f);
+    assert(fabs(triggered[19][2][3]-resting[19][2][3]) > 0.01f);
     for (int i=0;i<45;++i) {
         if (i < 18 || i > 20) assert(!memcmp(&resting[i],&triggered[i],sizeof(matrix3x4_t)));
         if (i <= 8 || i >= 24) assert(!memcmp(&resting[i],&gunBind[i],sizeof(matrix3x4_t)));
@@ -310,7 +311,51 @@ static void __fastcall PushTarget(void *self, void *, ITexture *target, int x, i
     assert(x == 0 && y == 0 && w == 2352 && h == 2352);
 }
 static void __fastcall PopTarget(void *self, void *) { assert(self == expectedThis); }
+static void CheckOptionalGunGrip() {
+    OptionalGunGrip::State grip;
+    assert(!grip.Update(true,true,true,false,3,6));
+    assert(grip.Update(true,true,true,true,3,6));
+    assert(grip.Update(true,true,true,true,10,6));
+    assert(!grip.Update(true,true,true,false,3,6));
+    assert(!grip.Update(true,true,true,true,20,6));
+    assert(!grip.Update(true,true,true,true,3,6)); // Held before entering.
+    grip.Update(true,true,true,false,3,6);
+    assert(grip.Update(true,true,true,true,3,6));
+    assert(!grip.Update(true,true,true,true,16,6)); // Pull-away release.
+    for (int failure=0; failure<4; ++failure) {
+        grip.Update(true,true,true,false,3,6);
+        assert(grip.Update(true,true,true,true,3,6));
+        assert(!grip.Update(failure!=0, failure!=1, failure!=2, true,
+            failure==3 ? std::numeric_limits<float>::quiet_NaN() : 3.0f,6));
+    }
+    const float open[5]={0,0,0,0,0}, closed[5]={1,1,1,1,1}, mid[5]={.6f,.6f,.6f,.6f,.6f};
+    assert(!OptionalGunGrip::Squeeze(false,false,closed,false));
+    assert(OptionalGunGrip::Squeeze(true,false,open,false));
+    assert(OptionalGunGrip::Squeeze(false,true,closed,false));
+    assert(!OptionalGunGrip::Squeeze(false,true,mid,false));
+    assert(OptionalGunGrip::Squeeze(false,true,mid,true));
+    assert(!OptionalGunGrip::Squeeze(false,true,open,true));
+    unsigned char mdl[512]{};
+    auto put=[&](int off,int value){memcpy(mdl+off,&value,4);};
+    put(4,48); put(156,45); put(240,1); put(244,256);
+    put(256,92); put(264,24); memcpy(mdl+348,"lefthand_grip",13);
+    const auto expected=HandPose::Frame({-1,0,0},{0,0,1},{0,1,0},{3,-2,10});
+    memcpy(mdl+268,&expected,sizeof(expected));
+    matrix3x4_t socket;
+    assert(OptionalGunGrip::ReadSocket(mdl,sizeof(mdl),socket));
+    assert(!memcmp(&socket,&expected,sizeof(socket)));
+    assert(!OptionalGunGrip::ReadSocket(mdl,347,socket));
+    put(256,2147483647); assert(!OptionalGunGrip::ReadSocket(mdl,sizeof(mdl),socket));
+    put(256,92); put(264,8); assert(!OptionalGunGrip::ReadSocket(mdl,sizeof(mdl),socket));
+    put(264,24); put(240,-1); assert(!OptionalGunGrip::ReadSocket(mdl,sizeof(mdl),socket));
+    // Cached controller-relative sockets must follow both translation and rotation.
+    const auto controller=HandPose::Frame({0,1,0},{-1,0,0},{0,0,1},{100,200,300});
+    const auto world=HandPose::Concat(controller,expected);
+    const auto restored=HandPose::Concat(HandPose::InverseRigid(controller),world);
+    for(int r=0;r<3;++r) for(int c=0;c<4;++c) assert(fabsf(restored[r][c]-expected[r][c])<.001f);
+}
 int main() {
+    CheckOptionalGunGrip();
     CheckHandAttachment();
     CheckFirstPersonBody();
     CheckCameraCollision();
@@ -349,5 +394,5 @@ int main() {
     void *guard = VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_NOACCESS);
     assert(guard && !SigScanner::GetVirtualFunction(guard,0));
     VirtualFree(guard,0,MEM_RELEASE);
-    puts("Portal ABI, trace, hand attachment, body, collision, portal pickup, and contact pickup regression checks passed");
+    puts("Portal ABI, trace, hand attachment, optional gun support, body, collision, portal pickup, and contact pickup regression checks passed");
 }

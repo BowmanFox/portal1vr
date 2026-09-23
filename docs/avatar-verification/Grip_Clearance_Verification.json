@@ -1,0 +1,29 @@
+{
+  "right_hand": [
+    {
+      "controller_curl": 0,
+      "hand_gun_triangle_overlap_pairs": 0
+    },
+    {
+      "controller_curl": 0.25,
+      "hand_gun_triangle_overlap_pairs": 0
+    },
+    {
+      "controller_curl": 0.5,
+      "hand_gun_triangle_overlap_pairs": 0
+    },
+    {
+      "controller_curl": 0.75,
+      "hand_gun_triangle_overlap_pairs": 0
+    },
+    {
+      "controller_curl": 1,
+      "hand_gun_triangle_overlap_pairs": 0
+    }
+  ],
+  "left_support": {
+    "hand_gun_triangle_overlap_pairs": 0
+  },
+  "method": "BVH triangle-surface intersection checks on the actual compiled and skinned meshes, including opaque and glass gun geometry. Five right-hand curl states and the authored support pose were checked. Open gun components do not define a solid volume, so ray parity is not used as a pass/fail criterion. Other game animations and arbitrary independent left-hand poses are not covered.",
+  "all_tested_hand_gun_surfaces_clear": true
+}

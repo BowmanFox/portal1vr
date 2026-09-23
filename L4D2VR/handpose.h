@@ -138,8 +138,8 @@ inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
     const Vector forward(bind[wrist][0][0], bind[wrist][1][0], bind[wrist][2][0]);
     const Vector palm = Vector(bind[wrist][0][2], bind[wrist][1][2], bind[wrist][2][2])
         * (left ? 1.0f : -1.0f);
-    const float flexion[3] = {0.90f, 1.00f, 0.65f};
-    const float thumbFlexion[3] = {0.20f, 0.45f, 0.30f};
+    const float flexion[3] = {0.70f, 0.80f, 0.45f};
+    const float thumbFlexion[3] = {0.10f, 0.22f, 0.18f};
     for (int finger = 0; finger < 5; ++finger) {
         // Zero is an open hand. Invalid input cannot enter the bone palette.
         const float amount = std::isfinite(curl[finger])
@@ -164,8 +164,13 @@ inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
                 inverseParent[1][0]*axis.x + inverseParent[1][1]*axis.y + inverseParent[1][2]*axis.z,
                 inverseParent[2][0]*axis.x + inverseParent[2][1]*axis.y + inverseParent[2][2]*axis.z);
             const auto local = Concat(inverseParent, bind[bone]);
-            result[bone] = Concat(result[parent], RotateJoint(local, localAxis,
-                amount * (finger == 0 ? thumbFlexion[segment] : flexion[segment])));
+            auto bent = RotateJoint(local, localAxis,
+                amount * (finger == 0 ? thumbFlexion[segment] : flexion[segment]));
+            // The broad paw pads need a little knuckle splay while closing.
+            // Rotate at the joint; never translate the authored knuckle.
+            if (segment == 0 && (finger == 1 || finger == 3))
+                bent = RotateJoint(bent, {0,0,1}, amount * (finger == 1 ? 0.18f : -0.18f));
+            result[bone] = Concat(result[parent], bent);
             parent = bone;
         }
     }
@@ -181,14 +186,15 @@ inline void ApplyFingerCurl(const matrix3x4_t *bind, matrix3x4_t *result,
 inline void ApplyGunGrip(const matrix3x4_t *bind, matrix3x4_t *result,
     const float *curl)
 {
-    // Retain contact with the gun handle when Pico reports an open hand.
-    // The index still has most of its range for trigger motion.
-    const float restingGrip[5] = {0.55f, 0.45f, 0.75f, 0.80f, 0.80f};
+    // The authored palm sits under the rear housing. Use a relaxed curved
+    // grip, with room for thicker fingertips instead of forcing a tight fist.
+    const float restingGrip[5] = {0.55f, 0.65f, 0.80f, 0.80f, 0.80f};
+    const float squeezedGrip[5] = {0.80f, 0.85f, 0.90f, 0.90f, 0.90f};
     float grip[5];
     for (int i = 0; i < 5; ++i) {
         const float input = std::isfinite(curl[i])
             ? fmaxf(0.0f, fminf(1.0f, curl[i])) : 0.0f;
-        grip[i] = restingGrip[i] + (1.0f - restingGrip[i]) * input;
+        grip[i] = restingGrip[i] + (squeezedGrip[i] - restingGrip[i]) * input;
     }
     ApplyFingerCurlChain(bind, result, grip, 0, 8, false);
 }

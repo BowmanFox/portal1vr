@@ -19,6 +19,7 @@
 #include "debuglog.h"
 #include "cameracollision.h"
 #include "portalpose.h"
+#include "optionalgungrip.h"
 
 namespace
 {
@@ -231,6 +232,10 @@ int VR::SetActionManifest(const char *fileName)
 		m_ActionSkeletonLeft = 0;
 	if (m_Input->GetActionHandle("/actions/base/in/skeleton_righthand", &m_ActionSkeletonRight) != vr::VRInputError_None)
 		m_ActionSkeletonRight = 0;
+	if (m_Input->GetActionHandle("/actions/base/in/support_lefthand", &m_ActionSupportLeft) != vr::VRInputError_None)
+		m_ActionSupportLeft = 0;
+	if (m_Input->GetActionHandle("/actions/base/in/support_righthand", &m_ActionSupportRight) != vr::VRInputError_None)
+		m_ActionSupportRight = 0;
 
     m_Input->GetActionSetHandle("/actions/main", &m_ActionSet);
     m_Input->GetActionSetHandle("/actions/base", &m_BaseActionSet);
@@ -620,6 +625,20 @@ void VR::UpdatePosesAndActions()
 	};
 	updateFingerSummary(m_LeftHanded ? m_ActionSkeletonRight : m_ActionSkeletonLeft, m_LeftFingerCurl, m_LeftSkeletonValid);
 	updateFingerSummary(m_LeftHanded ? m_ActionSkeletonLeft : m_ActionSkeletonRight, m_RightFingerCurl, m_RightSkeletonValid);
+	vr::VRControllerState_t offhandState{};
+	const auto offhand = m_System->GetTrackedDeviceIndexForControllerRole(
+		m_LeftHanded ? vr::TrackedControllerRole_RightHand : vr::TrackedControllerRole_LeftHand);
+	bool gripButton = offhand < vr::k_unMaxTrackedDeviceCount
+		&& m_System->GetControllerState(offhand, &offhandState, sizeof(offhandState))
+		&& (offhandState.ulButtonPressed & vr::ButtonMaskFromId(vr::k_EButton_Grip));
+	vr::InputDigitalActionData_t supportInput{};
+	const auto supportAction = m_LeftHanded ? m_ActionSupportRight : m_ActionSupportLeft;
+	const bool supportActionValid = supportAction && m_Input->GetDigitalActionData(supportAction, &supportInput,
+		sizeof(supportInput), vr::k_ulInvalidInputValueHandle) == vr::VRInputError_None
+		&& supportInput.bActive;
+	m_LeftGripPressed = supportActionValid ? supportInput.bState
+		: OptionalGunGrip::Squeeze(gripButton, m_LeftSkeletonValid, m_LeftFingerCurl, m_LeftGripPressed);
+	if (!m_LeftGripPressed || !m_LeftHandGunGrip) m_OptionalSupportActive = false;
 }
 
 void VR::GetViewParameters() 
@@ -786,6 +805,21 @@ void VR::ProcessMenuInput()
     }
 }
 
+bool VR::UpdateOptionalGunSupport(matrix3x4_t *target)
+{
+    const auto controller = HandPose::Frame(-m_RightControllerRight,
+        m_RightControllerUp, m_RightControllerForward, GetRightHandAbsPos());
+    const auto support = HandPose::Concat(controller, m_SupportFromController);
+    const Vector position(support[0][3],support[1][3],support[2][3]);
+    const bool fresh = m_SupportLastSeen && GetTickCount64() - m_SupportLastSeen < 100;
+    m_OptionalSupportActive = m_OptionalGripState.Update(m_LeftHandGunGrip && m_IsVREnabled,
+        m_LeftControllerPose.isValid && m_RightControllerPose.isValid,
+        fresh && OptionalGunGrip::Finite(support), m_LeftGripPressed,
+        sqrtf((GetLeftHandAbsPos()-position).LengthSqr()), m_LeftHandGunGripRadius);
+    if (m_OptionalSupportActive && target) *target = support;
+    return m_OptionalSupportActive;
+}
+
 void VR::ProcessInput()
 {
     if (!m_IsVREnabled)
@@ -886,7 +920,10 @@ void VR::ProcessInput()
         m_Game->ClientCmd_Unrestricted("-jump");
     }
 
-    if (PressedDigitalAction(m_ActionCrouch))
+    // The saved Pico/Touch mapping shares grip with crouch. Consume it only
+    // during the deliberate gun support gesture; other crouching is unchanged.
+    UpdateOptionalGunSupport();
+    if (PressedDigitalAction(m_ActionCrouch) && !m_OptionalSupportActive)
     {
         m_Game->ClientCmd_Unrestricted("+duck");
     }
@@ -1741,6 +1778,10 @@ void VR::ParseConfigFile()
     parseOrDefault("AimMode", m_AimMode, 2);
     parseOrDefault("FirstPersonBody", m_FirstPersonBody, true);
     parseOrDefault("FirstPersonBodyHideUpper", m_FirstPersonBodyHideUpper, true);
+    parseOrDefault("LeftHandGunGrip", m_LeftHandGunGrip, true);
+    parseOrDefault("LeftHandGunGripRadius", m_LeftHandGunGripRadius, 6.0f);
+    m_LeftHandGunGripRadius = std::isfinite(m_LeftHandGunGripRadius)
+        ? std::clamp(m_LeftHandGunGripRadius, 2.0f, 12.0f) : 6.0f;
     parseOrDefault("FirstPersonBodyBackOffset", m_FirstPersonBodyBackOffset, 8.0f);
     m_FirstPersonBodyBackOffset = std::isfinite(m_FirstPersonBodyBackOffset)
         ? std::clamp(m_FirstPersonBodyBackOffset, 0.0f, 24.0f) : 8.0f;

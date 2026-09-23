@@ -2,6 +2,8 @@
 #include "openvr.h"
 #include "vector.h"
 #include <chrono>
+#include <cstdint>
+#include "optionalgungrip.h"
 
 #define MAX_STR_LEN 256
 
@@ -191,6 +193,16 @@ public:
 	float m_RightFingerCurl[5] = { 0.42f, 0.50f, 0.56f, 0.52f, 0.46f };
 	bool m_LeftSkeletonValid = false;
 	bool m_RightSkeletonValid = false;
+	bool m_LeftGripPressed = false;
+	vr::VRActionHandle_t m_ActionSupportLeft = 0;
+	vr::VRActionHandle_t m_ActionSupportRight = 0;
+	bool m_OptionalSupportActive = false;
+	OptionalGunGrip::State m_OptionalGripState;
+	matrix3x4_t m_SupportFromController{};
+	std::uint64_t m_SupportLastSeen = 0;
+	bool UpdateOptionalGunSupport(matrix3x4_t *target = nullptr);
+	bool m_LeftHandGunGrip = true;
+	float m_LeftHandGunGripRadius = 6.0f;
 
 	TrackedDevicePoseData m_HmdPose;
 	TrackedDevicePoseData m_LeftControllerPose;

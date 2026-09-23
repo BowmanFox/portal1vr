@@ -34,7 +34,36 @@
                "path" : "/user/hand/right/input/skeleton/right"
             }
          ],
-         "sources" : []
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/base/in/support_lefthand"
+                  }
+               },
+               "mode" : "button",
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/base/in/support_righthand"
+                  }
+               },
+               "mode" : "button",
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
+               "path" : "/user/hand/right/input/grip"
+            }
+         ]
       },
       "/actions/main" : {
          "sources" : [
@@ -75,11 +104,11 @@
                   }
                },
                "mode" : "button",
-                "parameters" : {
-                   "force_input" : "force",
-                   "click_activate_threshold": "0.45",
-                   "click_deactivate_threshold": "0.4"
-                },
+               "parameters" : {
+                  "force_input" : "force",
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
+               },
                "path" : "/user/hand/left/input/grip"
             },
             {
@@ -117,7 +146,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/b"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/ActivateVR"
@@ -135,7 +164,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/a"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/MenuSelect"
@@ -144,7 +173,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/a"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/MenuBack"
@@ -153,7 +182,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/b"
             },
-			{
+            {
                "inputs" : {
                   "east" : {
                      "output" : "/actions/main/in/MenuRight"
@@ -176,7 +205,7 @@
                },
                "path" : "/user/hand/left/input/thumbstick"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/Scoreboard"
@@ -185,7 +214,7 @@
                "mode" : "button",
                "path" : "/user/hand/left/input/a"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/Pause"
@@ -203,8 +232,8 @@
                "mode" : "button",
                "parameters" : {
                   "force_input" : "force",
-                  "click_activate_threshold": "0.45",
-                  "click_deactivate_threshold": "0.4"
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
                },
                "path" : "/user/hand/left/input/grip"
             },
@@ -217,8 +246,8 @@
                "mode" : "button",
                "parameters" : {
                   "force_input" : "force",
-                  "click_activate_threshold": "0.45",
-                  "click_deactivate_threshold": "0.4"
+                  "click_activate_threshold" : "0.45",
+                  "click_deactivate_threshold" : "0.4"
                },
                "path" : "/user/hand/right/input/grip"
             }
@@ -232,4 +261,3 @@
    "options" : {},
    "simulated_actions" : []
 }
-

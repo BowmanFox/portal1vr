@@ -65,7 +65,13 @@ The gun-hand grip correction is 2.5 Source units backward and 1 unit left. `View
 
 The camera-collision update passes the Release x86 build and regression checks and has been installed for Pico testing. Its ray flags were checked against the installed engine.dll and corrected to Portal 1's layout. A live downward hull probe returned a floor hit at fraction `0.015059`. During play, the camera then logged blocked contact and recovery to zero correction, with successful submissions to both eyes. The Pico tester confirmed the wall fix works. Passage through active portals with this update still needs verification.
 
-The archive also carries the custom `bowman_portal1.vpk` from `portal/custom`, which supplies the custom viewmodels and `chell` playermodel used by the VR build. The installer restores it to that same `portal/custom` location.
+The custom Chell body and both viewmodels are stored losslessly in `L4D2VR/custom/bowman_portal1.zip`. The installer extracts its single `bowman_portal1.vpk` into `portal/custom`. Manual installers should extract that VPK there too, replacing the previous Bowman VPK. ZIP compression keeps the repository asset below GitHub's file-size limit without reducing texture resolution.
+
+The September 23 avatar rebuild retains all 136 expression targets, with 88 direct expression controls and a selector for every target. The right palm sits underneath the portal gun. Finger joints match the paw mesh, distal pads follow their own finger chains, and the runtime avoids the previous forced fist that folded the outer pad and palm. Mesh and skeleton bind transforms were checked against the compiled models.
+
+Optional left-hand support remains free until a fresh grip squeeze near the underside socket. Release grip or pull away to resume independent tracking. `LeftHandGunGrip=false` disables support; `LeftHandGunGripRadius=6` sets the default engagement distance in Source units. Missing tracking or socket data releases support. The supplied controller bindings add support inputs while retaining their existing actions; saved custom layouts may need the support action added manually. Right-hand aiming is unchanged.
+
+The fresh body/viewmodel compiles, expression checks, five sampled gun-grip poses, optional-support clearance, and Release x86 regression tests pass. These changes have not been tested in a headset. The clearance checks concern hands against the gun and each other at the authored support pose; they are not a guarantee against all finger self-contact or arbitrary tracked poses.
 
 ## Build
 

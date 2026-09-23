@@ -9,6 +9,7 @@
 #include "portal1.h"
 #include "debuglog.h"
 #include "handpose.h"
+#include "optionalgungrip.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
@@ -1268,13 +1269,29 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
                     HandPose::ApplyGunGrip(reference, tracked, m_VR->m_RightFingerCurl);
+                    matrix3x4_t socket;
+                    if (modelLength >= 248 && modelLength <= 64 * 1024 * 1024
+                        && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr), modelLength)
+                        && OptionalGunGrip::ReadSocket(hdr, modelLength, socket)) {
+                        // Keep the socket relative to the gun controller, so
+                        // either eye and either draw order use today's tracking.
+                        m_VR->m_SupportFromController = HandPose::Concat(HandPose::InverseRigid(source),
+                            HandPose::Concat(reference[24], socket));
+                        m_VR->m_SupportLastSeen = GetTickCount64();
+                    } else {
+                        m_VR->m_SupportLastSeen = 0;
+                        m_VR->m_OptionalGripState.active = false;
+                        m_VR->m_OptionalSupportActive = false;
+                    }
                 } else {
-                    const auto leftTarget = HandPose::ControllerHandFrame(
+                    auto leftTarget = HandPose::ControllerHandFrame(
                         m_VR->m_LeftHandForward, m_VR->m_LeftControllerRight,
                         m_VR->m_LeftHandUp, m_VR->GetLeftHandAbsPos(), true);
+                    const bool supporting = s_LeftArmRenderable && m_VR->UpdateOptionalGunSupport(&leftTarget);
                     HandPose::AlignBareArms(reference, tracked, leftTarget, rightTarget);
+                    static const float supportCurl[5] = {0.30f, 0.40f, 0.45f, 0.45f, 0.45f};
                     HandPose::ApplyFingerCurl(reference, tracked,
-                        m_VR->m_LeftFingerCurl, m_VR->m_RightFingerCurl);
+                        supporting ? supportCurl : m_VR->m_LeftFingerCurl, m_VR->m_RightFingerCurl);
                     if (s_LeftArmRenderable) {
                         const bool leftOnly = info.pRenderable == s_LeftArmRenderable;
                         const Vector hiddenAt = leftOnly ? m_VR->GetLeftHandAbsPos() : rightPosition;

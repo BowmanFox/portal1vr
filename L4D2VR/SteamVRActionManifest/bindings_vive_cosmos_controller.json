@@ -34,7 +34,26 @@
                "path" : "/user/hand/right/input/skeleton/right"
             }
          ],
-         "sources" : []
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/base/in/support_lefthand"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/base/in/support_righthand"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/grip"
+            }
+         ]
       },
       "/actions/main" : {
          "sources" : [
@@ -112,7 +131,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/b"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/ActivateVR"
@@ -130,7 +149,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/a"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/MenuSelect"
@@ -139,7 +158,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/a"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/MenuBack"
@@ -148,7 +167,7 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/b"
             },
-			{
+            {
                "inputs" : {
                   "east" : {
                      "output" : "/actions/main/in/MenuRight"
@@ -171,7 +190,7 @@
                },
                "path" : "/user/hand/left/input/joystick"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/Scoreboard"
@@ -180,7 +199,7 @@
                "mode" : "button",
                "path" : "/user/hand/left/input/x"
             },
-			{
+            {
                "inputs" : {
                   "click" : {
                      "output" : "/actions/main/in/Pause"
@@ -217,4 +236,3 @@
    "options" : {},
    "simulated_actions" : []
 }
-

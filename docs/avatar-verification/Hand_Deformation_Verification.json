@@ -1,0 +1,60 @@
+{
+  "gun": [
+    {
+      "curl": 0,
+      "nonadjacent_triangle_crossings": 98
+    },
+    {
+      "curl": 0.25,
+      "nonadjacent_triangle_crossings": 109
+    },
+    {
+      "curl": 0.5,
+      "nonadjacent_triangle_crossings": 129
+    },
+    {
+      "curl": 0.75,
+      "nonadjacent_triangle_crossings": 138
+    },
+    {
+      "curl": 1,
+      "nonadjacent_triangle_crossings": 141
+    }
+  ],
+  "bare": [
+    {
+      "curl": 0,
+      "nonadjacent_triangle_crossings": 232
+    },
+    {
+      "curl": 1,
+      "nonadjacent_triangle_crossings": 430
+    }
+  ],
+  "gun_rest_crossings": 116,
+  "bare_rest_crossings": 232,
+  "support_self_crossings": 88,
+  "right_left_crossings": [
+    {
+      "curl": 0,
+      "pairs": 0
+    },
+    {
+      "curl": 0.25,
+      "pairs": 0
+    },
+    {
+      "curl": 0.5,
+      "pairs": 0
+    },
+    {
+      "curl": 0.75,
+      "pairs": 0
+    },
+    {
+      "curl": 1,
+      "pairs": 0
+    }
+  ],
+  "method": "Compiled mesh skinning using native runtime bone palettes. BVH nonadjacent triangle intersections exclude faces sharing a welded rest-position vertex. Separate checks compare the two hands at the authored support pose."
+}
