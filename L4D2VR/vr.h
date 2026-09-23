@@ -223,6 +223,7 @@ public:
 	int m_AimMode = 2;
 	bool m_FirstPersonBody = true;
 	bool m_FirstPersonBodyHideUpper = true;
+	float m_FirstPersonBodyBackOffset = 8.0f;
 
 	VR() {};
 	VR(Game *game);

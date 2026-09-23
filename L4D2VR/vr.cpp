@@ -1738,6 +1738,9 @@ void VR::ParseConfigFile()
     parseOrDefault("AimMode", m_AimMode, 2);
     parseOrDefault("FirstPersonBody", m_FirstPersonBody, true);
     parseOrDefault("FirstPersonBodyHideUpper", m_FirstPersonBodyHideUpper, true);
+    parseOrDefault("FirstPersonBodyBackOffset", m_FirstPersonBodyBackOffset, 8.0f);
+    m_FirstPersonBodyBackOffset = std::isfinite(m_FirstPersonBodyBackOffset)
+        ? std::clamp(m_FirstPersonBodyBackOffset, 0.0f, 24.0f) : 8.0f;
     parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, 0);
     parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);

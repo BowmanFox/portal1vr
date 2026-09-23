@@ -16,6 +16,14 @@ inline Vector HorizontalCameraOffset(const Vector &modelEyes, const Vector &came
     return {camera.x - modelEyes.x, camera.y - modelEyes.y, 0};
 }
 
+inline Vector BackwardOffset(float yaw, float distance)
+{
+    // Use yaw only: looking down must not lift the feet or shorten the offset.
+    if (!std::isfinite(yaw) || !std::isfinite(distance)) return {0,0,0};
+    const float radians = DEG2RAD(yaw);
+    return {-cosf(radians) * distance, -sinf(radians) * distance, 0};
+}
+
 inline bool IsDescendant(const int *parents, int count, int bone, int ancestor)
 {
     if (!parents || count <= 0 || bone < 0 || bone >= count || ancestor < 0 || ancestor >= count)

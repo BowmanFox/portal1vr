@@ -188,6 +188,13 @@ static void CheckFirstPersonBody() {
     const auto secondEye=FirstPersonBody::HorizontalCameraOffset({10,20,62},{15,18,45});
     assert((shift-secondEye).LengthSqr()==0);
 
+    // Setback follows heading, with no vertical movement, including after a
+    // portal turns the player. Zero keeps the previous camera alignment.
+    assert((FirstPersonBody::BackwardOffset(0,8)-Vector(-8,0,0)).LengthSqr()<0.0001f);
+    assert((FirstPersonBody::BackwardOffset(90,8)-Vector(0,-8,0)).LengthSqr()<0.0001f);
+    assert((FirstPersonBody::BackwardOffset(180,8)-Vector(8,0,0)).LengthSqr()<0.0001f);
+    assert(FirstPersonBody::BackwardOffset(35,0).LengthSqr()==0);
+
     // root -> hips -> upper body -> upper child, with a separate leg branch.
     const int parents[6] = {-1, 0, 1, 2, 1, 4};
     matrix3x4_t bones[6];

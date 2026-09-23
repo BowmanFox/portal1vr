@@ -338,6 +338,10 @@ namespace
 				(source[leftEye][2][3] + source[rightEye][2][3]) * 0.5f);
 			offset = FirstPersonBody::HorizontalCameraOffset(eyes, s_BodyCameraCenter);
 		}
+		// Set the first-person torso behind the camera without moving hands,
+		// collision, or the complete player model seen through portals.
+		offset += FirstPersonBody::BackwardOffset(s_BodyExpectedView.angles.y,
+			Hooks::m_VR->m_FirstPersonBodyBackOffset);
 		for (int i = 0; i < view.count; ++i) {
 			result[i][0][3] += offset.x;
 			result[i][1][3] += offset.y;
@@ -1198,8 +1202,7 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
 			return hkDrawModelExecute.fOriginal(ecx, state, info, bodyBones);
 	}
 
-	if (localPlayerBody && s_DrawingLocalPlayerBodyDirect
-		&& s_LocalPlayerBodyDrawOffset.LengthSqr() > 0.0001f)
+	if (localPlayerBody && s_DrawingLocalPlayerBodyDirect)
 	{
 		matrix3x4_t bodyBones[FirstPersonBody::MaxBones];
 		if (TranslateFirstPersonBodyBones(state, bones, bodyBones))
