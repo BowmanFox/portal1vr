@@ -1,0 +1,22 @@
+{
+  "attachments": 18,
+  "angle_poses": 60,
+  "queries": 1080,
+  "maximum_matrix_error": 3.8147e-05,
+  "passed": true,
+  "maximum_matrix_error_units": "Source units / matrix components",
+  "release_build_passed": true,
+  "installed_client_abi_checked": true,
+  "animation_preserved": true,
+  "native_bone_cache_unchanged": true,
+  "stereo_queries_do_not_accumulate_transforms": true,
+  "headset_visual_confirmation_pending": true,
+  "gun_fit_translation": [
+    0.218,
+    -7.66,
+    -3.3
+  ],
+  "gun_uniform_scale": 1.2,
+  "hand_roll_degrees": 160,
+  "hand_pitch_degrees": -15
+}

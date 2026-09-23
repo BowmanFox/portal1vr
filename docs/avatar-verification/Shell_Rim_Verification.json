@@ -1,0 +1,27 @@
+{
+  "loops": [
+    {
+      "rim_vertices": 84,
+      "matched_pairs": 78,
+      "maximum_matched_width_difference": 0.0,
+      "minimum_width": 0.0719997039690297,
+      "maximum_width": 0.11999981408463875
+    },
+    {
+      "rim_vertices": 12,
+      "matched_pairs": 0,
+      "maximum_matched_width_difference": 0,
+      "minimum_width": 0.11999944508577993,
+      "maximum_width": 0.12000000735312238
+    },
+    {
+      "rim_vertices": 48,
+      "matched_pairs": 36,
+      "maximum_matched_width_difference": 0.0,
+      "minimum_width": 0.02591950172265313,
+      "maximum_width": 0.12000000624406969
+    }
+  ],
+  "rim_shading_smoothed": true,
+  "new_shell_self_intersections": 0
+}

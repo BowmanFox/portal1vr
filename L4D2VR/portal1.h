@@ -59,6 +59,7 @@ inline constexpr size_t kClientMode_CreateMove = 22;
 inline constexpr size_t kClientMode_GetViewModelFOV = 33;
 inline constexpr size_t kClientRenderable_GetModel = 9;
 inline constexpr size_t kClientRenderable_DrawModel = 10;
+inline constexpr size_t kClientRenderable_SetupBones = 16;
 inline constexpr size_t kClientRenderable_GetRenderOrigin = 1;
 inline constexpr size_t kClientRenderable_GetRenderAngles = 2;
 // Portal 1's CPortal_Player inherits these CBasePlayer implementations. They

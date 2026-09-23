@@ -1,16 +1,19 @@
 {
-  "runtime_dll_sha256": "5d2953ba0b9c988ade2bf1dbebfe155ea4d71abd56e025b9520c8e2b897a47ab",
+  "runtime_dll_sha256": "3f16d57d36169350797a564e4e4db8da8b91cc3c51ede5495fb5be7e719d8817",
   "release_x86_build_passed": true,
   "abi_and_pose_regressions_passed": true,
   "installed_client_trace_layout_guard_verified": true,
   "gun_local_translation_source_units": [
-    -1.5,
-    -1.5,
-    0.75
+    0.218,
+    -7.66,
+    -3.3
   ],
+  "gun_uniform_scale": 1.2,
+  "hand_roll_degrees": 160,
+  "hand_pitch_degrees": -15,
   "tracked_wrist_position_unchanged": true,
   "optional_left_socket_uses_same_fitted_gun_frame": true,
-  "five_right_finger_poses_and_left_support_surface_checks_passed": true,
+  "five_right_paw_shell_and_left_support_checks_passed": true,
   "portal_aware_hull_trace_uses_native_portal_environment": true,
   "invalid_or_unmatched_portal_trace_falls_back_to_engine": true,
   "native_trace_flags_restored": true,

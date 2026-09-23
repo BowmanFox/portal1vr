@@ -57,6 +57,10 @@ class Offsets
 public:
     Offset GetViewModel = { "client.dll", 0xC5D70, "55 8B EC 8B 55 08 53 8B D9 56 8B 94 93 ? ? ? ? 83 FA FF 74 ? A1 ? ? ? ? 8B CA" };
     Offset CalcViewModelView =           { "client.dll", 0x27D750, "55 8B EC 83 EC 34 53 8B D9 80 BB" };
+    // Both functions receive the IClientRenderable subobject (entity + 4).
+    // Matrix: ret 8 at +0x44; origin/angles: ret 12 at +0x7b.
+    Offset GetAttachmentMatrix = { "client.dll", 0xA5C50, "55 8B EC 56 8B 75 08 57 8B F9 83 FE 01 7C 38 3B B7 30 08 00 00 7F 30" };
+    Offset GetAttachmentAngles = { "client.dll", 0xA5D00, "55 8B EC 56 57 8B 7D 08 8B F1 83 FF 01 7C 6F 3B BE 30 08 00 00 7F 67" };
     Offset PlayerPortalled = { "client.dll", 0x22A010, "55 8B EC 56 8B 75 08 57 8B F9 85 F6 74 ? 8D 86 64 08 00 00 C6 87 08 16 00 00 01" };
     Offset CreatePingPointer = { "client.dll", 0x280660, "55 8B EC 83 EC 14 53 56 8B F1 8B 8E ? ? ? ? 57 85 C9 74 30" };
     Offset SetControlPoint = { "client.dll", 0x17BD30, "55 8B EC 53 56 8B 75 0C 57 8B F9 BB ? ? ? ? 84 9F ? ? ? ?" };

@@ -810,7 +810,7 @@ bool VR::UpdateOptionalGunSupport(matrix3x4_t *target)
 {
     const auto controller = HandPose::Frame(-m_RightControllerRight,
         m_RightControllerUp, m_RightControllerForward, GetRightHandAbsPos());
-    const auto support = HandPose::Concat(controller, m_SupportFromController);
+    const auto support = HandPose::RigidOrientation(HandPose::Concat(controller, m_SupportFromController));
     const Vector position(support[0][3],support[1][3],support[2][3]);
     const bool fresh = m_SupportLastSeen && GetTickCount64() - m_SupportLastSeen < 100;
     m_OptionalSupportActive = m_OptionalGripState.Update(m_LeftHandGunGrip && m_IsVREnabled,

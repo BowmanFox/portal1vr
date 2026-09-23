@@ -1,29 +1,49 @@
 {
   "right_hand": [
     {
-      "controller_curl": 0,
-      "hand_gun_triangle_overlap_pairs": 0
+      "curl": 0,
+      "paw_and_finger_shell_intersections": 0,
+      "forearm_at_rear_entry_intersections": 139,
+      "occluded_internal_mechanism_intersections": 216
     },
     {
-      "controller_curl": 0.25,
-      "hand_gun_triangle_overlap_pairs": 0
+      "curl": 0.25,
+      "paw_and_finger_shell_intersections": 0,
+      "forearm_at_rear_entry_intersections": 139,
+      "occluded_internal_mechanism_intersections": 222
     },
     {
-      "controller_curl": 0.5,
-      "hand_gun_triangle_overlap_pairs": 0
+      "curl": 0.5,
+      "paw_and_finger_shell_intersections": 0,
+      "forearm_at_rear_entry_intersections": 139,
+      "occluded_internal_mechanism_intersections": 207
     },
     {
-      "controller_curl": 0.75,
-      "hand_gun_triangle_overlap_pairs": 0
+      "curl": 0.75,
+      "paw_and_finger_shell_intersections": 0,
+      "forearm_at_rear_entry_intersections": 139,
+      "occluded_internal_mechanism_intersections": 192
     },
     {
-      "controller_curl": 1,
-      "hand_gun_triangle_overlap_pairs": 0
+      "curl": 1,
+      "paw_and_finger_shell_intersections": 0,
+      "forearm_at_rear_entry_intersections": 139,
+      "occluded_internal_mechanism_intersections": 194
     }
   ],
+  "gun_uniform_scale": 1.2,
+  "wrist_position_unchanged": true,
+  "grip_roll_degrees": 160,
+  "grip_pitch_degrees": -15,
+  "purpose": "The paw is intentionally enclosed by the housing. Check that palm, thumb and fingertips do not cross either shell surface; forearm entry and hidden internal mechanism overlaps are reported separately.",
+  "all_tested_paw_shell_surfaces_clear": true,
+  "headset_visual_confirmation_pending": true,
   "left_support": {
+    "tested_vertices": 1606,
+    "inside_ray_consensus_vertices": 0,
+    "maximum_depth_source_units": 0,
     "hand_gun_triangle_overlap_pairs": 0
   },
-  "method": "BVH triangle-surface intersection checks on the actual compiled and skinned meshes, including opaque and glass gun geometry. Five right-hand curl states and the authored support pose were checked. Open gun components do not define a solid volume, so ray parity is not used as a pass/fail criterion. Other game animations and arbitrary independent left-hand poses are not covered.",
-  "all_tested_hand_gun_surfaces_clear": true
+  "all_tested_hand_gun_surfaces_clear": false,
+  "deliberate_enclosed_pose_has_rear_entry_and_hidden_internal_overlaps": true
 }

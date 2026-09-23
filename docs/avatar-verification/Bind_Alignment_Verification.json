@@ -22,8 +22,8 @@
     "blender_rest_skin_max_error_source_units": 7.921813834112239e-06,
     "compiled_mesh_max_error_source_units": 3.833723167190328e-05,
     "compiled_bind_matrix_max_component_error": 4.9591064453125e-05,
-    "triangles": 11376,
+    "triangles": 13080,
     "bones": 45,
-    "source_vertices": 6088
+    "source_vertices": 6869
   }
 }

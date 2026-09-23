@@ -1,4 +1,4 @@
-param([string]$PortalClient = '')
+param([string]$PortalClient = '', [string]$PortalGunModel = '')
 $ErrorActionPreference='Stop'
 if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw 'Run this from an x86 Native Tools Command Prompt for Visual Studio.' }
 $repository=Split-Path -Parent $PSScriptRoot
@@ -13,4 +13,10 @@ if ($PortalClient) {
     if ($LASTEXITCODE -ne 0) { throw 'Portal client layout test build failed.' }
     & (Join-Path $output 'portal-client-layout.exe') $PortalClient
     if ($LASTEXITCODE -ne 0) { throw 'Installed Portal client layout is not supported by the portal-aware trace.' }
+}
+if ($PortalGunModel) {
+    & cl.exe /nologo /std:c++17 /EHsc /RTC1 /Od /DWIN32 /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS "/I$repository\L4D2VR" "/I$repository\L4D2VR\sdk" (Join-Path $PSScriptRoot 'gun-model-attachments.cpp') "/Fe$output\gun-model-attachments.exe" "/Fo$output\gun-model-attachments.obj"
+    if ($LASTEXITCODE -ne 0) { throw 'Gun attachment test build failed.' }
+    & (Join-Path $output 'gun-model-attachments.exe') $PortalGunModel
+    if ($LASTEXITCODE -ne 0) { throw 'Compiled gun attachment tests failed.' }
 }

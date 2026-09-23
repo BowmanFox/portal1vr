@@ -54,11 +54,18 @@ inline matrix3x4_t Concat(const matrix3x4_t& parent, const matrix3x4_t& local)
 
 inline matrix3x4_t FitGunToPalm(const matrix3x4_t& gun)
 {
-    // Gun-local axes: +Y is up, +Z points along the barrel. Seat the housing
-    // lower and slightly beside the thick paw pads. Move only the weapon;
-    // the wrist remains at the tracked controller. The support socket uses
-    // this same frame so optional two-hand grip follows the corrected gun.
-    return Concat(gun, Frame({1,0,0}, {0,1,0}, {0,0,1}, {-1.5f,-1.5f,0.75f}));
+    // Uniform weapon scale makes room for the full-size paw inside the housing.
+    // The tracked wrist stays fixed. Attachments use this same fitted frame.
+    return Concat(gun, Frame({1.2f,0,0}, {0,1.2f,0}, {0,0,1.2f}, {.218f,-7.66f,-3.3f}));
+}
+
+inline matrix3x4_t RigidOrientation(matrix3x4_t frame) {
+    // A support hand follows the scaled socket position, retaining hand size.
+    for (int c=0;c<3;++c) {
+        const float length = sqrtf(frame[0][c]*frame[0][c]+frame[1][c]*frame[1][c]+frame[2][c]*frame[2][c]);
+        if (length>1e-8f) for (int r=0;r<3;++r) frame[r][c]/=length;
+    }
+    return frame;
 }
 
 // The rebuilt mesh uses +X toward the fingers and +Y toward the thumb.
@@ -139,7 +146,8 @@ inline matrix3x4_t RotateJoint(const matrix3x4_t& local, const Vector& axis,
 }
 
 inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
-    const float *curl, int offset, int wrist, bool left = true)
+    const float *curl, int offset, int wrist, bool left = true,
+    const float *gripFlexion = nullptr)
 {
     static const int chains[5][3] = {
         {21,22,23}, {18,19,20}, {15,16,17}, {12,13,14}, {9,10,11}
@@ -147,7 +155,8 @@ inline void ApplyFingerCurlChain(const matrix3x4_t *bind, matrix3x4_t *result,
     const Vector forward(bind[wrist][0][0], bind[wrist][1][0], bind[wrist][2][0]);
     const Vector palm = Vector(bind[wrist][0][2], bind[wrist][1][2], bind[wrist][2][2])
         * (left ? 1.0f : -1.0f);
-    const float flexion[3] = {0.70f, 0.80f, 0.45f};
+    const float openHandFlexion[3] = {0.70f, 0.80f, 0.45f};
+    const float *flexion = gripFlexion ? gripFlexion : openHandFlexion;
     const float thumbFlexion[3] = {0.10f, 0.22f, 0.18f};
     for (int finger = 0; finger < 5; ++finger) {
         // Zero is an open hand. Invalid input cannot enter the bone palette.
@@ -192,11 +201,36 @@ inline void ApplyFingerCurl(const matrix3x4_t *bind, matrix3x4_t *result,
     ApplyFingerCurlChain(bind, result, rightCurl, 19, 27, false);
 }
 
+inline void SeatGunHand(matrix3x4_t *bones) {
+    const auto gun = RigidOrientation(bones[24]);
+    const Vector x(gun[0][0],gun[1][0],gun[2][0]);
+    const Vector up(gun[0][1],gun[1][1],gun[2][1]);
+    const Vector forward(gun[0][2],gun[1][2],gun[2][2]);
+    constexpr float radians = 0.017453292519943295f;
+    const auto rotation = Concat(RotateAroundAxis(x,-15*radians),RotateAroundAxis(forward,160*radians));
+    const auto wrist = bones[8];
+    auto target = Concat(rotation,wrist);
+    for (int r=0;r<3;++r) target[r][3]=wrist[r][3];
+    for (int i=0;i<24;++i) bones[i]=Reanchor(bones[i],wrist,target);
+    // Use anatomical joint positions, not a hardcoded bone-roll convention.
+    Vector from(wrist[0][3]-bones[7][0][3],wrist[1][3]-bones[7][1][3],wrist[2][3]-bones[7][2][3]);
+    const float length = sqrtf(from.LengthSqr());
+    if (length<=1e-6f) return;
+    from*=1.0f/length;
+    const Vector to=up*sinf(35*radians)+forward*cosf(35*radians);
+    const Vector axis(from.y*to.z-from.z*to.y,from.z*to.x-from.x*to.z,from.x*to.y-from.y*to.x);
+    const float angle=atan2f(sqrtf(axis.LengthSqr()),from.x*to.x+from.y*to.y+from.z*to.z);
+    auto source=bones[7];for (int r=0;r<3;++r) source[r][3]=wrist[r][3];
+    target=Concat(RotateAroundAxis(axis,angle),source);
+    for (int r=0;r<3;++r) target[r][3]=wrist[r][3];
+    for (int i=0;i<8;++i) bones[i]=Reanchor(bones[i],source,target);
+}
+
 inline void ApplyGunGrip(const matrix3x4_t *bind, matrix3x4_t *result,
     const float *curl)
 {
-    // The authored palm sits under the rear housing. Use a relaxed curved
-    // grip, with room for thicker fingertips instead of forcing a tight fist.
+    // Fold the distal joints back into the rear housing. The independently
+    // tracked bare hand keeps its own open-hand curl profile.
     const float restingGrip[5] = {0.55f, 0.65f, 0.80f, 0.80f, 0.80f};
     const float squeezedGrip[5] = {0.80f, 0.85f, 0.90f, 0.90f, 0.90f};
     float grip[5];
@@ -205,7 +239,9 @@ inline void ApplyGunGrip(const matrix3x4_t *bind, matrix3x4_t *result,
             ? fmaxf(0.0f, fminf(1.0f, curl[i])) : 0.0f;
         grip[i] = restingGrip[i] + (squeezedGrip[i] - restingGrip[i]) * input;
     }
-    ApplyFingerCurlChain(bind, result, grip, 0, 8, false);
+    const float enclosedGripFlexion[3] = {0.50f, 1.20f, 1.20f};
+    ApplyFingerCurlChain(bind, result, grip, 0, 8, false, enclosedGripFlexion);
+    SeatGunHand(result);
 }
 
 inline void StraightenGunWrist(matrix3x4_t *bones) {

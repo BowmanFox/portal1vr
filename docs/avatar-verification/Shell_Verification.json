@@ -1,0 +1,12 @@
+{
+  "shell_material": "materials/models/weapons/v_models/v_portalgun/v_portalgun.vmt",
+  "source_nocull_enabled": true,
+  "original_shader_settings_preserved": true,
+  "added_triangles": 1704,
+  "gun_model_recompiled": true,
+  "unchanged_existing_vpk_entries": 39,
+  "all_body_and_radio_payloads_byte_exact": true,
+  "vpk_entries": 45,
+  "vpk_sha256": "4f736c945a0f89386a6c74cd650118d084fa2a08c50fba5a7b3faeefe9675875",
+  "runtime_visual_confirmation_pending": true
+}

@@ -10,6 +10,7 @@
 #include "debuglog.h"
 #include "handpose.h"
 #include "optionalgungrip.h"
+#include "gunattachments.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
@@ -28,6 +29,12 @@ Hook<tCreateMove> Hooks::hkCreateMove = {};
 Hook<tEndFrame> Hooks::hkEndFrame = {};
 Hook<tCalcViewModelView> Hooks::hkCalcViewModelView = {};
 Hook<tCreateViewModel> Hooks::hkCreateViewModel = {};
+Hook<tGetAttachmentMatrix> Hooks::hkGetAttachmentMatrix = {};
+Hook<tGetAttachmentAngles> Hooks::hkGetAttachmentAngles = {};
+static void *s_RightViewmodelRenderable = nullptr;
+static void *s_GunAttachmentRenderable = nullptr;
+static const void *s_GunAttachmentModel = nullptr;
+static GunAttachments::Model s_GunAttachments;
 static void *s_LeftArmRenderable = nullptr;
 static void *s_LocalPlayerEntity = nullptr;
 static void *s_LocalPlayerRenderable = nullptr;
@@ -568,6 +575,8 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkEyeAngles);
 	EnableIfCreated(hkGetViewModelFOV);
 	EnableIfCreated(hkCreateViewModel);
+	EnableIfCreated(hkGetAttachmentMatrix);
+	EnableIfCreated(hkGetAttachmentAngles);
 	EnableIfCreated(hkDrawModelExecute);
 	EnableIfCreated(hkPlayerPortalled);
 	EnableIfCreated(hkPlayerUse);
@@ -588,6 +597,12 @@ Hooks::~Hooks()
 int Hooks::initSourceHooks()
 {
 	const bool hasOffsets = m_Game->m_Offsets != nullptr;
+	if (hasOffsets) {
+		CreateHookAt(hkGetAttachmentMatrix, m_Game->m_Offsets->GetAttachmentMatrix.address,
+			reinterpret_cast<LPVOID>(&dGetAttachmentMatrix), "Portal1::GetAttachment(matrix)", false);
+		CreateHookAt(hkGetAttachmentAngles, m_Game->m_Offsets->GetAttachmentAngles.address,
+			reinterpret_cast<LPVOID>(&dGetAttachmentAngles), "Portal1::GetAttachment(angles)", false);
+	}
 	CreateHookAt(hkCreateViewModel,
 		SigScanner::FindRttiVtableFunction("server.dll", ".?AVCBasePlayer@@", 323),
 		reinterpret_cast<LPVOID>(&dCreateViewModel), "Portal1::CreateViewModel", false);
@@ -1040,14 +1055,63 @@ void __fastcall Hooks::dCreateViewModel(void *ecx, void *edx, int index)
     }
 }
 
+namespace {
+    bool TrackedGunAttachment(void *renderable, int number, matrix3x4_t& output) {
+        auto *vr = Hooks::m_VR;
+        if (!vr || !vr->m_IsVREnabled || !vr->m_RightControllerPose.isValid
+            || !renderable || renderable != s_RightViewmodelRenderable
+            || renderable != s_GunAttachmentRenderable || number < 1
+            || number > s_GunAttachments.count) return false;
+        const auto getModel = SigScanner::GetVirtualFunction(renderable,Portal1::VTableIndex::kClientRenderable_GetModel);
+        const auto setupBones = SigScanner::GetVirtualFunction(renderable,Portal1::VTableIndex::kClientRenderable_SetupBones);
+        using GetModelFn = const void *(__thiscall *)(void *);
+        using SetupBonesFn = bool (__thiscall *)(void *,matrix3x4_t *,int,int,float);
+        if (!getModel || !setupBones
+            || reinterpret_cast<GetModelFn>(getModel)(renderable) != s_GunAttachmentModel) return false;
+        // The original successful attachment query just computed these native
+        // bones. Copy them; never write transformed matrices into Source's cache.
+        static thread_local bool resolving = false;
+        if (resolving) return false;
+        struct Guard { bool& value; Guard(bool& v):value(v) { value=true; } ~Guard() { value=false; } } guard(resolving);
+        matrix3x4_t nativeBones[128];
+        constexpr int usedByAttachment = 0x200;
+        if (!reinterpret_cast<SetupBonesFn>(setupBones)(renderable,nativeBones,128,usedByAttachment,0.0f)) return false;
+        const auto controller = HandPose::Frame(-vr->m_RightControllerRight,
+            vr->m_RightControllerUp,vr->m_RightControllerForward,vr->GetRightHandAbsPos());
+        if (!s_GunAttachments.Resolve(number,controller,nativeBones,output)) return false;
+        static int logged = 0;
+        if (number == 1 && logged++ < 12)
+            PortalVrLog("VR muzzle attachment aligned origin=%f,%f,%f",output[0][3],output[1][3],output[2][3]);
+        return true;
+    }
+}
+
+bool __fastcall Hooks::dGetAttachmentMatrix(void *ecx, void *edx, int number, matrix3x4_t& matrix) {
+    const bool result = hkGetAttachmentMatrix.fOriginal(ecx,number,matrix);
+    if (result) TrackedGunAttachment(ecx,number,matrix);
+    return result;
+}
+
+bool __fastcall Hooks::dGetAttachmentAngles(void *ecx, void *edx, int number, Vector& origin, QAngle& angles) {
+    const bool result = hkGetAttachmentAngles.fOriginal(ecx,number,origin,angles);
+    matrix3x4_t matrix;
+    if (result && TrackedGunAttachment(ecx,number,matrix)) {
+        origin = PortalPose::Position(matrix);
+        angles = PortalPose::Angles(HandPose::RigidOrientation(matrix));
+    }
+    return result;
+}
+
 void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles)
 {
 	s_LeftArmRenderable = nullptr;
+	s_RightViewmodelRenderable = nullptr;
 	if (m_VR->m_IsVREnabled && m_Game->m_Offsets->GetViewModel.valid) {
 		using GetViewModelFn = void *(__thiscall *)(void *, int, bool);
 		for (int index = 0; index < 2; ++index) {
 			void *vm = reinterpret_cast<GetViewModelFn>(m_Game->m_Offsets->GetViewModel.address)(ecx, index, false);
 			if (vm) {
+				if (index == 0) s_RightViewmodelRenderable = static_cast<unsigned char *>(vm) + 4;
 				if (index == 1) s_LeftArmRenderable = static_cast<unsigned char *>(vm) + 4;
 				using GetWeaponFn = void *(__thiscall *)(void *);
 				const auto getWeapon = SigScanner::GetVirtualFunction(vm, 209);
@@ -1268,6 +1332,15 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
                     const auto fittedGun = HandPose::FitGunToPalm(reference[24]);
                     const auto gunTarget = HandPose::Reanchor(fittedGun, source, target);
+                    if (info.pRenderable == s_RightViewmodelRenderable) {
+                        s_GunAttachmentRenderable = nullptr;
+                        if (modelLength >= 248 && modelLength <= 64 * 1024 * 1024
+                            && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr), modelLength)
+                            && s_GunAttachments.Read(hdr,modelLength,reference)) {
+                            s_GunAttachmentRenderable = info.pRenderable;
+                            s_GunAttachmentModel = info.pModel;
+                        }
+                    }
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
                     HandPose::ApplyGunGrip(reference, tracked, m_VR->m_RightFingerCurl);
                     matrix3x4_t socket;

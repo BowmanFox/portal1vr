@@ -11,7 +11,47 @@
 #include "pickuptrace.h"
 #include "optionalgungrip.h"
 #include "portaltrace.h"
+#include "gunattachments.h"
 #include <limits>
+
+static void CheckGunAttachments() {
+    unsigned char mdl[248+92]{};
+    auto put=[&](int offset,int value){std::memcpy(mdl+offset,&value,4);};
+    put(4,48); put(156,45); put(240,1); put(244,248); put(256,25);
+    std::memcpy(mdl+12,"weapons/v_portalgun.mdl",sizeof("weapons/v_portalgun.mdl"));
+    const auto local=PortalPose::Frame({0,2.2f,2.8f},{0,0,0});
+    std::memcpy(mdl+260,&local,sizeof(local));
+    matrix3x4_t bind[45], native[45];
+    for(auto& b:bind)b=PortalPose::Frame({0,0,0},{0,0,0});
+    bind[8]=PortalPose::Frame({-8,-16,-14},{20,35,10});
+    bind[24]=PortalPose::Frame({-7,-15,-17},{40,15,-10});
+    bind[25]=HandPose::Concat(bind[24],PortalPose::Frame({0,0,20},{0,0,0}));
+    GunAttachments::Model model;
+    assert(model.Read(mdl,sizeof(mdl),bind));
+    auto source=bind[24];for(int r=0;r<3;++r)source[r][3]=bind[8][r][3];
+    for (const QAngle& angle: {QAngle{0,0,0},QAngle{60,135,20},QAngle{-75,-120,-65},QAngle{89,45,90}}) {
+        const auto engine=PortalPose::Frame({100,40,-20},{5,-10,0});
+        for(int i=0;i<45;++i)native[i]=HandPose::Concat(engine,bind[i]);
+        native[25]=HandPose::Concat(native[25],PortalPose::Frame({0,0,-1},{2,0,0}));
+        const auto controller=PortalPose::Frame({-20,30,60},angle);
+        const auto renderedGun=HandPose::Reanchor(HandPose::FitGunToPalm(bind[24]),source,controller);
+        const auto renderedBone=HandPose::Reanchor(native[25],native[24],renderedGun);
+        const auto expected=HandPose::Concat(renderedBone,local);
+        const auto before=native[25];matrix3x4_t first,second;
+        assert(model.Resolve(1,controller,native,first));
+        assert(model.Resolve(1,controller,native,second));
+        for(int r=0;r<3;++r)for(int c=0;c<4;++c)assert(fabs(first[r][c]-expected[r][c])<.0001f);
+        assert(!std::memcmp(&first,&second,sizeof(first)));
+        assert(!std::memcmp(&before,&native[25],sizeof(before)));
+        assert((PortalPose::Position(first)-PortalPose::Position(HandPose::Concat(native[25],local))).LengthSqr()>100);
+        assert(!model.Resolve(0,controller,native,second));
+        assert(!model.Resolve(2,controller,native,second));
+    }
+    assert(!model.Read(mdl,sizeof(mdl)-1,bind));
+    put(256,45);assert(!model.Read(mdl,sizeof(mdl),bind));
+    put(256,25);put(244,2147483647);assert(!model.Read(mdl,sizeof(mdl),bind));
+    put(244,248);mdl[12]='X';assert(!model.Read(mdl,sizeof(mdl),bind));
+}
 
 static void CheckCameraCollision() {
     static_assert(sizeof(Ray_t) == 80);
@@ -167,8 +207,15 @@ static void CheckHandAttachment() {
     assert(fabs(triggered[19][2][3]-resting[19][2][3]) > 0.01f);
     for (int i=0;i<45;++i) {
         if (i < 18 || i > 20) assert(!memcmp(&resting[i],&triggered[i],sizeof(matrix3x4_t)));
-        if (i <= 8 || i >= 24) assert(!memcmp(&resting[i],&gunBind[i],sizeof(matrix3x4_t)));
+        if (i >= 24) assert(!memcmp(&resting[i],&gunBind[i],sizeof(matrix3x4_t)));
     }
+    for(int r=0;r<3;++r) assert(fabsf(resting[8][r][3]-gunBind[8][r][3])<.001f);
+    float beforeLength=0, afterLength=0;
+    for(int r=0;r<3;++r) {
+        beforeLength+=powf(gunBind[8][r][3]-gunBind[7][r][3],2);
+        afterLength+=powf(resting[8][r][3]-resting[7][r][3],2);
+    }
+    assert(fabsf(beforeLength-afterLength)<.001f);
 
     matrix3x4_t gun[45];
     for (auto &bone:gun) bone = source;
@@ -356,12 +403,16 @@ static void CheckOptionalGunGrip() {
     for(int r=0;r<3;++r) for(int c=0;c<4;++c) assert(fabsf(restored[r][c]-expected[r][c])<.001f);
     const auto fitted = HandPose::FitGunToPalm(controller);
     const auto fitLocal = HandPose::Concat(HandPose::InverseRigid(controller), fitted);
-    assert(fabsf(fitLocal[0][3]+1.5f)<.001f && fabsf(fitLocal[1][3]+1.5f)<.001f);
-    assert(fabsf(fitLocal[2][3]-.75f)<.001f);
-    for(int r=0;r<3;++r) for(int c=0;c<3;++c) assert(fitted[r][c]==controller[r][c]);
+    assert(fabsf(fitLocal[0][3]-.218f)<.001f && fabsf(fitLocal[1][3]+7.66f)<.001f);
+    assert(fabsf(fitLocal[2][3]+3.3f)<.001f);
+    for(int r=0;r<3;++r) for(int c=0;c<3;++c) assert(fabsf(fitted[r][c]-1.2f*controller[r][c])<.001f);
     const auto supportWorld = HandPose::Concat(fitted, expected);
-    const auto socketRestored = HandPose::Concat(HandPose::InverseRigid(fitted), supportWorld);
-    for(int r=0;r<3;++r) for(int c=0;c<4;++c) assert(fabsf(socketRestored[r][c]-expected[r][c])<.001f);
+    const auto support = HandPose::RigidOrientation(supportWorld);
+    for(int r=0;r<3;++r) assert(support[r][3]==supportWorld[r][3]);
+    for(int c=0;c<3;++c) {
+        float norm=0;for(int r=0;r<3;++r) norm+=support[r][c]*support[r][c];
+        assert(fabsf(norm-1)<.001f);
+    }
 }
 static unsigned char portalTraceFlags[2];
 static bool invalidPortalTrace = false;
@@ -409,6 +460,7 @@ static void CheckPortalTrace() {
 int main() {
     CheckPortalTrace();
     CheckOptionalGunGrip();
+    CheckGunAttachments();
     CheckHandAttachment();
     CheckFirstPersonBody();
     CheckCameraCollision();

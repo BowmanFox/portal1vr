@@ -30,7 +30,7 @@
     "sound/ambient/music/looping_radio_mix.wav"
   ],
   "other_entries_byte_exact": 42,
-  "vpk_sha256": "fd4511c286c509d1c7c210d7b2eeccb97e4d1afe341ff25ecc93ef3327b435e7",
+  "vpk_sha256": "4f736c945a0f89386a6c74cd650118d084fa2a08c50fba5a7b3faeefe9675875",
   "body_recompiled_after_radio_migration": true,
   "instrumental_payload_unchanged_in_body_rebuild": true
 }
