@@ -10,6 +10,7 @@
 #include "handpose.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
+#include "portalpose.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -80,6 +81,7 @@ Hook<tGetModeHeight> Hooks::hkGetModeHeight = {};
 Hook<tDrawSelf> Hooks::hkDrawSelf = {};
 Hook<tClipTransform> Hooks::hkClipTransform = {};
 Hook<tPlayerPortalled> Hooks::hkPlayerPortalled = {};
+Hook<tPlayerUse> Hooks::hkPlayerUse = {};
 Hook<tVGui_GetHudBounds> Hooks::hkVGui_GetHudBounds = {};
 Hook<tVGui_GetPanelBounds> Hooks::hkVGui_GetPanelBounds = {};
 Hook<tVGUI_UpdateScreenSpaceBounds> Hooks::hkVGUI_UpdateScreenSpaceBounds = {};
@@ -124,6 +126,21 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	bool ServerHandPose(void *player, Vector &position, QAngle &angles)
+	{
+		auto *vr = Hooks::m_VR;
+		if (!vr || !vr->m_GrabPoseValid || !Hooks::hkEyePosition.isCreated()
+			|| !Hooks::hkEyeAngles.isCreated()) return false;
+		Vector eye;
+		const Vector *actualEye = Hooks::hkEyePosition.fOriginal(player, &eye);
+		if (!actualEye) return false;
+		const auto hand = PortalPose::WorldHand(vr->m_GrabHandRelative,
+			*actualEye, Hooks::hkEyeAngles.fOriginal(player));
+		position = PortalPose::Position(hand);
+		angles = PortalPose::Angles(hand);
+		return true;
+	}
+
 	int ServerEntityIndex(void *entity)
 	{
 		const uintptr_t target = SigScanner::GetVirtualFunction(entity,
@@ -537,6 +554,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkCreateViewModel);
 	EnableIfCreated(hkDrawModelExecute);
 	EnableIfCreated(hkPlayerPortalled);
+	EnableIfCreated(hkPlayerUse);
 	EnableIfCreated(hkCHudCrosshair_ShouldDraw);
 	PortalVrLog("Hooks enabled");
 }
@@ -625,6 +643,9 @@ int Hooks::initSourceHooks()
 	if (hasOffsets && m_Game->m_Offsets->TraceFirePortalServer.valid)
 		CreateHookAt(hkTraceFirePortal, m_Game->m_Offsets->TraceFirePortalServer.address, reinterpret_cast<LPVOID>(&dTraceFirePortal), "TraceFirePortalServer", false);
 	if (hasOffsets) {
+		CreateHookAt(hkPlayerUse, SigScanner::FindRttiVtableFunction("server.dll",
+			".?AVCPortal_Player@@", Portal1::VTableIndex::kPortalPlayer_PlayerUse),
+			reinterpret_cast<LPVOID>(&dPlayerUse), "Portal1::PlayerUse", false);
 		const uintptr_t eyePositionTarget = FindPortalPlayerFunction(
 			Portal1::VTableIndex::kPortalPlayer_EyePosition);
 		const uintptr_t shootPositionTarget = FindPortalPlayerFunction(
@@ -670,7 +691,7 @@ int Hooks::initSourceHooks()
 		"Portal1::CHudCrosshair::ShouldDraw",
 		false);
 	PortalVrLog(
-		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p eyePosition=%p shoot=%p computeError=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p",
+		"initSourceHooks targets render=%p createMove=%p getViewModelFov=%p calcViewModel=%p traceFirePortal=%p eyePosition=%p shoot=%p computeError=%p update=%p eyeAngles=%p playerPortalled=%p crosshair=%p playerUse=%p",
 		hkRenderView.pTarget,
 		hkCreateMove.pTarget,
 		hkGetViewModelFOV.pTarget,
@@ -682,7 +703,8 @@ int Hooks::initSourceHooks()
 		hkUpdateObject.pTarget,
 		hkEyeAngles.pTarget,
 		hkPlayerPortalled.pTarget,
-		hkCHudCrosshair_ShouldDraw.pTarget);
+		hkCHudCrosshair_ShouldDraw.pTarget,
+		hkPlayerUse.pTarget);
 	return 1;
 } 
 
@@ -759,22 +781,6 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 
 	CViewSetup desktopView = setup;
 	Vector position = setup.origin;
-
-	if (m_VR->m_ApplyPortalRotationOffset) {
-		Vector vec = position - m_VR->m_SetupOrigin;
-		float distance = sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
-
-		// Rudimentary portalling detection
-		if (distance > 35) {
-			//m_VR->m_RotationOffset.x += m_VR->m_PortalRotationOffset.x;
-			m_VR->m_RotationOffset.y += m_VR->m_PortalRotationOffset.y;
-			//m_VR->m_RotationOffset.z += m_VR->m_PortalRotationOffset.z;
-
-			m_VR->UpdateHMDAngles();
-
-			m_VR->m_ApplyPortalRotationOffset = false;
-		}
-	}
 
 	m_VR->m_SetupOrigin = position;
 	m_VR->UpdateCameraCollision(position);
@@ -920,17 +926,11 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
         return originalResult;
 	if (m_VR->m_IsVREnabled)
 	{
-		// Portal's object pickup code reads the server eye angles while +use is
-		// held. Feed it the portal-gun controller for that interval so the use
-		// trace and the held-object orientation follow the hand instead of the
-		// HMD. Set IN_USE in the command itself so the pickup trace and the
-		// server's button state stay on the same tick. Keep the command's player
-		// view HMD-driven; the grab-specific EyePosition/EyeAngles hooks below
-		// provide the controller pose only to the pickup solver.
+		// Keep IN_USE and the sampled hand on the same tick. PlayerUse and the
+		// grab solver scope the hand override; portal physics must keep seeing
+		// the real player eye pose. Command view angles remain HMD-driven.
 		const bool useHeld = m_VR->PressedDigitalAction(m_VR->m_ActionUse);
-		m_VR->m_GrabUseHeld = useHeld;
-		m_VR->m_GrabControllerPos = m_VR->GetRightControllerAbsPos();
-		m_VR->m_GrabControllerAng = m_VR->GetRightControllerAbsAngle();
+		m_VR->SnapshotGrabPose();
 		cmd->buttons = useHeld ? (cmd->buttons | IN_USE) : (cmd->buttons & ~IN_USE);
 		cmd->viewangles = m_VR->m_HmdAngAbs;
 		static bool lastUseHeld = false;
@@ -1384,9 +1384,9 @@ Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* shootPos)
 
 	if (m_VR->m_IsVREnabled && localIndex > 0 && localIndex == index
 		&& m_VR->m_RightControllerPose.isValid) {
-		*result = m_VR->m_GrabUseHeld
-			? m_VR->m_GrabControllerPos
-			: m_VR->GetRightControllerAbsPos();
+		Vector hand;
+		QAngle angles;
+		if (ServerHandPose(ecx, hand, angles)) *result = hand;
 	}
 	else if (vrPlayer.isUsingVR)
 	{
@@ -1421,24 +1421,39 @@ float __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, bool secondary,
         finalPosition, finalAngles, placedBy, test);
 }
 
-void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3)
+void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* portal)
 {
-	CBaseEntity* pBaseEntity = (CBaseEntity*)ecx;
+	// The verified Portal 1 function copies the portal's VMatrix at +0x864.
+	// Copy before calling the original; only the local player owns our tracking.
+	matrix3x4_t transform;
+	const auto matrixAddress = reinterpret_cast<uintptr_t>(portal) + 0x864;
+	const bool apply = portal && m_VR && m_Game && m_VR->m_IsVREnabled
+		&& ecx == m_Game->GetLocalPortalPlayer()
+		&& SigScanner::IsReadable(matrixAddress, sizeof(transform));
+	if (apply) memcpy(&transform, reinterpret_cast<const void *>(matrixAddress), sizeof(transform));
+	hkPlayerPortalled.fOriginal(ecx, portal);
+	if (!apply) return;
 
-	QAngle angAbsRotationBefore;
-	m_Game->GetViewAngles(angAbsRotationBefore);
+	const float yaw = PortalPose::UprightYawDelta(transform, m_VR->m_HmdAngAbs);
+	m_VR->m_RotationOffset.y = std::remainder(m_VR->m_RotationOffset.y + yaw, 360.0f);
+	m_VR->m_SetupOrigin = PortalPose::Position(HandPose::Concat(transform,
+		PortalPose::Frame(m_VR->m_SetupOrigin, {0,0,0})));
+	m_VR->m_CameraCollisionOffset = {0,0,0};
+	m_VR->m_CameraBlocked = false;
+	// Update both hands and the roomscale offset in this callback, before a
+	// render or pickup update can consume an entry-side pose. No distance gate.
+	m_VR->UpdateTracking();
+	m_VR->SnapshotGrabPose();
+	PortalVrLog("Player portalled: tracking yaw delta=%f origin=%f,%f,%f", yaw,
+		m_VR->m_SetupOrigin.x, m_VR->m_SetupOrigin.y, m_VR->m_SetupOrigin.z);
+}
 
-	hkPlayerPortalled.fOriginal(ecx, a2, a3);
-
-	QAngle angAbsRotationAfter;
-	m_Game->GetViewAngles(angAbsRotationAfter);
-
-	if (angAbsRotationBefore != angAbsRotationAfter) {
-		m_VR->m_PortalRotationOffset = angAbsRotationAfter - angAbsRotationBefore;
-		m_VR->m_ApplyPortalRotationOffset = true;
-	}
-
-	return;
+void __fastcall Hooks::dPlayerUse(void* ecx, void* edx)
+{
+	const bool previous = m_VR->m_OverrideEyeAngles;
+	m_VR->m_OverrideEyeAngles = true;
+	hkPlayerUse.fOriginal(ecx);
+	m_VR->m_OverrideEyeAngles = previous;
 }
 
 int Hooks::dGetModeHeight(void* ecx, void* edx) {
@@ -1604,16 +1619,17 @@ Vector* __fastcall Hooks::dEyePosition(void* ecx, void* edx, Vector* eyePos)
 	const int localIndex = m_Game->GetLocalPlayerIndex();
 	const int index = ServerEntityIndex(ecx);
 	const bool isLocalPlayer = localIndex > 0 && localIndex == index;
-	const bool useHeld = m_VR->m_IsVREnabled && isLocalPlayer && m_VR->m_GrabUseHeld;
 	if (m_VR->m_IsVREnabled && isLocalPlayer
 		&& m_VR->m_RightControllerPose.isValid
-		&& (useHeld || m_VR->m_OverrideEyeAngles))
+		&& m_VR->m_OverrideEyeAngles)
 	{
-		*result = m_VR->m_GrabControllerPos;
+		Vector hand;
+		QAngle angles;
+		if (ServerHandPose(ecx, hand, angles)) *result = hand;
 		static bool logged = false;
 		if (!logged)
 		{
-			PortalVrLog("Controller EyePosition override origin=%f,%f,%f",
+			PortalVrLog("Scoped controller EyePosition override origin=%f,%f,%f",
 				result->x, result->y, result->z);
 			logged = true;
 		}
@@ -1676,9 +1692,7 @@ QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
 		if (index >= 0 && index < static_cast<int>(m_Game->m_PlayersVRInfo.size()))
 		{
 			auto &vrPlayer = m_Game->m_PlayersVRInfo[index];
-			const bool useHeld = m_VR->m_IsVREnabled && localIndex == index
-				&& m_VR->m_GrabUseHeld;
-			if ((m_VR->m_OverrideEyeAngles || useHeld)
+			if (m_VR->m_OverrideEyeAngles
 				&& m_VR->m_IsVREnabled && localIndex > 0 && localIndex == index
 				&& m_VR->m_RightControllerPose.isValid)
 			{
@@ -1690,7 +1704,10 @@ QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
 						controller.x, controller.y, controller.z);
 					logged = true;
 				}
-				return m_VR->m_GrabControllerAng;
+				Vector hand;
+				if (ServerHandPose(ecx, hand, m_VR->m_ServerGrabAngles))
+					return m_VR->m_ServerGrabAngles;
+				return hkEyeAngles.fOriginal(ecx);
 			}
 			if (m_VR->m_OverrideEyeAngles && vrPlayer.isUsingVR)
 				return vrPlayer.controllerAngle;

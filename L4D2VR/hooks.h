@@ -109,7 +109,9 @@ typedef ITexture* (__thiscall* tGetFullScreenTexture)();
 // Portal 1 returns a placement score in ST(0) and pops eight arguments.
 typedef float(__thiscall* tTraceFirePortal)(void* thisptr, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
 
-typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* a2, __int64 a3);
+// Portal 1 takes one portal pointer and pops four bytes (Portal 2 differs).
+typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* portal);
+typedef void(__thiscall* tPlayerUse)(void* thisptr);
 
 typedef int(__thiscall* tGetModeHeight)(void* thisptr);
 typedef int(__thiscall* tDrawSelf)(void* thisptr, int x, int y, int w, int h, const void* clr, float flApparentZ);
@@ -200,6 +202,7 @@ public:
 	static Hook<tDrawSelf> hkDrawSelf;
 	static Hook<tClipTransform> hkClipTransform;
 	static Hook<tPlayerPortalled> hkPlayerPortalled;
+	static Hook<tPlayerUse> hkPlayerUse;
 	static Hook<tVGui_GetHudBounds> hkVGui_GetHudBounds;
 	static Hook<tVGui_GetPanelBounds> hkVGui_GetPanelBounds;
 
@@ -278,7 +281,8 @@ public:
 	static float __fastcall dTraceFirePortal(void* ecx, void* edx, bool secondary, const Vector& start, const Vector& direction, void* trace, Vector& finalPosition, QAngle& finalAngles, int placedBy, bool test);
 
 	// Portalling angle fix
-	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3);
+	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* portal);
+	static void __fastcall dPlayerUse(void* ecx, void* edx);
 
 	// Crosshair
 	static int __fastcall dGetModeHeight(void* ecx, void* edx);

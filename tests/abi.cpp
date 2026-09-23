@@ -7,6 +7,7 @@
 #include "handpose.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
+#include "portalpose.h"
 #include <limits>
 
 static void CheckCameraCollision() {
@@ -222,6 +223,40 @@ static void CheckFirstPersonBody() {
     assert(branches[2][0][0] == 0 && branches[4][1][1] == 0);
 }
 
+static void CheckPortalPickup()
+{
+    const Vector eye(32, -120, 64), offset(24, -12, -18);
+    const QAngle head(12, 173, 5), hand(35, -160, -20);
+    const auto relative = PortalPose::RelativeHand(offset, hand, head);
+    const auto initial = PortalPose::WorldHand(relative, eye, head);
+    const auto expected = PortalPose::Frame(eye + offset, hand);
+    const auto nearFrame = [](const matrix3x4_t& a, const matrix3x4_t& b) {
+        for (int r=0; r<3; ++r) for (int c=0; c<4; ++c)
+            assert(fabsf(a[r][c]-b[r][c]) < 0.002f);
+    };
+    nearFrame(initial, expected);
+    // Server has crossed but the client still holds its entry-side sample.
+    // Translation, yaw reversal, and floor/ceiling rotations must all carry
+    // the entire hand pose, including orientation, to the exit side.
+    for (const QAngle turn : {QAngle(0,0,0), QAngle(0,180,0),
+        QAngle(0,90,0), QAngle(90,0,0), QAngle(-90,0,0), QAngle(0,0,90)}) {
+        const auto portal = PortalPose::Frame({640,-450,300}, turn);
+        const auto exitHead = HandPose::Concat(portal, PortalPose::Frame(eye, head));
+        const auto exitHand = PortalPose::WorldHand(relative,
+            PortalPose::Position(exitHead), PortalPose::Angles(exitHead));
+        nearFrame(exitHand, HandPose::Concat(portal, initial));
+        nearFrame(HandPose::Concat(HandPose::InverseRigid(portal), exitHand), initial);
+        assert(std::isfinite(PortalPose::UprightYawDelta(portal, head)));
+    }
+    const auto quarterTurn = PortalPose::Frame({1,2,3}, {0,90,0});
+    assert(fabsf(PortalPose::UprightYawDelta(quarterTurn, {0,179,0}) - 90) < 0.001f);
+    // A short portal displacement must still turn tracking. Looking straight
+    // into a floor portal uses the lateral axis instead of an undefined yaw.
+    const auto floor = PortalPose::Frame({0,0,0}, {90,0,0});
+    assert(std::isfinite(PortalPose::UprightYawDelta(floor, {0,0,0})));
+    assert(std::isfinite(PortalPose::UprightYawDelta(floor, {90,0,0})));
+}
+
 static void *expectedThis;
 static bool __fastcall InGame(void *self, void *) { assert(self == expectedThis); return true; }
 static void __fastcall GetAngles(void *self, void *, QAngle &out) { assert(self == expectedThis); out = {1,2,3}; }
@@ -236,6 +271,7 @@ int main() {
     CheckHandAttachment();
     CheckFirstPersonBody();
     CheckCameraCollision();
+    CheckPortalPickup();
     static_assert(sizeof(void *) == 4);
     static_assert(sizeof(CViewSetup) == 0xc8);
     static_assert(offsetof(CViewSetup, fov) == 0x38);
@@ -269,5 +305,5 @@ int main() {
     void *guard = VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_NOACCESS);
     assert(guard && !SigScanner::GetVirtualFunction(guard,0));
     VirtualFree(guard,0,MEM_RELEASE);
-    puts("Portal ABI, trace, hand attachment, first-person body, and camera collision regression checks passed");
+    puts("Portal ABI, trace, hand attachment, body, collision, and portal pickup regression checks passed");
 }

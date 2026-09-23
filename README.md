@@ -38,6 +38,8 @@ Choose your preferred display resolution in Portal's video options, then load a 
 - Sweep a camera hull from the player's eye position to the room-scale headset position. Solid walls, doors, glass, and props stop the view before either eye or its near plane crosses the surface. Both hands receive the same correction, and leaning back restores the normal tracking position without moving the tracking origin.
 - Match Portal 1's collision-ray layout, with the ray/swept flags at bytes 64/65. The extra Portal 2 field made the engine treat moving traces as stationary, allowing the headset through walls.
 - Refresh the submitted eye surfaces when Portal reallocates render targets on map load. The old surfaces produced a black headset image even though SteamVR accepted them.
+- Retain the named eye targets across save loads so VR does not reopen material-system allocation during restoration; continue refreshing their underlying surfaces on binding.
+- Use Portal 1's one-argument player-portal callback to turn tracking and both hands immediately, including crossings with little positional displacement. Rebuild server pickup poses relative to the current player eye pose so an entry-side sample follows a server teleport. Limit eye overrides to use/pickup callbacks so ordinary portal physics sees the player's head.
 - Install the action manifest and controller bindings correctly. Guard missing controller poses and use the correct input and cursor interfaces.
 - Hook Portal 1's eight-argument, float-returning `TraceFirePortal` so placement follows the controller instead of head aim.
 - Attach the portal gun at its wrist bone, with the barrel aligned to the shot direction. Transform copies of the bone matrices so eye renders do not compound the pose.
@@ -64,6 +66,8 @@ The camera-collision update passes the Release x86 build and regression checks a
 The archive also carries the custom `bowman_portal1.vpk` from `portal/custom`, which supplies the custom viewmodels and `chell` playermodel used by the VR build. The installer restores it to that same `portal/custom` location.
 
 ## Build
+
+The September 23 portal/pickup and save-load changes pass the Release x86 build and automated pose checks. A live Pico run confirmed both new hooks attach, controller pickup reaches the scoped eye overrides, a portal crossing updates tracking by 90 degrees, and both eyes continue receiving frames afterward. Held-prop behavior during crossing and repeated save-load textures still need gameplay confirmation. Check carrying a cube through both directions, releasing it afterward, and loading a save repeatedly while watching chamber textures.
 
 Install Visual Studio 2022 C++ build tools with the Windows SDK, and Git. Clone this repository recursively, then:
 

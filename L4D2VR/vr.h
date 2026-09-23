@@ -196,16 +196,17 @@ public:
 	TrackedDevicePoseData m_LeftControllerPose;
 	TrackedDevicePoseData m_RightControllerPose;
 
-	bool m_ApplyPortalRotationOffset = false;
-	QAngle m_PortalRotationOffset = {0, 0, 0};
 	QAngle m_RotationOffset = { 0, 0, 0 };
 	bool m_OverrideEyeAngles = false;
 	// Snapshot the hand pose at CreateMove time. Server-side pickup callbacks
 	// can run between SteamVR action samples, so they must not query live input
 	// and accidentally fall back to the HMD pose.
-	bool m_GrabUseHeld = false;
 	Vector m_GrabControllerPos = { 0, 0, 0 };
 	QAngle m_GrabControllerAng = { 0, 0, 0 };
+	matrix3x4_t m_GrabHandRelative;
+	bool m_GrabPoseValid = false;
+	QAngle m_ServerGrabAngles = { 0, 0, 0 };
+	void SnapshotGrabPose();
 	bool m_UseCommandHeld = false;
 	std::chrono::steady_clock::time_point m_PrevFrameTime;
 

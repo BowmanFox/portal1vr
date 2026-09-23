@@ -29,7 +29,7 @@ namespace ClientFunction
 {
 // Resolved from the Portal 1 client.dll decompile / verified Portal 1 RVAs.
 inline constexpr uintptr_t kCalcViewModelView = 0x27D750;
-inline constexpr uintptr_t kPlayerPortalled = 0x27C9D0;
+inline constexpr uintptr_t kPlayerPortalled = 0x22A010;
 inline constexpr uintptr_t kCreatePingPointer = 0x280660;
 inline constexpr uintptr_t kSetControlPoint = 0x17BD30;
 inline constexpr uintptr_t kStopEmission = 0x17B6A0;
@@ -65,6 +65,7 @@ inline constexpr size_t kClientRenderable_GetRenderAngles = 2;
 inline constexpr size_t kPortalPlayer_EyePosition = 130;
 inline constexpr size_t kPortalPlayer_EyeAngles = 131;
 inline constexpr size_t kPortalPlayer_WeaponShootPosition = 267;
+inline constexpr size_t kPortalPlayer_PlayerUse = 407;
 }
 
 namespace ServerFunction

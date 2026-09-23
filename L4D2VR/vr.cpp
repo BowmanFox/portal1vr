@@ -18,6 +18,7 @@
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include "debuglog.h"
 #include "cameracollision.h"
+#include "portalpose.h"
 
 namespace
 {
@@ -306,14 +307,18 @@ void VR::Update()
     {
         //SetScreenSizeOverride(inGame);
 
-        // Only force a texture rebuild when transitioning out of gameplay.
+        // Named Source targets survive map changes. Reopening allocation here
+        // interrupts the material/lightmap restore during a save load. DXVK
+        // refreshes the underlying eye surfaces when Source next binds them.
         if (!inGame)
         {
             m_CameraCollisionOffset = { 0, 0, 0 };
             m_CameraBlocked = false;
             m_Game->m_CachedArmsModel = false;
             if (wasInGame)
-                m_CreatedVRTextures = false;
+                PortalVrLog("Leaving gameplay: retaining named VR render targets");
+            m_RenderedNewFrame = false;
+            m_GrabPoseValid = false;
         } 
 
         if (kEnableMaterialSystemEyeTargets && !m_CreatedVRTextures)
@@ -898,9 +903,7 @@ void VR::ProcessInput()
     // server-side grab callbacks can run before the next CreateMove callback;
     // keeping this snapshot here prevents that first pickup tick from falling
     // back to the HMD pose.
-    m_GrabUseHeld = useHeld;
-    m_GrabControllerPos = GetRightControllerAbsPos();
-    m_GrabControllerAng = GetRightControllerAbsAngle();
+    SnapshotGrabPose();
     if (useHeld != m_UseCommandHeld)
     {
         m_Game->ClientCmd_Unrestricted(useHeld ? "+use" : "-use");
@@ -1143,6 +1146,15 @@ void VR::UpdateHMDAngles() {
 void VR::ResetPosition()
 {
     m_Center = m_HmdPose.TrackedDevicePos;
+}
+
+void VR::SnapshotGrabPose()
+{
+    m_GrabPoseValid = m_RightControllerPose.isValid;
+    m_GrabControllerPos = GetRightControllerAbsPos();
+    m_GrabControllerAng = GetRightControllerAbsAngle();
+    m_GrabHandRelative = PortalPose::RelativeHand(
+        m_GrabControllerPos - m_SetupOrigin, m_GrabControllerAng, m_HmdAngAbs);
 }
 
 void VR::UpdateTracking()

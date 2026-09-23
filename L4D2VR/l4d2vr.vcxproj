@@ -373,6 +373,7 @@
     <ClInclude Include="..\dxvk\tests\test_utils.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="firstpersonbody.h" />
+    <ClInclude Include="portalpose.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="offsets.h" />
     <ClInclude Include="sdk\bitbuf.h" />
