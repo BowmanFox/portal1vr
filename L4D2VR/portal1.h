@@ -9,6 +9,7 @@ namespace Interfaces
 {
 inline constexpr const char *kClientEntityList = "VClientEntityList003";
 inline constexpr const char *kEngineTrace = "EngineTraceClient003";
+inline constexpr const char *kServerEngineTrace = "EngineTraceServer003";
 inline constexpr const char *kEngineClient = "VEngineClient014";
 inline constexpr const char *kEngineRenderView = "VEngineRenderView014";
 inline constexpr const char *kMaterialSystem = "VMaterialSystem080";
@@ -66,6 +67,7 @@ inline constexpr size_t kPortalPlayer_EyePosition = 130;
 inline constexpr size_t kPortalPlayer_EyeAngles = 131;
 inline constexpr size_t kPortalPlayer_WeaponShootPosition = 267;
 inline constexpr size_t kPortalPlayer_PlayerUse = 407;
+inline constexpr size_t kPortalPlayer_FindUseEntity = 409;
 }
 
 namespace ServerFunction

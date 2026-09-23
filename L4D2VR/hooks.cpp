@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "sdk.h"
 #include "sdk_server.h"
+#include "trace.h"
 #include "vr.h"
 #include "offsets.h"
 #include "portal1.h"
@@ -11,6 +12,7 @@
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
+#include "pickuptrace.h"
 #include <iostream>
 
 Game *Hooks::m_Game = nullptr;
@@ -82,6 +84,7 @@ Hook<tDrawSelf> Hooks::hkDrawSelf = {};
 Hook<tClipTransform> Hooks::hkClipTransform = {};
 Hook<tPlayerPortalled> Hooks::hkPlayerPortalled = {};
 Hook<tPlayerUse> Hooks::hkPlayerUse = {};
+Hook<tFindUseEntity> Hooks::hkFindUseEntity = {};
 Hook<tVGui_GetHudBounds> Hooks::hkVGui_GetHudBounds = {};
 Hook<tVGui_GetPanelBounds> Hooks::hkVGui_GetPanelBounds = {};
 Hook<tVGUI_UpdateScreenSpaceBounds> Hooks::hkVGUI_UpdateScreenSpaceBounds = {};
@@ -126,6 +129,14 @@ tGetFullScreenTexture Hooks::GetFullScreenTexture = nullptr;
 
 namespace
 {
+	struct PickupQueryPose { void* player; Vector origin; QAngle angles; };
+	thread_local PickupQueryPose* s_PickupQuery = nullptr;
+	struct ScopedPickupQuery {
+		PickupQueryPose* previous;
+		explicit ScopedPickupQuery(PickupQueryPose& query) : previous(s_PickupQuery) { s_PickupQuery = &query; }
+		~ScopedPickupQuery() { s_PickupQuery = previous; }
+	};
+
 	bool ServerHandPose(void *player, Vector &position, QAngle &angles)
 	{
 		auto *vr = Hooks::m_VR;
@@ -559,6 +570,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkDrawModelExecute);
 	EnableIfCreated(hkPlayerPortalled);
 	EnableIfCreated(hkPlayerUse);
+	EnableIfCreated(hkFindUseEntity);
 	EnableIfCreated(hkCHudCrosshair_ShouldDraw);
 	PortalVrLog("Hooks enabled");
 }
@@ -650,6 +662,10 @@ int Hooks::initSourceHooks()
 		CreateHookAt(hkPlayerUse, SigScanner::FindRttiVtableFunction("server.dll",
 			".?AVCPortal_Player@@", Portal1::VTableIndex::kPortalPlayer_PlayerUse),
 			reinterpret_cast<LPVOID>(&dPlayerUse), "Portal1::PlayerUse", false);
+		CreateHookAt(hkFindUseEntity, SigScanner::FindRttiVtableFunction("server.dll",
+			".?AVCPortal_Player@@", Portal1::VTableIndex::kPortalPlayer_FindUseEntity),
+			reinterpret_cast<LPVOID>(&dFindUseEntity), "Portal1::FindUseEntity", false);
+		PortalVrLog("Near-contact pickup hook target=%p", hkFindUseEntity.pTarget);
 		const uintptr_t eyePositionTarget = FindPortalPlayerFunction(
 			Portal1::VTableIndex::kPortalPlayer_EyePosition);
 		const uintptr_t shootPositionTarget = FindPortalPlayerFunction(
@@ -1459,6 +1475,46 @@ void __fastcall Hooks::dPlayerUse(void* ecx, void* edx)
 	m_VR->m_OverrideEyeAngles = previous;
 }
 
+void* __fastcall Hooks::dFindUseEntity(void* ecx, void* edx)
+{
+	void* entity = hkFindUseEntity.fOriginal(ecx);
+	if (entity || !m_Game || !m_VR || !m_VR->m_IsVREnabled
+		|| !m_VR->m_OverrideEyeAngles || !m_VR->m_RightControllerPose.isValid
+		|| m_Game->GetLocalPlayerIndex() <= 0
+		|| ServerEntityIndex(ecx) != m_Game->GetLocalPlayerIndex()) return entity;
+
+	Vector hand, eye;
+	QAngle handAngles;
+	if (!ServerHandPose(ecx, hand, handAngles)) return nullptr;
+	const Vector* actualEye = hkEyePosition.fOriginal(ecx, &eye);
+	auto* traceEngine = m_Game->GetServerEngineTrace();
+	if (!actualEye || !traceEngine) return nullptr;
+	eye = *actualEye;
+	Ray_t sweep;
+	sweep.Init(eye, hand, {-2,-2,-2}, {2,2,2});
+	CGameTrace trace;
+	CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity*>(ecx), 0);
+	// Same contents as Portal 1 FindUseEntity, with server entities throughout.
+	traceEngine->TraceRay(sweep, 0x0601400b, &filter, &trace);
+	PickupQueryPose query{ecx};
+	if (!trace.m_pEnt || ServerEntityIndex(trace.m_pEnt) <= 0
+		|| !PickupTrace::ContactQuery(eye, hand, trace.fraction,
+			trace.startsolid, trace.allsolid, query.origin, query.angles)) return nullptr;
+
+	// Only the second selection query sees this temporary origin. Attachment,
+	// held-object physics and portal traversal keep using the real controller.
+	{
+		ScopedPickupQuery scope(query);
+		entity = hkFindUseEntity.fOriginal(ecx);
+	}
+	const bool matched = entity == trace.m_pEnt;
+	static unsigned int reports = 0;
+	if (reports++ < 32)
+		PortalVrLog("Near-contact pickup entity=%p matched=%d handDistance=%f",
+			trace.m_pEnt, matched, sqrtf((hand-trace.endpos).LengthSqr()));
+	return matched ? entity : nullptr;
+}
+
 int Hooks::dGetModeHeight(void* ecx, void* edx) {
 	//std::cout << "dGetModeHeight\n";
 	return m_VR->m_RenderHeight;
@@ -1618,6 +1674,10 @@ Vector* __fastcall Hooks::dEyePosition(void* ecx, void* edx, Vector* eyePos)
 
 	if (!result || !m_Game || !m_VR)
 		return result;
+	if (s_PickupQuery && s_PickupQuery->player == ecx) {
+		*result = s_PickupQuery->origin;
+		return result;
+	}
 
 	const int localIndex = m_Game->GetLocalPlayerIndex();
 	const int index = ServerEntityIndex(ecx);
@@ -1689,6 +1749,7 @@ void __fastcall Hooks::dRotateObject(void* ecx, void* edx, void* pPlayer, float 
 // This is CPlayerBase, do we also need to hook CPortalPlayer? can the same function be used by both?
 // This works for release, but why was it crashing before??? TODO: buy a c++ book...
 QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
+	if (s_PickupQuery && s_PickupQuery->player == ecx) return s_PickupQuery->angles;
 	if (m_VR && m_Game) {
 		const int localIndex = m_Game->GetLocalPlayerIndex();
 		const int index = ServerEntityIndex(ecx);

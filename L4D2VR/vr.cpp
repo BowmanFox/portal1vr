@@ -1152,7 +1152,10 @@ void VR::SnapshotGrabPose()
 {
     m_GrabPoseValid = m_RightControllerPose.isValid;
     m_GrabControllerPos = GetRightControllerAbsPos();
-    m_GrabControllerAng = GetRightControllerAbsAngle();
+    // Carry from the tracked grip frame. The portal gun's aim frame has an
+    // extra 30-degree downward tilt, which puts held props below the hand.
+    QAngle::VectorAngles(m_RightHandForward, m_RightHandUp, m_GrabControllerAng);
+    m_GrabControllerAng.Normalize();
     m_GrabHandRelative = PortalPose::RelativeHand(
         m_GrabControllerPos - m_SetupOrigin, m_GrabControllerAng, m_HmdAngAbs);
 }

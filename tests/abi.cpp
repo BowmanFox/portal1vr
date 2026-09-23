@@ -8,6 +8,7 @@
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
+#include "pickuptrace.h"
 #include <limits>
 
 static void CheckCameraCollision() {
@@ -265,6 +266,41 @@ static void CheckPortalPickup()
 }
 
 static void *expectedThis;
+static void CheckContactPickup()
+{
+    Vector origin;
+    QAngle angles;
+    // Hand inside a cube whose first surface is x=40; query starts outside.
+    assert(PickupTrace::ContactQuery({0,0,64}, {50,0,64}, 0.8f, false, false, origin, angles));
+    assert((origin-Vector(38,0,64)).LengthSqr()<0.001f);
+    Vector forward;
+    QAngle::AngleVectors(angles, &forward, nullptr, nullptr);
+    assert((forward-Vector(1,0,0)).LengthSqr()<0.001f);
+    // A portal rotation/translation must preserve the same surface margin.
+    assert(PickupTrace::ContactQuery({100,200,20}, {100,250,20}, 0.8f, false, false, origin, angles));
+    assert((origin-Vector(100,238,20)).LengthSqr()<0.001f);
+    assert(PickupTrace::ContactQuery({0,0,100}, {0,0,50}, 0.8f, false, false, origin, angles));
+    assert((origin-Vector(0,0,62)).LengthSqr()<0.001f);
+    QAngle::AngleVectors(angles, &forward, nullptr, nullptr);
+    assert((forward-Vector(0,0,-1)).LengthSqr()<0.001f);
+    // No hit, occlusion far from the hand, or an embedded start cannot retry.
+    for (float fraction : {0.0f, 1.0f, -0.1f, 1.1f, 0.2f, std::numeric_limits<float>::quiet_NaN()})
+        assert(!PickupTrace::ContactQuery({0,0,64}, {50,0,64}, fraction, false, false, origin, angles));
+    assert(!PickupTrace::ContactQuery({0,0,64}, {50,0,64}, 0.8f, true, false, origin, angles));
+    assert(!PickupTrace::ContactQuery({0,0,64}, {50,0,64}, 0.8f, false, true, origin, angles));
+    assert(!PickupTrace::ContactQuery({0,0,64}, {0,0,64}, 0.8f, false, false, origin, angles));
+    assert(!PickupTrace::ContactQuery({0,0,64}, {std::numeric_limits<float>::infinity(),0,64}, 0.8f, false, false, origin, angles));
+
+    // Level grip must remain level when rebased onto the server head, including
+    // when the player is looking down. Do not use the separately tilted gun ray.
+    QAngle grip;
+    QAngle::VectorAngles({1,0,0}, {0,0,1}, grip);
+    const auto relative = PortalPose::RelativeHand({20,-12,-18}, grip, {45,90,0});
+    const auto world = PortalPose::WorldHand(relative, {0,0,64}, {45,90,0});
+    assert(fabsf(world[2][0])<0.001f);
+    assert(fabsf(PortalPose::Angles(world).x)<0.001f);
+}
+
 static bool __fastcall InGame(void *self, void *) { assert(self == expectedThis); return true; }
 static void __fastcall GetAngles(void *self, void *, QAngle &out) { assert(self == expectedThis); out = {1,2,3}; }
 static void __fastcall Command(void *self, void *, const char *text) { assert(self == expectedThis); assert(!strcmp(text,"test")); }
@@ -279,6 +315,7 @@ int main() {
     CheckFirstPersonBody();
     CheckCameraCollision();
     CheckPortalPickup();
+    CheckContactPickup();
     static_assert(sizeof(void *) == 4);
     static_assert(sizeof(CViewSetup) == 0xc8);
     static_assert(offsetof(CViewSetup, fov) == 0x38);
@@ -312,5 +349,5 @@ int main() {
     void *guard = VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_NOACCESS);
     assert(guard && !SigScanner::GetVirtualFunction(guard,0));
     VirtualFree(guard,0,MEM_RELEASE);
-    puts("Portal ABI, trace, hand attachment, body, collision, and portal pickup regression checks passed");
+    puts("Portal ABI, trace, hand attachment, body, collision, portal pickup, and contact pickup regression checks passed");
 }

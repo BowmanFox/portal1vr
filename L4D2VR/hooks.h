@@ -112,6 +112,7 @@ typedef float(__thiscall* tTraceFirePortal)(void* thisptr, bool secondary, const
 // Portal 1 takes one portal pointer and pops four bytes (Portal 2 differs).
 typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* portal);
 typedef void(__thiscall* tPlayerUse)(void* thisptr);
+typedef void*(__thiscall* tFindUseEntity)(void* thisptr);
 
 typedef int(__thiscall* tGetModeHeight)(void* thisptr);
 typedef int(__thiscall* tDrawSelf)(void* thisptr, int x, int y, int w, int h, const void* clr, float flApparentZ);
@@ -203,6 +204,7 @@ public:
 	static Hook<tClipTransform> hkClipTransform;
 	static Hook<tPlayerPortalled> hkPlayerPortalled;
 	static Hook<tPlayerUse> hkPlayerUse;
+	static Hook<tFindUseEntity> hkFindUseEntity;
 	static Hook<tVGui_GetHudBounds> hkVGui_GetHudBounds;
 	static Hook<tVGui_GetPanelBounds> hkVGui_GetPanelBounds;
 
@@ -283,6 +285,7 @@ public:
 	// Portalling angle fix
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* portal);
 	static void __fastcall dPlayerUse(void* ecx, void* edx);
+	static void* __fastcall dFindUseEntity(void* ecx, void* edx);
 
 	// Crosshair
 	static int __fastcall dGetModeHeight(void* ecx, void* edx);

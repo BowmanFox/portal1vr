@@ -54,6 +54,7 @@ class Game
 public:
     IClientEntityList* m_ClientEntityList = nullptr;
     IEngineTrace* m_EngineTrace = nullptr;
+    IEngineTrace* m_ServerEngineTrace = nullptr;
     IEngineClient* m_EngineClient = nullptr;
     IMaterialSystem* m_MaterialSystem = nullptr;
     IBaseClientDLL* m_BaseClientDll = nullptr;
@@ -86,6 +87,7 @@ public:
     uint32_t m_LastClientViewRenderResolveTick = 0;
     uint32_t m_LastClientEntityListResolveTick = 0;
     uint32_t m_LastEngineTraceResolveTick = 0;
+    uint32_t m_LastServerEngineTraceResolveTick = 0;
     uint32_t m_LastEngineClientResolveTick = 0;
     uint32_t m_LastModelInfoResolveTick = 0;
     uint32_t m_LastModelRenderResolveTick = 0;
@@ -106,6 +108,7 @@ public:
     IViewRender *GetClientViewRender(bool force = false);
     IClientEntityList *GetClientEntityList(bool force = false);
     IEngineTrace *GetEngineTrace(bool force = false);
+    IEngineTrace *GetServerEngineTrace(bool force = false);
     IEngineClient *GetEngineClient(bool force = false);
     IMaterialSystem *GetMaterialSystem(bool force = false);
     IModelInfo *GetModelInfo(bool force = false);

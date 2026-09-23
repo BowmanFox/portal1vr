@@ -291,6 +291,11 @@ IEngineTrace *Game::GetEngineTrace(bool force)
     return ResolveInterfaceOnDemand(this, m_EngineTrace, "engine.dll", Portal1::Interfaces::kEngineTrace, m_LastEngineTraceResolveTick, force);
 }
 
+IEngineTrace *Game::GetServerEngineTrace(bool force)
+{
+    return ResolveInterfaceOnDemand(this, m_ServerEngineTrace, "engine.dll", Portal1::Interfaces::kServerEngineTrace, m_LastServerEngineTraceResolveTick, force);
+}
+
 IEngineClient *Game::GetEngineClient(bool force)
 {
     return ResolveInterfaceOnDemand(this, m_EngineClient, "engine.dll", Portal1::Interfaces::kEngineClient, m_LastEngineClientResolveTick, force);
