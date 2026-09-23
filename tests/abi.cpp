@@ -10,6 +10,7 @@
 #include "portalpose.h"
 #include "pickuptrace.h"
 #include "optionalgungrip.h"
+#include "portaltrace.h"
 #include <limits>
 
 static void CheckCameraCollision() {
@@ -353,8 +354,60 @@ static void CheckOptionalGunGrip() {
     const auto world=HandPose::Concat(controller,expected);
     const auto restored=HandPose::Concat(HandPose::InverseRigid(controller),world);
     for(int r=0;r<3;++r) for(int c=0;c<4;++c) assert(fabsf(restored[r][c]-expected[r][c])<.001f);
+    const auto fitted = HandPose::FitGunToPalm(controller);
+    const auto fitLocal = HandPose::Concat(HandPose::InverseRigid(controller), fitted);
+    assert(fabsf(fitLocal[0][3]+1.5f)<.001f && fabsf(fitLocal[1][3]+1.5f)<.001f);
+    assert(fabsf(fitLocal[2][3]-.75f)<.001f);
+    for(int r=0;r<3;++r) for(int c=0;c<3;++c) assert(fitted[r][c]==controller[r][c]);
+    const auto supportWorld = HandPose::Concat(fitted, expected);
+    const auto socketRestored = HandPose::Concat(HandPose::InverseRigid(fitted), supportWorld);
+    for(int r=0;r<3;++r) for(int c=0;c<4;++c) assert(fabsf(socketRestored[r][c]-expected[r][c])<.001f);
+}
+static unsigned char portalTraceFlags[2];
+static bool invalidPortalTrace = false;
+static void *expectedPortal = nullptr;
+static void __cdecl PortalTraceStub(void *portal, const Ray_t& ray, unsigned mask,
+    CTraceFilter *filter, CGameTrace *out, bool throughPortal) {
+    assert(portal == expectedPortal && mask == 0x400b && filter && throughPortal);
+    assert(!ray.m_IsRay && ray.m_IsSwept && ray.m_Extents.x == 3);
+    portalTraceFlags[0] = portalTraceFlags[1] = 1;
+    out->fraction = invalidPortalTrace ? std::numeric_limits<float>::quiet_NaN() : .75f;
+    out->startsolid = out->allsolid = false;
+}
+static void CheckPortalTrace() {
+    assert(!PortalTrace::Binding::Resolve(0).function);
+    unsigned char player[0x1660]{}, portal[0xabc]{};
+    uintptr_t entries[8]{}, list = reinterpret_cast<uintptr_t>(entries);
+    const uint32_t handle = (7u << 12) | 1;
+    memcpy(player + 0x1658, &handle, 4);
+    entries[5] = reinterpret_cast<uintptr_t>(portal); entries[6] = 7;
+    portal[0xab4] = 1;
+    unsigned char linked = 1;
+    const uintptr_t link = reinterpret_cast<uintptr_t>(&linked);
+    memcpy(portal + 0xab8, &link, 4);
+    PortalTrace::Binding binding{PortalTraceStub, &list, portalTraceFlags};
+    expectedPortal = portal;
+    assert(binding.Environment(player) == portal);
+    entries[6] = 8; assert(!binding.Environment(player)); entries[6] = 7;
+    linked = 0; assert(!binding.Environment(player)); linked = 1;
+    portal[0xab4] = 0; assert(!binding.Environment(player)); portal[0xab4] = 1;
+    entries[5] = 0; assert(!binding.Environment(player)); entries[5] = reinterpret_cast<uintptr_t>(portal);
+    Ray_t ray{}; ray.Init({0,0,0},{20,0,0},{-3,-3,-3},{3,3,3});
+    CGameTrace trace;
+    CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity *>(player),0);
+    for (int first = 0; first <= 1; ++first) for (int second = 0; second <= 1; ++second) {
+        portalTraceFlags[0] = first; portalTraceFlags[1] = second;
+        assert(binding.Trace(player, ray, 0x400b, &filter, &trace));
+        assert(trace.fraction == .75f && !trace.startsolid);
+        assert(portalTraceFlags[0] == first && portalTraceFlags[1] == second);
+        invalidPortalTrace = true;
+        assert(!binding.Trace(player, ray, 0x400b, &filter, &trace));
+        assert(portalTraceFlags[0] == first && portalTraceFlags[1] == second);
+        invalidPortalTrace = false;
+    }
 }
 int main() {
+    CheckPortalTrace();
     CheckOptionalGunGrip();
     CheckHandAttachment();
     CheckFirstPersonBody();

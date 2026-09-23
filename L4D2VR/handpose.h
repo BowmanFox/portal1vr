@@ -52,6 +52,15 @@ inline matrix3x4_t Concat(const matrix3x4_t& parent, const matrix3x4_t& local)
     return result;
 }
 
+inline matrix3x4_t FitGunToPalm(const matrix3x4_t& gun)
+{
+    // Gun-local axes: +Y is up, +Z points along the barrel. Seat the housing
+    // lower and slightly beside the thick paw pads. Move only the weapon;
+    // the wrist remains at the tracked controller. The support socket uses
+    // this same frame so optional two-hand grip follows the corrected gun.
+    return Concat(gun, Frame({1,0,0}, {0,1,0}, {0,0,1}, {-1.5f,-1.5f,0.75f}));
+}
+
 // The rebuilt mesh uses +X toward the fingers and +Y toward the thumb.
 // Flip both lateral axes around forward so the palms face the controller grip.
 inline matrix3x4_t ControllerHandFrame(const Vector& forward, const Vector& right,

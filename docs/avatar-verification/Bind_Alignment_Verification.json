@@ -1,9 +1,9 @@
 {
   "chell": {
     "object_transforms_match": true,
-    "blender_rest_skin_max_error_source_units": 1.104987166047713e-05,
-    "compiled_mesh_max_error_source_units": 2.7151469112141058e-05,
-    "compiled_bind_matrix_max_component_error": 7.21961259841919e-05,
+    "blender_rest_skin_max_error_source_units": 8.557419150997317e-06,
+    "compiled_mesh_max_error_source_units": 3.5835826565744355e-05,
+    "compiled_bind_matrix_max_component_error": 0.00017626583576202393,
     "triangles": 64261,
     "bones": 95,
     "source_vertices": 32582

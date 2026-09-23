@@ -20,6 +20,7 @@
 #include "cameracollision.h"
 #include "portalpose.h"
 #include "optionalgungrip.h"
+#include "portaltrace.h"
 
 namespace
 {
@@ -1182,7 +1183,14 @@ void VR::UpdateHMDAngles() {
 
 void VR::ResetPosition()
 {
+    // The compositor may not have supplied a valid HMD pose during startup.
+    // Defer centering instead of treating the tracking origin as the player.
+    m_CenterPending = !m_HmdPose.isValid;
+    if (m_CenterPending) return;
     m_Center = m_HmdPose.TrackedDevicePos;
+    m_HmdPosRelativeRaw = m_HmdPosRelative = {0,0,0};
+    m_CameraCollisionOffset = {0,0,0};
+    m_CameraBlocked = false;
 }
 
 void VR::SnapshotGrabPose()
@@ -1200,6 +1208,7 @@ void VR::SnapshotGrabPose()
 void VR::UpdateTracking()
 {
     GetPoses();
+    if (m_CenterPending && m_HmdPose.isValid) ResetPosition();
 
     // HMD tracking
     Vector hmdPosLocal = m_HmdPose.TrackedDevicePos;
@@ -1407,7 +1416,14 @@ void VR::UpdateCameraCollision(Vector setupOrigin)
     trace.startsolid = trace.allsolid = false;
     CTraceFilterSkipEntity filter(reinterpret_cast<IHandleEntity*>(player), 0);
     constexpr unsigned mask = CONTENTS_SOLID | CONTENTS_WINDOW | CONTENTS_GRATE | CONTENTS_MOVEABLE;
-    if (!m_Game->TraceRay(ray, mask, &filter, &trace))
+    static const PortalTrace::Binding portalTrace = PortalTrace::Binding::Resolve(m_Game->m_BaseClient);
+    static bool loggedBinding = false;
+    if (!loggedBinding) {
+        PortalVrLog("Portal-aware head collision available=%d", portalTrace.function != nullptr);
+        loggedBinding = true;
+    }
+    const bool usedPortal = portalTrace.Trace(player, ray, mask, &filter, &trace);
+    if (!usedPortal && !m_Game->TraceRay(ray, mask, &filter, &trace))
     {
         m_CameraBlocked = false;
         return;
@@ -1415,6 +1431,12 @@ void VR::UpdateCameraCollision(Vector setupOrigin)
 
     // An actual engine trace catches ABI errors that pure geometry tests cannot.
     static const bool debugCollision = strstr(GetCommandLineA(), "-portalvr-debug-collision") != nullptr;
+    static bool wasPortal = false;
+    if (debugCollision && usedPortal != wasPortal) {
+        PortalVrLog("Head collision portal environment=%d fraction=%f startsolid=%d allsolid=%d",
+            usedPortal, trace.fraction, trace.startsolid, trace.allsolid);
+        wasPortal = usedPortal;
+    }
     static bool loggedProbe = false;
     if (debugCollision && !loggedProbe)
     {

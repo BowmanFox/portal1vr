@@ -1,0 +1,162 @@
+[
+  {
+    "name": "Avatar_Unity_Exact",
+    "mesh_objects": 1,
+    "armatures": 1,
+    "bones": 97,
+    "triangles": 64261,
+    "shape_keys_including_basis": 137,
+    "missing_keys": [],
+    "maximum_all_key_world_coordinate_error_m": 2.051150386342417e-06,
+    "uv_maps": 1,
+    "material_slots": 6,
+    "custom_normals": true,
+    "image_nodes": 3,
+    "images_present": [
+      {
+        "name": "Body_BaseColor.png",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Body_BaseColor.png.001",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Eyes_BaseColor.png",
+        "has_data": true,
+        "size": [
+          4096,
+          4096
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Avatar_Unity_LOD63",
+    "mesh_objects": 1,
+    "armatures": 1,
+    "bones": 97,
+    "triangles": 62975,
+    "shape_keys_including_basis": 137,
+    "missing_keys": [],
+    "maximum_all_key_world_coordinate_error_m": 2.051150386342417e-06,
+    "uv_maps": 1,
+    "material_slots": 6,
+    "custom_normals": true,
+    "image_nodes": 3,
+    "images_present": [
+      {
+        "name": "Body_BaseColor.png",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Body_BaseColor.png.001",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Eyes_BaseColor.png",
+        "has_data": true,
+        "size": [
+          4096,
+          4096
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Avatar_Unity_LOD58",
+    "mesh_objects": 1,
+    "armatures": 1,
+    "bones": 97,
+    "triangles": 57833,
+    "shape_keys_including_basis": 137,
+    "missing_keys": [],
+    "maximum_all_key_world_coordinate_error_m": 2.051150386342417e-06,
+    "uv_maps": 1,
+    "material_slots": 6,
+    "custom_normals": true,
+    "image_nodes": 3,
+    "images_present": [
+      {
+        "name": "Body_BaseColor.png",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Body_BaseColor.png.001",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Eyes_BaseColor.png",
+        "has_data": true,
+        "size": [
+          4096,
+          4096
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Avatar_Unity_LOD48",
+    "mesh_objects": 1,
+    "armatures": 1,
+    "bones": 97,
+    "triangles": 48195,
+    "shape_keys_including_basis": 137,
+    "missing_keys": [],
+    "maximum_all_key_world_coordinate_error_m": 2.0506293492657913e-06,
+    "uv_maps": 1,
+    "material_slots": 6,
+    "custom_normals": true,
+    "image_nodes": 3,
+    "images_present": [
+      {
+        "name": "Body_BaseColor.png",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Body_BaseColor.png.001",
+        "has_data": true,
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Eyes_BaseColor.png",
+        "has_data": true,
+        "size": [
+          4096,
+          4096
+        ]
+      }
+    ]
+  }
+]

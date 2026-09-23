@@ -94,6 +94,7 @@ public:
 	bool m_Traced = false;
 
 	Vector m_Center = { 0,0,0 };
+	bool m_CenterPending = true;
 	Vector m_SetupOrigin = { 0,0,0 };
 	Vector m_CameraCollisionOffset = { 0,0,0 };
 	bool m_CameraBlocked = false;

@@ -75,6 +75,14 @@ Optional left-hand support remains free until a fresh grip squeeze near the unde
 
 The fresh body/viewmodel compiles, expression checks, five sampled gun-grip poses, optional-support clearance, and Release x86 regression tests pass. These changes have not been tested in a headset. The clearance checks concern hands against the gun and each other at the authored support pose; they are not a guarantee against all finger self-contact or arbitrary tracked poses.
 
+## Placement and portal collision
+
+The latest runtime seats the gripping paw higher inside the rear portal-gun shielding while keeping the wrist at the controller. The optional left-hand socket follows the same corrected gun frame. Five finger-curl states and the support pose pass the compiled-mesh surface-intersection checks. The body was rebuilt with all 136 expression targets and 12 jiggle bones. Its skeleton is corrected downward by 3.402857 Source units to preserve the original mesh-to-rig offset; ragdoll hulls follow the corrected bind. The mesh and expression shapes remain intact. Blender and Unity exports open with neutral feet at the floor and zero object locations. Anatomical joint checks and FBX bone-position round trips verify alignment; see `docs/avatar-verification/Anatomical_Alignment_Verification.json` and `FBX_Skeleton_Alignment_Verification.json`.
+
+Head collision uses Portal 1's native portal-environment hull trace on the verified client build, so a linked opening is not treated as an ordinary solid wall. Other client builds fall back to the existing wall trace. Startup centering now waits for a valid headset pose, and recentering clears the previous collision correction. Physical room movement can still separate the headset from the player capsule; click the left stick to recenter if a doorway appears blocked. The user confirmed that workaround. The new portal-crossing behavior still needs headset confirmation.
+
+`tests/run.ps1 -PortalClient 'C:\Program Files (x86)\Steam\steamapps\common\Portal\portal\bin\client.dll'` also validates the native trace's installed-binary layout without running game code. See `docs/avatar-verification/Runtime_Fit_Traversal_Verification.json` and `Body_Recompile_Verification.json` for the final checks.
+
 ## Radio
 
 The bundled radio plays an instrumental separation of thecybercat's [The Device has Been Modified v2 - HD Remaster](https://www.youtube.com/watch?v=wRj-29ceRvU). It uses the original radio WAV path and loop metadata, mono 44.1 kHz PCM, and small-speaker filtering. Portal's existing radio entity supplies positional audio, distance falloff, and room effects. No dialogue-triggered mute or mixer override is added.

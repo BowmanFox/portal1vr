@@ -1,0 +1,86 @@
+[
+  {
+    "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Avatar_Unity_Exact.blend",
+    "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Avatar_Unity_Exact.fbx",
+    "old_mesh_object_location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_translation": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_after": 0.0,
+    "identity_mesh_and_rig": true,
+    "all_137_keys_uniform_translation_max_error_m": 0.0,
+    "rest_skin_error_m": 2.384185791015625e-07,
+    "vertices": 32582,
+    "triangles": 64261,
+    "shape_keys": 137
+  },
+  {
+    "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD63.blend",
+    "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD63.fbx",
+    "old_mesh_object_location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_translation": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_after": 0.0,
+    "identity_mesh_and_rig": true,
+    "all_137_keys_uniform_translation_max_error_m": 0.0,
+    "rest_skin_error_m": 2.384185791015625e-07,
+    "vertices": 31945,
+    "triangles": 62975,
+    "shape_keys": 137
+  },
+  {
+    "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD58.blend",
+    "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD58.fbx",
+    "old_mesh_object_location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_translation": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_after": 0.0,
+    "identity_mesh_and_rig": true,
+    "all_137_keys_uniform_translation_max_error_m": 0.0,
+    "rest_skin_error_m": 2.384185791015625e-07,
+    "vertices": 29374,
+    "triangles": 57833,
+    "shape_keys": 137
+  },
+  {
+    "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD48.blend",
+    "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD48.fbx",
+    "old_mesh_object_location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_translation": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "floor_after": 0.0,
+    "identity_mesh_and_rig": true,
+    "all_137_keys_uniform_translation_max_error_m": 0.0,
+    "rest_skin_error_m": 4.76837158203125e-07,
+    "vertices": 24555,
+    "triangles": 48195,
+    "shape_keys": 137
+  }
+]

@@ -1266,7 +1266,8 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     // The gun model now contains an anatomical wrist frame
                     // fitted to Portal's authored grip, independently of bare hands.
                     for (int i = 0; i < 24; ++i) tracked[i] = HandPose::Reanchor(reference[i], source, target);
-                    const auto gunTarget = HandPose::Reanchor(reference[24], source, target);
+                    const auto fittedGun = HandPose::FitGunToPalm(reference[24]);
+                    const auto gunTarget = HandPose::Reanchor(fittedGun, source, target);
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
                     HandPose::ApplyGunGrip(reference, tracked, m_VR->m_RightFingerCurl);
                     matrix3x4_t socket;
@@ -1276,7 +1277,7 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                         // Keep the socket relative to the gun controller, so
                         // either eye and either draw order use today's tracking.
                         m_VR->m_SupportFromController = HandPose::Concat(HandPose::InverseRigid(source),
-                            HandPose::Concat(reference[24], socket));
+                            HandPose::Concat(fittedGun, socket));
                         m_VR->m_SupportLastSeen = GetTickCount64();
                     } else {
                         m_VR->m_SupportLastSeen = 0;

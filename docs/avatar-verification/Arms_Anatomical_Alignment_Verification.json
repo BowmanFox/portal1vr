@@ -1,0 +1,68 @@
+[
+  {
+    "scene": "Bowman - Opening hands",
+    "landmarks": [
+      {
+        "name": "ValveBiped.Bip01_R_Hand",
+        "head": [
+          -19.519603729248047,
+          0.30056238174438477,
+          43.01565933227539
+        ],
+        "within_weighted_mesh_bounds": true
+      },
+      {
+        "name": "ValveBiped.Bip01_L_Hand",
+        "head": [
+          19.25775909423828,
+          0.300555020570755,
+          43.01563262939453
+        ],
+        "within_weighted_mesh_bounds": true
+      },
+      {
+        "name": "ValveBiped.Bip01_R_Finger2",
+        "head": [
+          -22.448566436767578,
+          -0.1209951639175415,
+          41.072471618652344
+        ],
+        "within_weighted_mesh_bounds": true
+      },
+      {
+        "name": "ValveBiped.Bip01_L_Finger2",
+        "head": [
+          22.186725616455078,
+          -0.12100357562303543,
+          41.072452545166016
+        ],
+        "within_weighted_mesh_bounds": true
+      }
+    ],
+    "passed": true
+  },
+  {
+    "scene": "Bowman - Portal gun hands",
+    "landmarks": [
+      {
+        "name": "ValveBiped.Bip01_R_Hand",
+        "head": [
+          -8.474437713623047,
+          -16.26172637939453,
+          -14.188128471374512
+        ],
+        "within_weighted_mesh_bounds": true
+      },
+      {
+        "name": "ValveBiped.Bip01_R_Finger2",
+        "head": [
+          -9.170302391052246,
+          -19.72646141052246,
+          -14.397621154785156
+        ],
+        "within_weighted_mesh_bounds": true
+      }
+    ],
+    "passed": true
+  }
+]

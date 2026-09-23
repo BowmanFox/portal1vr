@@ -1,7 +1,7 @@
 {
-  "archive_bytes": 30263572,
-  "vpk_bytes": 147145690,
-  "vpk_sha256": "f3830a1299714e7ba896195e53eb0a895539d655fb8296a20d4100b3027451ad",
+  "archive_bytes": 30263137,
+  "vpk_bytes": 147145882,
+  "vpk_sha256": "fd4511c286c509d1c7c210d7b2eeccb97e4d1afe341ff25ecc93ef3327b435e7",
   "lossless_roundtrip": true,
   "body_freshly_exported_and_compiled": true
 }

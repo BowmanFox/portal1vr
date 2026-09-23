@@ -1,0 +1,143 @@
+{
+  "chell": {
+    "blender_floor_z": 0,
+    "corrected_all_137_keys_by_uniform_translation": true,
+    "maximum_uniform_translation_error_source_units": 9.5367431640625e-07,
+    "rig_matches_compiled_bind": true,
+    "anatomical_rig_translation_source_units": [
+      0,
+      0,
+      -3.4028570652
+    ],
+    "anatomical_verification": "Anatomical_Alignment_Verification.json",
+    "object_locations": [
+      0,
+      0,
+      0
+    ]
+  },
+  "arms": {
+    "bare_hands": "Compiled bind and skin match; controller-relative placement retained.",
+    "portal_gun": "Compiled bind and skin match; corrected runtime grip preview supplied.",
+    "object_locations": [
+      0,
+      0,
+      0
+    ]
+  },
+  "unity_exports": [
+    {
+      "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Avatar_Unity_Exact.blend",
+      "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Avatar_Unity_Exact.fbx",
+      "old_mesh_object_location": [
+        0.0,
+        0.0,
+        0.09993405640125275
+      ],
+      "floor_translation": [
+        0.0,
+        0.0,
+        0.23746256530284882
+      ],
+      "floor_after": 0.0,
+      "identity_mesh_and_rig": true,
+      "all_137_keys_uniform_translation_max_error_m": 7.450580596923828e-08,
+      "rest_skin_error_m": 3.5762786865234375e-07,
+      "vertices": 32582,
+      "triangles": 64261,
+      "shape_keys": 137,
+      "anatomical_rig_translation_m": [
+        0,
+        0,
+        -0.09993405640125275
+      ],
+      "authored_mesh_to_rig_relative_placement_preserved": true,
+      "fbx_skeleton_verification": "FBX_Skeleton_Alignment_Verification.json"
+    },
+    {
+      "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD63.blend",
+      "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD63.fbx",
+      "old_mesh_object_location": [
+        0.0,
+        0.0,
+        0.09993405640125275
+      ],
+      "floor_translation": [
+        0.0,
+        0.0,
+        0.23746256530284882
+      ],
+      "floor_after": 0.0,
+      "identity_mesh_and_rig": true,
+      "all_137_keys_uniform_translation_max_error_m": 7.450580596923828e-08,
+      "rest_skin_error_m": 3.5762786865234375e-07,
+      "vertices": 31945,
+      "triangles": 62975,
+      "shape_keys": 137,
+      "anatomical_rig_translation_m": [
+        0,
+        0,
+        -0.09993405640125275
+      ],
+      "authored_mesh_to_rig_relative_placement_preserved": true,
+      "fbx_skeleton_verification": "FBX_Skeleton_Alignment_Verification.json"
+    },
+    {
+      "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD58.blend",
+      "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD58.fbx",
+      "old_mesh_object_location": [
+        0.0,
+        0.0,
+        0.09993405640125275
+      ],
+      "floor_translation": [
+        0.0,
+        0.0,
+        0.23746256530284882
+      ],
+      "floor_after": 0.0,
+      "identity_mesh_and_rig": true,
+      "all_137_keys_uniform_translation_max_error_m": 7.450580596923828e-08,
+      "rest_skin_error_m": 3.5762786865234375e-07,
+      "vertices": 29374,
+      "triangles": 57833,
+      "shape_keys": 137,
+      "anatomical_rig_translation_m": [
+        0,
+        0,
+        -0.09993405640125275
+      ],
+      "authored_mesh_to_rig_relative_placement_preserved": true,
+      "fbx_skeleton_verification": "FBX_Skeleton_Alignment_Verification.json"
+    },
+    {
+      "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD48.blend",
+      "fbx": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-23\\us\\outputs\\Optional_LODs\\Avatar_Unity_LOD48.fbx",
+      "old_mesh_object_location": [
+        0.0,
+        0.0,
+        0.09993405640125275
+      ],
+      "floor_translation": [
+        0.0,
+        0.0,
+        0.23782353103160858
+      ],
+      "floor_after": 0.0,
+      "identity_mesh_and_rig": true,
+      "all_137_keys_uniform_translation_max_error_m": 7.450580596923828e-08,
+      "rest_skin_error_m": 2.384185791015625e-07,
+      "vertices": 24555,
+      "triangles": 48195,
+      "shape_keys": 137,
+      "anatomical_rig_translation_m": [
+        0,
+        0,
+        -0.09993405640125275
+      ],
+      "authored_mesh_to_rig_relative_placement_preserved": true,
+      "fbx_skeleton_verification": "FBX_Skeleton_Alignment_Verification.json"
+    }
+  ],
+  "authoring_master_and_pre_edit_backup": "Retained original multi-scene layouts; production floor corrections apply to the isolated export files."
+}

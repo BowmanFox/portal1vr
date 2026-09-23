@@ -1,0 +1,70 @@
+[
+  {
+    "export": "Avatar_Unity_Exact",
+    "anatomical_landmarks_inside_weighted_limb_height": [
+      "LeftHand",
+      "RightHand",
+      "LeftMiddleProximal",
+      "RightMiddleProximal",
+      "LeftFoot",
+      "RightFoot",
+      "LeftToes",
+      "RightToes"
+    ],
+    "fbx_rest_bone_heads_tested": 97,
+    "fbx_max_rest_bone_head_error_m": 1.6333004168700427e-05,
+    "fbx_max_non_helper_bone_head_error_m": 7.72025430251233e-07,
+    "passed": true
+  },
+  {
+    "export": "Avatar_Unity_LOD63",
+    "anatomical_landmarks_inside_weighted_limb_height": [
+      "LeftHand",
+      "RightHand",
+      "LeftMiddleProximal",
+      "RightMiddleProximal",
+      "LeftFoot",
+      "RightFoot",
+      "LeftToes",
+      "RightToes"
+    ],
+    "fbx_rest_bone_heads_tested": 97,
+    "fbx_max_rest_bone_head_error_m": 1.6333004168700427e-05,
+    "fbx_max_non_helper_bone_head_error_m": 7.72025430251233e-07,
+    "passed": true
+  },
+  {
+    "export": "Avatar_Unity_LOD58",
+    "anatomical_landmarks_inside_weighted_limb_height": [
+      "LeftHand",
+      "RightHand",
+      "LeftMiddleProximal",
+      "RightMiddleProximal",
+      "LeftFoot",
+      "RightFoot",
+      "LeftToes",
+      "RightToes"
+    ],
+    "fbx_rest_bone_heads_tested": 97,
+    "fbx_max_rest_bone_head_error_m": 1.6333004168700427e-05,
+    "fbx_max_non_helper_bone_head_error_m": 7.72025430251233e-07,
+    "passed": true
+  },
+  {
+    "export": "Avatar_Unity_LOD48",
+    "anatomical_landmarks_inside_weighted_limb_height": [
+      "LeftHand",
+      "RightHand",
+      "LeftMiddleProximal",
+      "RightMiddleProximal",
+      "LeftFoot",
+      "RightFoot",
+      "LeftToes",
+      "RightToes"
+    ],
+    "fbx_rest_bone_heads_tested": 97,
+    "fbx_max_rest_bone_head_error_m": 1.6333413441316225e-05,
+    "fbx_max_non_helper_bone_head_error_m": 8.085167451099551e-07,
+    "passed": true
+  }
+]

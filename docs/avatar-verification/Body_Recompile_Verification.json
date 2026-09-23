@@ -1,0 +1,50 @@
+{
+  "body_recompiled": true,
+  "component_compiles": [
+    {
+      "part": 0,
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "part": 1,
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "part": 2,
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "part": 3,
+      "exit": 0,
+      "errors": []
+    }
+  ],
+  "anatomical_bind_translation_source_y_up": [
+    0,
+    -3.4028570652,
+    0
+  ],
+  "compiled_mesh_max_component_difference": {
+    "position": 1.52587890625e-05,
+    "normal": 9.238719940185547e-07,
+    "uv": 0.0
+  },
+  "topology_weights_uvs_and_flex_controls_preserved": true,
+  "shape_targets": 136,
+  "jiggle_bones_retained": 12,
+  "physics_hulls_relocated_with_bind": true,
+  "changed_vpk_entries": [
+    "models/player/chell.dx80.vtx",
+    "models/player/chell.dx90.vtx",
+    "models/player/chell.mdl",
+    "models/player/chell.phy",
+    "models/player/chell.sw.vtx",
+    "models/player/chell.vvd"
+  ],
+  "other_vpk_entries_byte_exact": 38,
+  "instrumental_radio_byte_exact": true,
+  "vpk_sha256": "fd4511c286c509d1c7c210d7b2eeccb97e4d1afe341ff25ecc93ef3327b435e7"
+}
