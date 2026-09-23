@@ -3,31 +3,31 @@
     {
       "curl": 0,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 216
     },
     {
       "curl": 0.25,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 222
     },
     {
       "curl": 0.5,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 207
     },
     {
       "curl": 0.75,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 192
     },
     {
       "curl": 1,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 194
     }
   ],
@@ -45,5 +45,6 @@
     "hand_gun_triangle_overlap_pairs": 0
   },
   "all_tested_hand_gun_surfaces_clear": false,
-  "deliberate_enclosed_pose_has_rear_entry_and_hidden_internal_overlaps": true
+  "all_tested_entire_arm_shell_surfaces_clear": true,
+  "hidden_internal_mechanism_overlaps_remain": true
 }

@@ -1,0 +1,23 @@
+{
+  "model_runtime_hashes_match": true,
+  "fresh_install": true,
+  "repeated_install_idempotent": true,
+  "upgrade_preserves_settings": true,
+  "compiled_release_assets": [
+    {
+      "name": "Portal1VR-Windows-x86-2026.09.23.zip",
+      "bytes": 32069963,
+      "sha256": "f6b1d9a213e45e6e32766167cea08679b7e8f5bdece42b8493cc9ae85b40d4ce"
+    },
+    {
+      "name": "Bowman_Portal1VR.blend",
+      "bytes": 24560513,
+      "sha256": "fdbf88a8176f130d0db095af4ae5faefc27bc28d62389dad8b9bb17ae779508b"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 194,
+      "sha256": "c1838f8359bb6cd3b46c681738d26ec22b2b2064c23f04f00af94da05f0320c1"
+    }
+  ]
+}

@@ -3,31 +3,31 @@
     {
       "curl": 0,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 216
     },
     {
       "curl": 0.25,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 222
     },
     {
       "curl": 0.5,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 207
     },
     {
       "curl": 0.75,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 192
     },
     {
       "curl": 1,
       "paw_and_finger_shell_intersections": 0,
-      "forearm_at_rear_entry_intersections": 139,
+      "forearm_at_rear_entry_intersections": 0,
       "occluded_internal_mechanism_intersections": 194
     }
   ],
@@ -35,7 +35,8 @@
   "wrist_position_unchanged": true,
   "grip_roll_degrees": 160,
   "grip_pitch_degrees": -15,
-  "purpose": "The paw is intentionally enclosed by the housing. Check that palm, thumb and fingertips do not cross either shell surface; forearm entry and hidden internal mechanism overlaps are reported separately.",
+  "purpose": "Check the entire right arm, wrist, palm, thumb and fingertips against both shell surfaces. Hidden internal mechanism overlaps remain separately reported.",
   "all_tested_paw_shell_surfaces_clear": true,
-  "headset_visual_confirmation_pending": true
+  "headset_visual_confirmation_pending": true,
+  "all_tested_entire_arm_shell_surfaces_clear": true
 }

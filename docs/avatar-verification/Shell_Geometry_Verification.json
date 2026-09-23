@@ -2,7 +2,7 @@
   "inward_thickness_source_units": 0.12,
   "shell_components": 2,
   "outer_shell_faces_unchanged": 1416,
-  "all_original_vertices_and_faces_unchanged": true,
+  "all_original_vertices_and_faces_unchanged": false,
   "inner_faces": 1416,
   "rim_quads": 144,
   "closed_shell_edge_counts_passed": true,
@@ -13,5 +13,8 @@
   "shell_self_intersection_pairs": 0,
   "thickness_clamped_at_tight_details": true,
   "minimum_inward_wall_offset": 0.02591926620722731,
-  "maximum_inward_wall_offset": 0.12000177744274541
+  "maximum_inward_wall_offset": 0.13193312777850597,
+  "original_topology_and_uvs_unchanged": true,
+  "rear_opening_adjusted_for_wrist_clearance": true,
+  "rear_shell_changed_vertices": 1054
 }

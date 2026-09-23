@@ -16,7 +16,7 @@ Captured while playing Portal 1 VR fullscreen with a Pico headset through SteamV
 
 ## Installation
 
-Close Portal. Extract the runtime archive into `steamapps/common/Portal`, merging its `bin` and `portal` folders. The `portal/custom/portal1vr/materials` files correct the stock arms texture lookup. Connect the headset through its PC VR software and start SteamVR first.
+Download the compiled Windows x86 ZIP from [Releases](https://github.com/BowmanFox/portal1vr/releases). Close Portal, extract the entire ZIP to a folder, and run `Install.cmd`. For a custom game location, run `Install.ps1 -PortalDirectory 'D:\SteamLibrary\steamapps\common\Portal'`. The installer copies the runtime, OpenVR DLL, bindings, corrected arm materials, and compiled Bowman body and viewmodels. Connect the headset through its PC VR software and start SteamVR first.
 
 Run `Launch Portal VR.cmd` for fullscreen using Portal's configured resolution, or launch Portal with:
 
@@ -59,7 +59,7 @@ Tested locally against Portal client.dll timestamp `0x68362d89`, with a Pico hea
 
 The tester also confirmed controller-directed portal placement and independent arm movement in an early room without the gun. The custom VPK supplies the authored hand textures and rebuilt mirrored hand models. Model symmetry, normalized weights, finger motion, trigger isolation, and the Release x86 build pass local checks. Body weights mirror exactly in Blender and the exported SMDs. The September 14 Pico test loaded the textured models after rebuilding the archive with Portal's own VPK packer; live logs also show controller position and angles reaching the pickup hooks. The latest gun grip was inspected in rendered poses using the runtime's compiled bone transforms. The compiled body contains two correctly placed eyeballs, separate eye materials, gaze controls, and corrected eye-position metadata. The final eye appearance and grip comfort in Pico, pickup through portals, and a complete campaign playthrough still require user validation.
 
-The gun-hand grip correction is 2.5 Source units backward and 1 unit left. `ViewmodelPosCustomOffsetX/Y/Z` add forward/right/up adjustments in Source units; at the default scale, one unit is about 2.3 cm. Restart Portal after changing configuration.
+The gun uses a uniform 1.2 scale and a fitted local translation of (0.218, -7.66, -3.3) Source units. The wrist remains at the tracked controller, with the paw rotated inside the rear housing. `ViewmodelPosCustomOffsetX/Y/Z` add forward/right/up adjustments in Source units; at the default scale, one unit is about 2.3 cm. Restart Portal after changing configuration.
 
 `FirstPersonBody=true` enables the local body when looking down at least 30 degrees, in both VR eyes and the separate desktop mirror (`RenderWindow=1`). Keep `FirstPersonBodyHideUpper=true` to hide the head and untracked arms while showing the chest, torso, and legs. This affects only the temporary first-person rendering. Set `FirstPersonBody=false` to disable the feature, or set `FirstPersonBodyHideUpper=false` only when testing the unmasked full player model.
 
@@ -69,7 +69,7 @@ The camera-collision update passes the Release x86 build and regression checks a
 
 The custom Chell body and both viewmodels are stored losslessly in `L4D2VR/custom/bowman_portal1.zip`. The installer extracts its single `bowman_portal1.vpk` into `portal/custom`. Manual installers should extract that VPK there too, replacing the previous Bowman VPK. ZIP compression keeps the repository asset below GitHub's file-size limit without reducing texture resolution.
 
-The September 23 avatar rebuild retains all 136 expression targets, with 88 direct expression controls and a selector for every target. The right palm sits underneath the portal gun. Finger joints match the paw mesh, distal pads follow their own finger chains, and the runtime avoids the previous forced fist that folded the outer pad and palm. Mesh and skeleton bind transforms were checked against the compiled models.
+The September 23 avatar rebuild retains all 136 expression targets, with 88 direct expression controls and a selector for every target. The right palm is seated inside the rear portal-gun housing. Finger joints match the paw mesh, distal pads follow their own finger chains, and the runtime avoids the previous forced fist that folded the outer pad and palm. Mesh and skeleton bind transforms were checked against the compiled models.
 
 Optional left-hand support remains free until a fresh grip squeeze near the underside socket. Release grip or pull away to resume independent tracking. `LeftHandGunGrip=false` disables support; `LeftHandGunGripRadius=6` sets the default engagement distance in Source units. Missing tracking or socket data releases support. The supplied controller bindings add support inputs while retaining their existing actions; saved custom layouts may need the support action added manually. Right-hand aiming is unchanged.
 
@@ -77,7 +77,7 @@ The fresh body/viewmodel compiles, expression checks, five sampled gun-grip pose
 
 ## Placement and portal collision
 
-The latest runtime seats the gripping paw higher inside the rear portal-gun shielding while keeping the wrist at the controller. The optional left-hand socket follows the same corrected gun frame. Five finger-curl states and the support pose pass the compiled-mesh surface-intersection checks. The body was rebuilt with all 136 expression targets and 12 jiggle bones. Its skeleton is corrected downward by 3.402857 Source units to preserve the original mesh-to-rig offset; ragdoll hulls follow the corrected bind. The mesh and expression shapes remain intact. Blender and Unity exports open with neutral feet at the floor and zero object locations. Anatomical joint checks and FBX bone-position round trips verify alignment; see `docs/avatar-verification/Anatomical_Alignment_Verification.json` and `FBX_Skeleton_Alignment_Verification.json`.
+The latest runtime seats the gripping paw higher inside the rear portal-gun shielding while keeping the wrist at the controller. The optional left-hand socket follows the same corrected gun frame. Five finger-curl states keep the entire right arm, wrist, palm and fingers clear of both shell surfaces. The optional support pose also clears the gun. Hidden overlap with the internal mechanism remains. The body was rebuilt with all 136 expression targets and 12 jiggle bones. Its skeleton is corrected downward by 3.402857 Source units to preserve the original mesh-to-rig offset; ragdoll hulls follow the corrected bind. The mesh and expression shapes remain intact. Blender and Unity exports open with neutral feet at the floor and zero object locations. Anatomical joint checks and FBX bone-position round trips verify alignment; see `docs/avatar-verification/Anatomical_Alignment_Verification.json` and `FBX_Skeleton_Alignment_Verification.json`.
 
 Head collision uses Portal 1's native portal-environment hull trace on the verified client build, so a linked opening is not treated as an ordinary solid wall. Other client builds fall back to the existing wall trace. Startup centering now waits for a valid headset pose, and recentering clears the previous collision correction. Physical room movement can still separate the headset from the player capsule; click the left stick to recenter if a doorway appears blocked. The user confirmed that workaround. The new portal-crossing behavior still needs headset confirmation.
 
@@ -90,6 +90,12 @@ The bundled radio plays an instrumental separation of thecybercat's [The Device 
 The installer backs up an older loose radio WAV, credit notice, and sound caches under `bin/VR/InstallBackups` so they cannot mask the new VPK. Other sounds and the existing VR configuration are preserved. For manual installation, move any old `portal/custom/portal1vr/sound/ambient/music/looping_radio_mix.wav` outside `portal/custom`, and retire its `sound/sound.cache` and `portal/custom/bowman_portal1.vpk.sound.cache` before restarting Portal. Keep the existing Options > Portal radio-disable setting and `portal1vr_radio_on/off` commands.
 
 The final radio passed format, loop metadata, archive CRC, and automated speech-recognition checks; only music/effect labels were transcribed. Vocal separation can leave faint artifacts, and no headset listening test is claimed. Verification details are in `docs/avatar-verification/Radio_Verification.json`. Run `powershell -NoProfile -File tests/install-radio.ps1` to check reversible migration, repeated installation, and malformed-archive rejection.
+
+## Wrist opening and compiled release
+
+The rear shell opening now clears the wrist without shifting the gun away from the tracked hand. Both shell surfaces move together, the rim remains closed, and normals follow the adjusted surface. The gun-and-arm triangle count stays at 13,080. The compiled model passes all five arm-versus-shell checks; see `docs/avatar-verification/Wrist_Entry_Verification.json`. This latest fit still needs in-headset confirmation.
+
+After building Release x86, run `python package-release.py --output Portal1VR-Windows-x86.zip` to package the compiled runtime, avatar, OpenVR dependency, config-preserving installer and controller bindings. End users do not need Python, Visual Studio or Blender.
 
 ## Build
 

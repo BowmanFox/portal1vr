@@ -2,26 +2,29 @@
   "loops": [
     {
       "rim_vertices": 84,
-      "matched_pairs": 78,
-      "maximum_matched_width_difference": 0.0,
-      "minimum_width": 0.0719997039690297,
-      "maximum_width": 0.11999981408463875
+      "matched_pairs": 70,
+      "maximum_matched_width_difference": 0.0007375327253988789,
+      "minimum_width": 0.0688679158892494,
+      "maximum_width": 0.12665425664063498
     },
     {
       "rim_vertices": 12,
       "matched_pairs": 0,
       "maximum_matched_width_difference": 0,
-      "minimum_width": 0.11999944508577993,
-      "maximum_width": 0.12000000735312238
+      "minimum_width": 0.11536924604005416,
+      "maximum_width": 0.12064550051588599
     },
     {
       "rim_vertices": 48,
-      "matched_pairs": 36,
-      "maximum_matched_width_difference": 0.0,
-      "minimum_width": 0.02591950172265313,
-      "maximum_width": 0.12000000624406969
+      "matched_pairs": 28,
+      "maximum_matched_width_difference": 3.1198104846613672e-06,
+      "minimum_width": 0.02591926620722731,
+      "maximum_width": 0.1200011799727217
     }
   ],
   "rim_shading_smoothed": true,
-  "new_shell_self_intersections": 0
+  "new_shell_self_intersections": 0,
+  "rear_rim_updated_for_wrist_clearance": true,
+  "matched_rim_width_tolerance_source_units": 0.001,
+  "passed": true
 }

@@ -1,0 +1,44 @@
+{
+  "changed_shell_vertices": 1054,
+  "relief_tapers_to_zero_at_gun_local_z": 14.8,
+  "hand_mesh_unchanged": true,
+  "skeleton_unchanged": true,
+  "runtime_gun_position_unchanged": true,
+  "smooth_deformation_applied_to_both_shell_surfaces": true,
+  "shell_self_intersection_pairs": 0,
+  "closed_shell_edge_counts_passed": true,
+  "triangles": 13080,
+  "compiled_shell_triangles": 3120,
+  "compiled_model_triangles": 13080,
+  "compiled_grip_states": [
+    {
+      "curl": 0,
+      "entire_arm_vs_shell_intersections": 0,
+      "minimum_sampled_vertex_clearance": 0.21042442321777344
+    },
+    {
+      "curl": 0.25,
+      "entire_arm_vs_shell_intersections": 0,
+      "minimum_sampled_vertex_clearance": 0.2153133898973465
+    },
+    {
+      "curl": 0.5,
+      "entire_arm_vs_shell_intersections": 0,
+      "minimum_sampled_vertex_clearance": 0.22027143836021423
+    },
+    {
+      "curl": 0.75,
+      "entire_arm_vs_shell_intersections": 0,
+      "minimum_sampled_vertex_clearance": 0.22529548406600952
+    },
+    {
+      "curl": 1,
+      "entire_arm_vs_shell_intersections": 0,
+      "minimum_sampled_vertex_clearance": 0.2253006547689438
+    }
+  ],
+  "all_tested_wrist_forearm_palm_and_fingers_clear_of_shell": true,
+  "headset_confirmation_pending": true,
+  "rear_opening_relief_at_gun_local_z_3": 2.4,
+  "maximum_rear_shell_displacement_source_units": 2.4897952419216347
+}
