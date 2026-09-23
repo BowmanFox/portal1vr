@@ -47,8 +47,12 @@ rear opening for the wrist. The gun is uniformly scaled to 1.2 for the paw.
 Left-hand support is optional; release grip to resume independent tracking.
 The body retains 136 expression targets, QC eyes, and 12 jiggle bones.
 
+Held objects now follow the corrected carry direction from the visible wrist.
+Portal shots and the aim marker follow the barrel centerline at every range;
+the aim marker uses the current frame's controller pose.
+
 This is a prerelease: compiled geometry, attachment, and installer checks
-passed. The newest grip and portal-crossing behavior still need headset
+passed. The newest carry, aim, and portal-crossing behavior still need headset
 confirmation. Click the left stick to recenter if a doorway seems blocked.
 
 The included instrumental radio is derived from thecybercat's

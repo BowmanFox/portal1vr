@@ -1334,11 +1334,16 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                     const auto gunTarget = HandPose::Reanchor(fittedGun, source, target);
                     if (info.pRenderable == s_RightViewmodelRenderable) {
                         s_GunAttachmentRenderable = nullptr;
+                        m_VR->m_PortalAimLastSeen = 0;
                         if (modelLength >= 248 && modelLength <= 64 * 1024 * 1024
                             && SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr), modelLength)
                             && s_GunAttachments.Read(hdr,modelLength,reference)) {
                             s_GunAttachmentRenderable = info.pRenderable;
                             s_GunAttachmentModel = info.pModel;
+                            if (s_GunAttachments.hasBarrel) {
+                                m_VR->m_PortalAimFromController = s_GunAttachments.barrelFromController;
+                                m_VR->m_PortalAimLastSeen = GetTickCount64();
+                            } else m_VR->m_PortalAimLastSeen = 0;
                         }
                     }
                     for (int i = 24; i < count; ++i) tracked[i] = HandPose::Reanchor(bones[i], bones[24], gunTarget);
@@ -1518,9 +1523,10 @@ float __fastcall Hooks::dTraceFirePortal(void* ecx, void* edx, bool secondary,
 {
     Vector shotStart = start;
     Vector shotDirection = direction;
-    if (placedBy == 2 && m_VR->m_IsVREnabled) {
-        shotStart = m_VR->GetRightHandAbsPos();
-        shotDirection = m_VR->m_RightControllerForward;
+    Vector aimStart, aimDirection;
+    if (placedBy == 2 && m_VR->GetPortalAimRay(aimStart,aimDirection)) {
+        shotStart = aimStart;
+        shotDirection = aimDirection;
         static int logged = 0;
         if (!test && logged++ < 20)
             PortalVrLog("Controller portal shot secondary=%d hand=%f,%f,%f direction=%f,%f,%f headDirection=%f,%f,%f",

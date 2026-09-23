@@ -218,6 +218,9 @@ public:
 	QAngle m_GrabControllerAng = { 0, 0, 0 };
 	matrix3x4_t m_GrabHandRelative;
 	bool m_GrabPoseValid = false;
+	matrix3x4_t m_PortalAimFromController{};
+	std::uint64_t m_PortalAimLastSeen = 0;
+	bool GetPortalAimRay(Vector& origin, Vector& direction);
 	QAngle m_ServerGrabAngles = { 0, 0, 0 };
 	void SnapshotGrabPose();
 	bool m_UseCommandHeld = false;

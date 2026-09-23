@@ -10,9 +10,12 @@ struct Model {
     struct Attachment { int bone = -1; matrix3x4_t local; } attachments[256];
     int count = 0;
     matrix3x4_t gunFromController;
+    matrix3x4_t barrelFromController;
+    bool hasBarrel = false;
 
     bool Read(const unsigned char *hdr, size_t size, const matrix3x4_t *reference) {
         count = 0;
+        hasBarrel = false;
         if (!hdr || !reference || size < 248) return false;
         auto integer = [&](size_t offset) { int v; std::memcpy(&v,hdr+offset,4); return v; };
         if (integer(4) != 48 || integer(156) != 45
@@ -20,8 +23,13 @@ struct Model {
         const int n = integer(240), offset = integer(244);
         if (n < 1 || n > 256 || offset < 248 || size_t(offset) > size
             || size_t(n) > (size-size_t(offset))/92) return false;
+        int muzzle = -1;
         for (int i=0; i<n; ++i) {
             const size_t record = size_t(offset)+size_t(i)*92;
+            const int nameOffset = integer(record);
+            if (nameOffset > 0 && size_t(nameOffset) <= size-record
+                && sizeof("muzzle") <= size-record-size_t(nameOffset)
+                && !std::memcmp(hdr+record+nameOffset,"muzzle",sizeof("muzzle"))) muzzle=i;
             attachments[i].bone = integer(record+8);
             if (attachments[i].bone < 24 || attachments[i].bone >= 45) return false;
             std::memcpy(&attachments[i].local,hdr+record+12,sizeof(matrix3x4_t));
@@ -32,6 +40,13 @@ struct Model {
         for (int r=0;r<3;++r) source[r][3] = reference[8][r][3];
         gunFromController = HandPose::Concat(HandPose::InverseRigid(source),
             HandPose::FitGunToPalm(reference[24]));
+        if (muzzle >= 0) {
+            const auto& a = attachments[muzzle];
+            const auto barrelLocal = HandPose::Concat(HandPose::InverseRigid(reference[24]),
+                HandPose::Concat(reference[a.bone],a.local));
+            barrelFromController = HandPose::Concat(gunFromController,barrelLocal);
+            hasBarrel = true;
+        }
         count = n;
         return true;
     }

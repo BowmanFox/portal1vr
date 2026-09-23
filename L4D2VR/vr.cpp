@@ -21,6 +21,8 @@
 #include "portalpose.h"
 #include "optionalgungrip.h"
 #include "portaltrace.h"
+#include "gunray.h"
+#include "pickuptrace.h"
 
 namespace
 {
@@ -1196,11 +1198,10 @@ void VR::ResetPosition()
 void VR::SnapshotGrabPose()
 {
     m_GrabPoseValid = m_RightControllerPose.isValid;
-    m_GrabControllerPos = GetRightControllerAbsPos();
-    // Carry from the tracked grip frame. The portal gun's aim frame has an
-    // extra 30-degree downward tilt, which puts held props below the hand.
-    QAngle::VectorAngles(m_RightHandForward, m_RightHandUp, m_GrabControllerAng);
-    m_GrabControllerAng.Normalize();
+    m_GrabControllerPos = GetRightHandAbsPos();
+    // Carry forward from the visible wrist in the same aim orientation as the
+    // gun. The uncorrected grip direction is 30 degrees higher on this binding.
+    m_GrabControllerAng = PickupTrace::CarryAngles(m_RightControllerForward,m_RightControllerUp);
     m_GrabHandRelative = PortalPose::RelativeHand(
         m_GrabControllerPos - m_SetupOrigin, m_GrabControllerAng, m_HmdAngAbs);
 }
@@ -1243,33 +1244,6 @@ void VR::UpdateTracking()
     // TODO: Get roomscale to work while using thumbstick
     if ((cameraFollowing < 0 && cameraDistance > 1) || (m_PushingThumbstick))
         m_RoomscaleActive = false;*/
-
-    m_AimPos = Trace((uint32_t*)localPlayer);
-
-    if (m_AimMode == 2 && m_Game->m_Hooks->CreatePingPointer &&
-        m_Game->m_Offsets->SetControlPoint.address && m_Game->m_Offsets->StopEmission.address) {
-        C_Portal_Player* portalPlayer = (C_Portal_Player*)localPlayer;
-
-        auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)portalPlayer + 968))(portalPlayer);
-        //auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)m_Game->m_Offsets->GetActivePortalWeapon.address))(portalPlayer);
-
-        if (activeWeaponAddr && m_DrawCrosshair) {
-            CWeaponPortalBase* activeWeapon = (CWeaponPortalBase*)activeWeaponAddr;
-
-            if (portalPlayer->m_PointLaser) {
-                portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
-                portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
-            }
-            else if (m_Game->m_Hooks->CreatePingPointer) {
-                std::cout << "Creating Point Laser Beam Sight Thingy" << "\n";
-                m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
-            }
-        }
-        else if (portalPlayer->m_PointLaser){
-            portalPlayer->m_PointLaser->StopEmission(false, true, false);
-            portalPlayer->m_PointLaser = NULL;
-        }
-    }
 
     // Check if camera is clipping inside wall
     /*CGameTrace trace;
@@ -1377,6 +1351,34 @@ void VR::UpdateTracking()
     // Viewmodel roll offset
     m_ViewmodelRight = VectorRotate(m_ViewmodelRight, m_ViewmodelForward, m_ViewmodelAngOffset.z);
     m_ViewmodelUp = VectorRotate(m_ViewmodelUp, m_ViewmodelForward, m_ViewmodelAngOffset.z);
+
+    // Trace only after this frame's controller positions and orientations are ready.
+    m_AimPos = Trace((uint32_t*)localPlayer);
+
+    if (m_AimMode == 2 && m_Game->m_Hooks->CreatePingPointer &&
+        m_Game->m_Offsets->SetControlPoint.address && m_Game->m_Offsets->StopEmission.address) {
+        C_Portal_Player* portalPlayer = (C_Portal_Player*)localPlayer;
+
+        auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)portalPlayer + 968))(portalPlayer);
+        //auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)m_Game->m_Offsets->GetActivePortalWeapon.address))(portalPlayer);
+
+        if (activeWeaponAddr && m_DrawCrosshair) {
+            CWeaponPortalBase* activeWeapon = (CWeaponPortalBase*)activeWeaponAddr;
+
+            if (portalPlayer->m_PointLaser) {
+                portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
+                portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
+            }
+            else if (m_Game->m_Hooks->CreatePingPointer) {
+                std::cout << "Creating Point Laser Beam Sight Thingy" << "\n";
+                m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
+            }
+        }
+        else if (portalPlayer->m_PointLaser){
+            portalPlayer->m_PointLaser->StopEmission(false, true, false);
+            portalPlayer->m_PointLaser = NULL;
+        }
+    }
 }
 
 Vector VR::GetViewAngle()
@@ -1480,9 +1482,23 @@ Vector VR::GetViewOriginRight(Vector setupOrigin)
     return viewOriginRight;
 }
 
+bool VR::GetPortalAimRay(Vector& origin, Vector& direction) {
+    if (!m_IsVREnabled || !m_RightControllerPose.isValid) return false;
+    origin = GetRightHandAbsPos();
+    direction = m_RightControllerForward;
+    if (m_PortalAimLastSeen && GetTickCount64()-m_PortalAimLastSeen < 250) {
+        const auto controller = HandPose::Frame(-m_RightControllerRight,
+            m_RightControllerUp,m_RightControllerForward,origin);
+        return GunRay::FromBarrel(HandPose::Concat(controller,m_PortalAimFromController),
+            GetRightHandAbsPos(),origin,direction);
+    }
+    return std::isfinite(direction.LengthSqr()) && direction.LengthSqr() > .9f;
+}
+
 Vector VR::Trace(uint32_t* localPlayer) {
-    Vector vecStart = GetRightControllerAbsPos();
-    Vector vecEnd = vecStart + m_RightControllerForward * MAX_TRACE_LENGTH;
+    Vector vecStart, direction;
+    if (!GetPortalAimRay(vecStart,direction)) return GetRightHandAbsPos();
+    Vector vecEnd = vecStart + direction * MAX_TRACE_LENGTH;
 
     CGameTrace trace;
     Ray_t ray;

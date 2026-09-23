@@ -1,0 +1,68 @@
+{
+  "scope": [
+    "held-object carry height",
+    "portal barrel ray",
+    "current-frame aim marker"
+  ],
+  "release_x86_build_passed": true,
+  "abi_pickup_collision_portal_pose_regressions_passed": true,
+  "installed_portal_client_layout_passed": true,
+  "compiled_gun_checks": {
+    "attachments": 18,
+    "angle_poses": 60,
+    "queries": 1080,
+    "maximum_matrix_error": 3.8147e-05,
+    "range_checks": 900,
+    "maximum_barrel_ray_error": 0.000535581,
+    "passed": true
+  },
+  "carry_regression": {
+    "yaw_degrees": [
+      -150,
+      0,
+      90
+    ],
+    "hold_distances_source_units": [
+      24,
+      64,
+      128
+    ],
+    "raw_grip_pitch_degrees": -30,
+    "corrected_level_height_error_less_than": 0.001,
+    "origin": "visible right wrist",
+    "native_distance_and_collision_solver_preserved": true
+  },
+  "shot_ray": "compiled muzzle centerline at wrist depth, with normalized direction; no fixed convergence distance",
+  "aim_marker": "traced after updating current-frame controller positions and orientations",
+  "left_support_socket_changed": false,
+  "compiled_models_changed": false,
+  "runtime_sha256": "9f44e95681c5eca01dbe1b2c4285b86335c08628c9bb044c13af5c2e663ae7ba",
+  "installed_dll_matches_tested_package": true,
+  "existing_config_byte_exact": true,
+  "model_sha256": "7aee5fc8aec71de6e59a1ad3ecdab398606c0e9c41cc4bd0b2fc47032424c539",
+  "installer": {
+    "fresh_install": true,
+    "repeated_install_idempotent": true,
+    "upgrade_preserves_settings": true,
+    "model_runtime_hashes_match": true
+  },
+  "release_assets": [
+    {
+      "name": "Portal1VR-Windows-x86-2026.09.23.1.zip",
+      "bytes": 32071154,
+      "sha256": "56cdd5057ec58fd2d5e3eb91130183d078b1321da89db46b7f94a605f7b40be1"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 106,
+      "sha256": "e26fd21fea1c8e30cf1ed51a7be482dd102396fe8d8318f489defc0c24933744"
+    }
+  ],
+  "release_contains_editable_blend": false,
+  "headset_tested": false,
+  "remaining_gameplay_checks": [
+    "pick up and carry a cube at level wrist height",
+    "fire at near and far wall targets at several angles",
+    "carry through portals and release the prop"
+  ]
+}

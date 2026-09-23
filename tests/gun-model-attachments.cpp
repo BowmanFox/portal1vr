@@ -5,6 +5,7 @@
 #include <iterator>
 #include "portalpose.h"
 #include "gunattachments.h"
+#include "gunray.h"
 
 // Optional regression using the actual compiled custom v_portalgun.mdl.
 int main(int argc,char **argv) {
@@ -22,8 +23,9 @@ int main(int argc,char **argv) {
     }
     GunAttachments::Model model;assert(model.Read(data.data(),data.size(),bind));
     assert(model.count==18);
+    assert(model.hasBarrel);
     auto source=bind[24];for(int r=0;r<3;++r)source[r][3]=bind[8][r][3];
-    float maxError=0;int cases=0;
+    float maxError=0,maxRayError=0;int cases=0,rangeCases=0;
     for(float pitch:{-75.f,-30.f,0.f,45.f,80.f})
     for(float yaw:{-150.f,-45.f,0.f,90.f})
     for(float roll:{-60.f,0.f,60.f}) {
@@ -33,6 +35,26 @@ int main(int argc,char **argv) {
         Vector forward,right,up;QAngle::AngleVectors({pitch,yaw,roll},&forward,&right,&up);
         const auto controller=HandPose::Frame(-right,up,forward,{-30,10,60});
         const auto gun=HandPose::Reanchor(HandPose::FitGunToPalm(bind[24]),source,controller);
+        const auto barrel=HandPose::Concat(controller,model.barrelFromController);
+        const auto& muzzle=model.attachments[0];
+        const auto authored=HandPose::Concat(HandPose::Reanchor(bind[muzzle.bone],bind[24],gun),muzzle.local);
+        const auto rigid=HandPose::RigidOrientation(authored);
+        const Vector barrelForward(rigid[0][0],rigid[1][0],rigid[2][0]);
+        const Vector wrist=PortalPose::Position(controller);
+        Vector rayStart,rayDirection;
+        assert(GunRay::FromBarrel(barrel,wrist,rayStart,rayDirection));
+        assert((rayStart-wrist).LengthSqr()>.5f); // reproduces the old wrist-ray parallax
+        // Recoil slides the front cover down the same barrel line. Check near
+        // walls and distant targets without converging at an arbitrary range.
+        for(float recoil:{0.f,-3.f,1.f})
+        for(float distance:{8.f,32.f,128.f,512.f,2048.f}) {
+            const Vector target=PortalPose::Position(authored)+barrelForward*(distance+recoil);
+            const Vector toTarget=target-rayStart;
+            const float along=toTarget.x*rayDirection.x+toTarget.y*rayDirection.y+toTarget.z*rayDirection.z;
+            const Vector error=toTarget-rayDirection*along;
+            maxRayError=std::fmax(maxRayError,sqrtf(error.LengthSqr()));
+            ++rangeCases;
+        }
         for(int n=1;n<=model.count;++n) {
             const auto& a=model.attachments[n-1];
             const auto drawn=HandPose::Concat(HandPose::Reanchor(native[a.bone],native[24],gun),a.local);
@@ -50,5 +72,6 @@ int main(int argc,char **argv) {
         }
     }
     assert(maxError<.001f);
-    printf("{\"attachments\":%d,\"angle_poses\":60,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"passed\":true}\n",model.count,cases,maxError);
+    assert(maxRayError<.002f);
+    printf("{\"attachments\":%d,\"angle_poses\":60,\"queries\":%d,\"maximum_matrix_error\":%.9f,\"range_checks\":%d,\"maximum_barrel_ray_error\":%.9f,\"passed\":true}\n",model.count,cases,maxError,rangeCases,maxRayError);
 }

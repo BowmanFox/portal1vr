@@ -12,6 +12,7 @@
 #include "optionalgungrip.h"
 #include "portaltrace.h"
 #include "gunattachments.h"
+#include "gunray.h"
 #include <limits>
 
 static void CheckGunAttachments() {
@@ -317,6 +318,22 @@ static void CheckPortalPickup()
 static void *expectedThis;
 static void CheckContactPickup()
 {
+    // A level aimed gun must carry at that level, even though the raw grip is
+    // tilted upward. Otherwise the vertical miss grows with holding distance.
+    for (float yaw : {-150.f,0.f,90.f}) {
+        Vector rawForward,right,rawUp;
+        QAngle::AngleVectors({-30,yaw,0},&rawForward,&right,&rawUp);
+        const Vector aimForward=VectorRotate(rawForward,right,-30);
+        const Vector aimUp=VectorRotate(rawUp,right,-30);
+        const auto carry=PickupTrace::CarryAngles(aimForward,aimUp);
+        Vector forward;QAngle::AngleVectors(carry,&forward,nullptr,nullptr);
+        assert(fabsf(forward.z)<.001f && rawForward.z>.49f);
+        for(float distance:{24.f,64.f,128.f}) assert(fabsf(forward.z*distance)<.001f);
+    }
+    Vector badOrigin,badDirection;
+    auto badBarrel=PortalPose::Frame({0,0,30},{0,0,0});
+    badBarrel[0][0]=badBarrel[1][0]=badBarrel[2][0]=0;
+    assert(!GunRay::FromBarrel(badBarrel,{0,0,0},badOrigin,badDirection));
     Vector origin;
     QAngle angles;
     // Hand inside a cube whose first surface is x=40; query starts outside.

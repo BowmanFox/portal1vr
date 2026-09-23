@@ -44,6 +44,7 @@ The installer appends missing settings from the shipped config while preserving 
 - Use Portal 1's one-argument player-portal callback to turn tracking and both hands immediately, including crossings with little positional displacement. Rebuild server pickup poses relative to the current player eye pose so an entry-side sample follows a server teleport. Limit eye overrides to use/pickup callbacks so ordinary portal physics sees the player's head.
 - Install the action manifest and controller bindings correctly. Guard missing controller poses and use the correct input and cursor interfaces.
 - Hook Portal 1's eight-argument, float-returning `TraceFirePortal` so placement follows the controller instead of head aim.
+- Use the compiled gun's muzzle centerline for portal shots and the aim marker at every range. Start the ray at wrist depth to retain near-wall checks, and calculate the aim marker after updating the current controller pose.
 - Attach the portal gun at its wrist bone, with the barrel aligned to the shot direction. Transform copies of the bone matrices so eye renders do not compound the pose.
 - Render bare arms with independently tracked left/right bone chains, and create the player's second viewmodel to retain the left arm while holding the gun.
 - Disable world-player bone merging and reconstruct bare arms from their reference skeleton. The old hands animation displaced the wrists from their forearm attachment points. The gun hand uses its authored wrist frame fitted to Portal's original grip, preserving the gun mesh and firing direction.
@@ -96,6 +97,8 @@ The final radio passed format, loop metadata, archive CRC, and automated speech-
 The rear shell opening now clears the wrist without shifting the gun away from the tracked hand. Both shell surfaces move together, the rim remains closed, and normals follow the adjusted surface. The gun-and-arm triangle count stays at 13,080. The compiled model passes all five arm-versus-shell checks; see `docs/avatar-verification/Wrist_Entry_Verification.json`. This latest fit still needs in-headset confirmation.
 
 After building Release x86, run `python package-release.py --output Portal1VR-Windows-x86.zip` to package the compiled runtime, avatar, OpenVR dependency, config-preserving installer and controller bindings. End users do not need Python, Visual Studio or Blender.
+
+Held objects now use the corrected aim orientation from the visible wrist instead of the raw grip direction, which was 30 degrees higher. The left-hand support socket and compiled models retain their existing transforms. Automated checks cover carry height and 900 barrel-ray cases across angles, ranges and axial recoil, with maximum line error below 0.002 Source units. See `docs/avatar-verification/Range_Carry_Verification.json`; final carry height and aim in the headset remain unverified.
 
 ## Build
 

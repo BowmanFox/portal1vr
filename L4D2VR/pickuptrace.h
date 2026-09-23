@@ -3,6 +3,13 @@
 #include <cmath>
 
 namespace PickupTrace {
+inline QAngle CarryAngles(const Vector& aimForward, const Vector& aimUp) {
+    QAngle result;
+    QAngle::VectorAngles(aimForward,aimUp,result);
+    result.Normalize();
+    return result;
+}
+
 // Only recover a missed use query when the hand is touching/inside the first
 // reachable surface. The head-to-hand sweep must still reject walls and solids.
 inline bool ContactQuery(const Vector& eye, const Vector& hand, float fraction,
