@@ -1,7 +1,8 @@
 {
-  "archive_bytes": 30353964,
+  "archive_bytes": 30353968,
   "vpk_bytes": 147311263,
-  "vpk_sha256": "7aee5fc8aec71de6e59a1ad3ecdab398606c0e9c41cc4bd0b2fc47032424c539",
+  "vpk_sha256": "698a01ce43c66a12fb1e86419442b6c6b6cb10b0d216ec9daffb8a6f00ff829b",
   "lossless_roundtrip": true,
-  "body_freshly_exported_and_compiled": true
+  "death_ragdoll_flags_repaired": true,
+  "geometry_and_physics_payloads_byte_exact": true
 }

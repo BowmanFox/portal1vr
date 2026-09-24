@@ -112,6 +112,20 @@ Prop selection uses the barrel centerline separately from the wrist carry pose. 
 
 ## Build
 
+The death-crash fix retains six collision-only spring bones during bone evaluation.
+The previous custom Chell model left their usage flags at zero, so the death ragdoll
+passed an uninitialized bone transform to VPhysics. Only six MDL flag bytes change;
+geometry, flexes, eyes, jiggle settings, animations and collision hulls are unchanged.
+`python tests/ragdoll-bones.py` checks all collision bones and their ancestors in the
+shipped archive. Release packaging also rejects models with this defect.
+After rebuilding an avatar, use `python tools/ragdoll_bones.py path/to/chell.mdl`
+to check its matching PHY, or add `--repair` to back up the MDL and retain unused
+collision bones with the same flag as QC `$bonemerge`. Retain `$bonemerge` for the
+six `spring_base`, `spring_end`, and `spring_1` bones (left and right) in the source QC.
+The installed VR runtime passed three death/checkpoint-reload cycles in
+`testchmb_a_11` (two `kill` tests and one lethal `hurtme` test), without a new crash
+dump. See `docs/avatar-verification/Death_Ragdoll_Verification.json`.
+
 The September 23 portal/pickup and save-load changes pass the Release x86 build and automated pose checks. A live Pico run confirmed both new hooks attach, controller pickup reaches the scoped eye overrides, a portal crossing updates tracking by 90 degrees, and both eyes continue receiving frames afterward. Held-prop behavior during crossing and repeated save-load textures still need gameplay confirmation. Check carrying a cube through both directions, releasing it afterward, and loading a save repeatedly while watching chamber textures.
 
 Install Visual Studio 2022 C++ build tools with the Windows SDK, and Git. Clone this repository recursively, then:

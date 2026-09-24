@@ -1,0 +1,106 @@
+{
+  "solids": 23,
+  "bones": 95,
+  "required_bones": 31,
+  "changes": [
+    {
+      "bone": "spring_base_L",
+      "index": 7,
+      "offset": 2336,
+      "before": 0,
+      "after": 262144
+    },
+    {
+      "bone": "spring_end_L",
+      "index": 8,
+      "offset": 2552,
+      "before": 0,
+      "after": 262144
+    },
+    {
+      "bone": "spring_1_L",
+      "index": 9,
+      "offset": 2768,
+      "before": 0,
+      "after": 262144
+    },
+    {
+      "bone": "spring_base_R",
+      "index": 15,
+      "offset": 4064,
+      "before": 0,
+      "after": 262144
+    },
+    {
+      "bone": "spring_end_R",
+      "index": 16,
+      "offset": 4280,
+      "before": 0,
+      "after": 262144
+    },
+    {
+      "bone": "spring_1_R",
+      "index": 17,
+      "offset": 4496,
+      "before": 0,
+      "after": 262144
+    }
+  ],
+  "changed_model_bytes": [
+    2338,
+    2554,
+    2770,
+    4066,
+    4282,
+    4498
+  ],
+  "changed_vpk_entries": [
+    "models/player/chell.mdl"
+  ],
+  "other_entries_byte_exact": 44,
+  "mesh_flexes_eyes_jiggle_physics_animations_byte_exact": true,
+  "vpk_sha256": "698a01ce43c66a12fb1e86419442b6c6b6cb10b0d216ec9daffb8a6f00ff829b",
+  "old_vpk_sha256": "7aee5fc8aec71de6e59a1ad3ecdab398606c0e9c41cc4bd0b2fc47032424c539",
+  "vpk_integrity": "Checking cache line hashes:\nAll 0 cache lines hashes matched OK\n",
+  "live_death_test": {
+    "map": "testchmb_a_11",
+    "kill_command_deaths": 2,
+    "lethal_damage_deaths": 1,
+    "successful_checkpoint_reloads_after_death": 3,
+    "same_process_survived_all_tests": true,
+    "process_exited_normally_after_tests": true,
+    "runtime_vr_rendering_continued": true,
+    "physical_headset_comfort_test": false,
+    "new_crash_dumps": 0
+  },
+  "root_cause": {
+    "module": "vphysics.dll",
+    "fault_rva": "0x7c62c",
+    "server_caller_rva": "0x22e9f9",
+    "operation": "RagdollAddSolid -> SetPositionMatrix",
+    "bone": "spring_end_R",
+    "bone_index": 16,
+    "bone_usage_before": 0,
+    "server_bone_setup_mask": "0x7ff00",
+    "observed_invalid_matrix_max_component": 1.0579800973561838e+28,
+    "native_setup_mask_rva": "0x1e6cc7"
+  },
+  "regressions": {
+    "old_shipped_avatar_rejected_for_six_unused_bones": true,
+    "unit_and_shipped_asset_tests_passed": 4,
+    "package_validates_ragdoll_bones": true
+  },
+  "installation": {
+    "installed_vpk_matches_package": true,
+    "runtime_byte_exact": true,
+    "runtime_sha256": "42793081222d2ab534c65f9c22aa9c84935c47550b711834e370e21f4bed092d",
+    "vr_config_byte_exact": true,
+    "save_files_byte_exact": true,
+    "game_config_restored": true
+  },
+  "package": {
+    "name": "Portal1VR-Windows-x86-2026.09.23.4.zip",
+    "sha256": "a757f307d870f4d176ef88be7e6a5249520331d4983b00be57b3751d3dcde330",
+    "no_editable_blend": true
+  }
+}

@@ -1,11 +1,13 @@
 """Package a built x86 runtime and the compiled Bowman avatar for installation."""
 from pathlib import Path
 import argparse,hashlib,json,zipfile
+from tools.ragdoll_bones import validate_avatar_zip
 
 repo=Path(__file__).resolve().parent
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
+validate_avatar_zip(repo/'L4D2VR/custom/bowman_portal1.zip')
 files={}
 for name in ['Release/d3d9.dll','Launch Portal VR.cmd','L4D2VR/copy-to-portal.ps1',
              'L4D2VR/config.txt','L4D2VR/manifest.vrmanifest',
@@ -48,6 +50,8 @@ Left-hand support is optional and seats the palm against the underside shell;
 release grip to resume independent tracking. Looking away no longer expires
 the support socket while the same gun remains equipped.
 The body retains 136 expression targets, QC eyes, and 12 jiggle bones.
+Collision-only spring bones are retained during bone evaluation so death
+ragdolls receive valid transforms instead of crashing Portal's physics engine.
 
 Held objects now follow the corrected carry direction from the visible wrist.
 Prop selection uses the barrel centerline separately from the wrist carry pose;
