@@ -1,0 +1,45 @@
+{
+  "package": {
+    "name": "Portal1VR-Windows-x86-2026.09.24.1.zip",
+    "sha256": "6c50f30c65fd213944ee1bc028e49c9bc8ad3e7defff8e5037fa3da3f88a0d26",
+    "bytes": 32096806,
+    "runtime_sha256": "31772dff8844a8a8e17d29bfa6174f6689896f2ac0503e23921620588907d169",
+    "avatar_vpk_sha256": "698a01ce43c66a12fb1e86419442b6c6b6cb10b0d216ec9daffb8a6f00ff829b",
+    "all_embedded_hashes_verified": true,
+    "avatar_matches_installed_death_hotfix": true,
+    "editable_blend_included": false
+  },
+  "tests": {
+    "release_x86_build": true,
+    "native_client_server_guards": true,
+    "stereo_portal_camera_cases": 600,
+    "gun_glow_position_checks": 21168,
+    "compiled_attachment_queries": 3528,
+    "barrel_range_checks": 2940,
+    "pickup_ray_checks": 588,
+    "both_color_blast_checks": 392,
+    "support_hand_poses": 196,
+    "wrist_roll_checks": 1095,
+    "ragdoll_regression_tests": 4,
+    "packaged_fresh_install": true,
+    "upgrade_preserves_settings": true,
+    "repeat_install_idempotent": true
+  },
+  "live_evidence": {
+    "native_transformed_eye_observed_during_crossings": true,
+    "read_only_background_timing_sampled": true,
+    "new_runtime_installed": true,
+    "new_led_headset_confirmed": false,
+    "new_crossing_headset_confirmed": false
+  },
+  "pending": [
+    "Headset verification of new LED and portal-crossing behavior"
+  ],
+  "installation": {
+    "utc": "2026-09-24T12:03:29.5432561Z",
+    "installed_dll_matches_tested_package": true,
+    "existing_config_settings_preserved": true,
+    "models_byte_exact": true,
+    "menu_bindings_match": true
+  }
+}

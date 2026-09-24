@@ -11,11 +11,13 @@
 #include "handpose.h"
 #include "optionalgungrip.h"
 #include "gunattachments.h"
+#include "guneffects.h"
 #include "gunray.h"
 #include "portalshotfx.h"
 #include "firstpersonbody.h"
 #include "cameracollision.h"
 #include "portalpose.h"
+#include "portalcamera.h"
 #include "pickuptrace.h"
 #include "nativepose.h"
 #include <intrin.h>
@@ -36,6 +38,7 @@ Hook<tCalcViewModelView> Hooks::hkCalcViewModelView = {};
 Hook<tCreateViewModel> Hooks::hkCreateViewModel = {};
 Hook<tGetAttachmentMatrix> Hooks::hkGetAttachmentMatrix = {};
 Hook<tGetAttachmentAngles> Hooks::hkGetAttachmentAngles = {};
+Hook<tPortalGunEffectParameters> Hooks::hkPortalGunEffectParameters = {};
 static void *s_RightViewmodelRenderable = nullptr;
 static void *s_GunAttachmentRenderable = nullptr;
 static const void *s_GunAttachmentModel = nullptr;
@@ -44,6 +47,7 @@ static float s_DrawnBarrelDirectionError = 0;
 static float s_DrawnBarrelLineError = 0;
 static float s_NativeGunBasisError = 0;
 static CViewSetup s_EyeWorldView;
+static thread_local PortalCamera::Frame s_PortalCamera;
 static thread_local struct { bool pending=false; matrix3x4_t muzzle; } s_PortalBlast;
 static PortalShotFx::LaunchHistory s_PortalLaunches;
 static std::mutex s_PortalLaunchMutex;
@@ -395,7 +399,9 @@ namespace
 		}
 		// Set the first-person torso behind the camera without moving hands,
 		// collision, or the complete player model seen through portals.
-		offset += FirstPersonBody::BackwardOffset(s_BodyExpectedView.angles.y,
+		const auto bodyAngles=s_PortalCamera.Unmap(QAngle(s_BodyExpectedView.angles.x,
+			s_BodyExpectedView.angles.y,s_BodyExpectedView.angles.z));
+		offset += FirstPersonBody::BackwardOffset(bodyAngles.y,
 			Hooks::m_VR->m_FirstPersonBodyBackOffset);
 		for (int i = 0; i < view.count; ++i) {
 			result[i][0][3] += offset.x;
@@ -473,7 +479,9 @@ namespace
 			return 0;
 		// The first-person copy is useful below the headset, but must never
 		// obscure forward aim. Portal/mirror world models keep their usual draw.
-		if (!FirstPersonBody::LookingDown(s_BodyExpectedView.angles.x))
+		const auto bodyAngles=s_PortalCamera.Unmap(QAngle(s_BodyExpectedView.angles.x,
+			s_BodyExpectedView.angles.y,s_BodyExpectedView.angles.z));
+		if (!FirstPersonBody::LookingDown(bodyAngles.x))
 			return 0;
 
 		void *player = Hooks::m_Game->GetLocalPortalPlayer();
@@ -617,6 +625,7 @@ Hooks::Hooks(Game *game)
 	EnableIfCreated(hkCreateViewModel);
 	EnableIfCreated(hkGetAttachmentMatrix);
 	EnableIfCreated(hkGetAttachmentAngles);
+	EnableIfCreated(hkPortalGunEffectParameters);
 	EnableIfCreated(hkDrawModelExecute);
 	EnableIfCreated(hkPlayerPortalled);
 	EnableIfCreated(hkPlayerUse);
@@ -643,6 +652,9 @@ int Hooks::initSourceHooks()
 	CreateHookAt(hkSettingsClientCmdUnrestricted,SigScanner::GetVirtualFunction(settingsEngine,106),
 		reinterpret_cast<LPVOID>(&dSettingsClientCmdUnrestricted),"VR menu ClientCmd_Unrestricted",false);
 	const bool hasOffsets = m_Game->m_Offsets != nullptr;
+	CreateHookAt(hkPortalGunEffectParameters,
+		NativePose::PortalGunEffectParameters(reinterpret_cast<uintptr_t>(GetModuleHandleA("client.dll"))),
+		reinterpret_cast<LPVOID>(&dPortalGunEffectParameters), "Portal1::PortalGunEffectParameters", false);
 	if (hasOffsets) {
 		CreateHookAt(hkGetAttachmentMatrix, m_Game->m_Offsets->GetAttachmentMatrix.address,
 			reinterpret_cast<LPVOID>(&dGetAttachmentMatrix), "Portal1::GetAttachment(matrix)", false);
@@ -880,7 +892,14 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		return hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 
 	CViewSetup desktopView = setup;
-	Vector position = setup.origin;
+	static const auto portalTrace = PortalTrace::Binding::Resolve(m_Game->m_BaseClient);
+	static const bool portalCameraSupported = PortalCamera::Supported(m_Game->m_BaseClient);
+	const auto portalCamera = PortalCamera::Read(m_Game->GetLocalPortalPlayer(),portalTrace,
+		portalCameraSupported && m_VR->m_IsVREnabled);
+	PortalCamera::Scope portalCameraScope(s_PortalCamera,portalCamera);
+	// CalcPortalView already transformed the native origin. Add roomscale and
+	// stereo offsets in player space, then map the complete camera and models.
+	Vector position = portalCamera.Unmap(setup.origin);
 
 	m_VR->m_SetupOrigin = position;
 	m_VR->UpdateCameraCollision(position);
@@ -908,11 +927,12 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	setup.m_flAspectRatio = m_VR->m_Aspect;
 	setup.zNear = CameraCollision::NearClip;
 	setup.zNearViewmodel = 2;
-	setup.angles = hmdAngle;
+	const auto eyeAngles=portalCamera.Map(QAngle(hmdAngle.x,hmdAngle.y,hmdAngle.z));
+	setup.angles = Vector(eyeAngles.x,eyeAngles.y,eyeAngles.z);
 
 	if (!m_VR->m_CreatedVRTextures)
 	{
-		setup.origin = m_VR->GetViewOrigin(position);
+		setup.origin = portalCamera.Map(m_VR->GetViewOrigin(position));
 		hkRenderView.fOriginal(ecx, setup, nClearFlags, whatToDraw);
 		m_PushedHud = false;
 		m_VR->m_RenderedNewFrame = true;
@@ -923,7 +943,15 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	CViewSetup rightEyeView = setup;
 
 	// Left eye CViewSetup
-	leftEyeView.origin = m_VR->GetViewOriginLeft(position);
+	leftEyeView.origin = portalCamera.Map(m_VR->GetViewOriginLeft(position));
+	static bool wasPortalCamera = false;
+	if (wasPortalCamera != portalCamera.transformed) {
+		PortalVrLog("Portal eye camera transformed=%d supported=%d native=%f,%f,%f player=%f,%f,%f eye=%f,%f,%f angles=%f,%f,%f",
+			portalCamera.transformed,portalCameraSupported,desktopView.origin.x,desktopView.origin.y,desktopView.origin.z,
+			position.x,position.y,position.z,leftEyeView.origin.x,leftEyeView.origin.y,leftEyeView.origin.z,
+			leftEyeView.angles.x,leftEyeView.angles.y,leftEyeView.angles.z);
+		wasPortalCamera=portalCamera.transformed;
+	}
     static int loggedEye = 0;
     if (++loggedEye == 120) PortalVrLog("Eye view fov=%f aspect=%f pos=%f,%f,%f angle=%f,%f,%f near=%f far=%f ortho=%d projectionOverride=%d",
         leftEyeView.fov,leftEyeView.m_flAspectRatio,leftEyeView.origin.x,leftEyeView.origin.y,leftEyeView.origin.z,
@@ -956,7 +984,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 	rndrContext->PopRenderTargetAndViewport();
 	
 	// Right eye CViewSetup
-	rightEyeView.origin = m_VR->GetViewOriginRight(position);
+	rightEyeView.origin = portalCamera.Map(m_VR->GetViewOriginRight(position));
 
 	m_VR->m_BindingEyeTexture = VR::Texture_RightEye;
 	rndrContext->PushRenderTargetAndViewport(
@@ -1005,7 +1033,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &originalSet
 		s_InlineBodyDrawEligible = true;
 		s_ActiveFirstPersonBodyPass = true;
 		ExpectBodyView(desktopView);
-		s_BodyCameraCenter = desktopView.origin;
+		s_BodyCameraCenter = position;
 		hkRenderView.fOriginal(ecx, desktopView, nClearFlags, whatToDraw);
 		s_ActiveFirstPersonBodyPass = false;
 		s_InlineBodyDrawEligible = false;
@@ -1154,6 +1182,7 @@ namespace {
         const auto controller = HandPose::Frame(-vr->m_RightControllerRight,
             vr->m_RightControllerUp,vr->m_RightControllerForward,vr->GetRightHandAbsPos());
         if (!s_GunAttachments.Resolve(number,controller,nativeBones,output)) return false;
+        s_PortalCamera.Map(&output,1);
         static int logged = 0;
         if (number == 1 && logged++ < 12)
             PortalVrLog("VR muzzle attachment aligned origin=%f,%f,%f",output[0][3],output[1][3],output[2][3]);
@@ -1173,8 +1202,21 @@ bool __fastcall Hooks::dGetAttachmentAngles(void *ecx, void *edx, int number, Ve
     if (result && TrackedGunAttachment(ecx,number,matrix)) {
         origin = PortalPose::Position(matrix);
         angles = PortalPose::Angles(HandPose::RigidOrientation(matrix));
+        GunEffects::PositionScope::Capture(origin);
     }
     return result;
+}
+
+void __fastcall Hooks::dPortalGunEffectParameters(void *ecx, void *, int index, void *color,
+    float *size, void **material, Vector& position, bool worldModel) {
+    GunEffects::PositionScope scope(position, m_VR && m_VR->m_IsVREnabled && !worldModel);
+    hkPortalGunEffectParameters.fOriginal(ecx,index,color,size,material,position,worldModel);
+    Vector nativePosition;
+    if (scope.Restore(&nativePosition)) {
+        static int logged = 0;
+        if (logged++ < 18) PortalVrLog("Gun effect anchored index=%d removedProjectionOffset=%f position=%f,%f,%f",
+            index,sqrtf((nativePosition-position).LengthSqr()),position.x,position.y,position.z);
+    }
 }
 
 void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles)
@@ -1321,6 +1363,28 @@ int Hooks::dGetPrimaryAttackActivity(void *ecx, void *edx, void *meleeInfo)
 	return hkGetPrimaryAttackActivity.fOriginal(ecx, meleeInfo);
 }
 
+static void DrawTrackedModel(void *ecx, void *state, const ModelRenderInfo_t& info,
+    matrix3x4_t* bones, int count)
+{
+    if(!s_PortalCamera.transformed)
+        return Hooks::hkDrawModelExecute.fOriginal(ecx,state,info,bones);
+    s_PortalCamera.Map(bones,count);
+    auto mapped=info;
+    mapped.origin=s_PortalCamera.Map(info.origin);
+    mapped.angles=s_PortalCamera.Map(info.angles);
+    matrix3x4_t modelToWorld;
+    if(info.pModelToWorld) {
+        modelToWorld=HandPose::Concat(s_PortalCamera.toLinked,*info.pModelToWorld);
+        mapped.pModelToWorld=&modelToWorld;
+    }
+    Vector lightingOrigin;
+    if(info.pLightingOrigin) {
+        lightingOrigin=s_PortalCamera.Map(*info.pLightingOrigin);
+        mapped.pLightingOrigin=&lightingOrigin;
+    }
+    Hooks::hkDrawModelExecute.fOriginal(ecx,state,mapped,bones);
+}
+
 void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld)
 {
 	// Work on a copy: Source shares its cached matrices with attachments and
@@ -1364,15 +1428,17 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
 				info.entity_index, info.pRenderable,
 				info.origin.x, info.origin.y, info.origin.z, built);
 		}
-		if (built)
-			return hkDrawModelExecute.fOriginal(ecx, state, info, bodyBones);
+		StudioBodyView view;
+		if (built && GetStudioBodyView(state,view))
+			return DrawTrackedModel(ecx,state,info,bodyBones,view.count);
 	}
 
 	if (localPlayerBody && s_DrawingLocalPlayerBodyDirect)
 	{
 		matrix3x4_t bodyBones[FirstPersonBody::MaxBones];
-		if (TranslateFirstPersonBodyBones(state, bones, bodyBones))
-			return hkDrawModelExecute.fOriginal(ecx, state, info, bodyBones);
+		StudioBodyView view;
+		if (TranslateFirstPersonBodyBones(state, bones, bodyBones) && GetStudioBodyView(state,view))
+			return DrawTrackedModel(ecx,state,info,bodyBones,view.count);
 	}
 
     if (m_VR->m_IsVREnabled && state && bones) {
@@ -1487,7 +1553,7 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
                 static int logged = 0;
                 if (logged++ < 6) PortalVrLog("Hand-anchored model=%s wrist=%f,%f,%f", name,
                     tracked[gun ? 8 : 27][0][3],tracked[gun ? 8 : 27][1][3],tracked[gun ? 8 : 27][2][3]);
-                return hkDrawModelExecute.fOriginal(ecx, state, info, tracked);
+                return DrawTrackedModel(ecx,state,info,tracked,count);
             }
         }
     }

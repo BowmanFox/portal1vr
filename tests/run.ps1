@@ -16,6 +16,11 @@ if ($PortalClient -and $PortalServer) {
     & (Join-Path $output 'overhead-carry-calibration.exe') $PortalClient $PortalServer
 } else { & (Join-Path $output 'overhead-carry-calibration.exe') }
 if ($LASTEXITCODE -ne 0) { throw 'Overhead/carry/calibration regressions failed.' }
+& cl.exe /nologo /std:c++17 /EHsc /RTC1 /Od /DWIN32 /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS "/I$repository\L4D2VR" "/I$repository\L4D2VR\sdk" (Join-Path $PSScriptRoot 'portal-camera.cpp') "/Fe$output\portal-camera.exe" "/Fo$output\portal-camera.obj"
+if ($LASTEXITCODE -ne 0) { throw 'Portal camera test build failed.' }
+if ($PortalClient) { & (Join-Path $output 'portal-camera.exe') $PortalClient }
+else { & (Join-Path $output 'portal-camera.exe') }
+if ($LASTEXITCODE -ne 0) { throw 'Portal camera tests failed.' }
 if ($PortalClient) {
     & cl.exe /nologo /std:c++17 /EHsc /RTC1 /Od /DWIN32 /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS "/I$repository\L4D2VR" "/I$repository\L4D2VR\sdk" (Join-Path $PSScriptRoot 'portal-client-layout.cpp') "/Fe$output\portal-client-layout.exe" "/Fo$output\portal-client-layout.obj"
     if ($LASTEXITCODE -ne 0) { throw 'Portal client layout test build failed.' }

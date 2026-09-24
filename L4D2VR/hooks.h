@@ -93,6 +93,7 @@ typedef void(__thiscall *tCalcViewModelView)(void *thisptr, const Vector &eyePos
 typedef void(__thiscall *tCreateViewModel)(void *thisptr, int index);
 typedef bool(__thiscall *tGetAttachmentMatrix)(void *renderable, int number, matrix3x4_t& matrix);
 typedef bool(__thiscall *tGetAttachmentAngles)(void *renderable, int number, Vector& origin, QAngle& angles);
+typedef void(__thiscall *tPortalGunEffectParameters)(void *weapon, int index, void *color, float *size, void **material, Vector& position, bool worldModel);
 typedef float(__thiscall *tProcessUsercmds)(void *thisptr, edict_t *player, void *buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);
 typedef int(__cdecl *tReadUsercmd)(void *buf, CUserCmd *move, CUserCmd *from);
 typedef void(__thiscall *tWriteUsercmdDeltaToBuffer)(void *thisptr, int a1, void *buf, int from, int to, bool isnewcommand);
@@ -188,6 +189,7 @@ public:
 	static Hook<tCreateViewModel> hkCreateViewModel;
 	static Hook<tGetAttachmentMatrix> hkGetAttachmentMatrix;
 	static Hook<tGetAttachmentAngles> hkGetAttachmentAngles;
+	static Hook<tPortalGunEffectParameters> hkPortalGunEffectParameters;
 	static Hook<tProcessUsercmds> hkProcessUsercmds;
 	static Hook<tReadUsercmd> hkReadUsercmd;
 	static Hook<tWriteUsercmdDeltaToBuffer> hkWriteUsercmdDeltaToBuffer;
@@ -269,6 +271,7 @@ public:
 	static void __fastcall dCreateViewModel(void *ecx, void *edx, int index);
 	static bool __fastcall dGetAttachmentMatrix(void *ecx, void *edx, int number, matrix3x4_t& matrix);
 	static bool __fastcall dGetAttachmentAngles(void *ecx, void *edx, int number, Vector& origin, QAngle& angles);
+	static void __fastcall dPortalGunEffectParameters(void *ecx, void *edx, int index, void *color, float *size, void **material, Vector& position, bool worldModel);
 	static int dServerFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
 	static int dClientFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
 	static float __fastcall dProcessUsercmds(void *ecx, void *edx, edict_t *player, void *buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);

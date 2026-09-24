@@ -32,6 +32,8 @@ The installer appends missing settings from the shipped config while preserving 
 
 ## Runtime fixes
 
+- Keep the blue/orange gun light at its tracked attachment position after Portal's flat-screen glow calculation. Native color, size, material, and world-model effects are retained.
+- Preserve the complete camera transform when Portal renders the eye through a linked portal during a crossing. Roomscale and stereo offsets are applied in player space, then the camera, first-person models, and attachments are transformed together. The new crossing correction needs headset confirmation.
 - Start VR on the render thread after the engine and D3D device are ready. SteamVR initialization failures can retry without crashing normal rendering.
 - Use Portal's x86 engine interfaces and camera structure instead of Portal 2's incompatible layouts.
 - Resolve client objects through checked RTTI and validate optional hook signatures.

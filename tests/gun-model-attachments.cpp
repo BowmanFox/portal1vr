@@ -6,6 +6,7 @@
 #include <limits>
 #include "portalpose.h"
 #include "gunattachments.h"
+#include "guneffects.h"
 #include "gunray.h"
 #include "portalshotfx.h"
 #include "optionalgungrip.h"
@@ -32,7 +33,8 @@ int main(int argc,char **argv) {
     assert(fabsf(support[0][3]-2.5f)<.001f && fabsf(support[1][3]+3.2f)<.001f
         && fabsf(support[2][3]-15.3f)<.001f);
     auto source=bind[24];for(int r=0;r<3;++r)source[r][3]=bind[8][r][3];
-    float maxError=0,maxRayError=0,maxPickupError=0;int cases=0,rangeCases=0,pickupCases=0;
+    float maxError=0,maxRayError=0,maxPickupError=0,maxOldEffectError=0;
+    int cases=0,rangeCases=0,pickupCases=0,effectCases=0;
     for(float pitch:{-90.f,-75.f,-30.f,0.f,45.f,80.f,90.f})
     for(float yaw:{-150.f,-45.f,0.f,90.f})
     for(float roll:{-180.f,-90.f,-60.f,0.f,60.f,90.f,180.f}) {
@@ -123,6 +125,22 @@ int main(int argc,char **argv) {
             assert(model.Resolve(n,controller,native,queried));
             assert(model.Resolve(n,controller,native,otherEye));
             assert(!memcmp(&queried,&otherEye,sizeof(queried)));
+            // The native first-person sprite path subsequently changes the
+            // attachment's eye-relative transverse position for flat-screen FOV.
+            // Exercise the compiled LED/claw attachments for either eye, gun
+            // pose and FOV ratio, then recover the exact drawn world position.
+            for(float eye:{-1.3f,1.3f}) for(float ratio:{.5f,1.f,1.8f}) {
+                Vector sprite=PortalPose::Position(queried);
+                GunEffects::PositionScope scope(sprite,true);
+                GunEffects::PositionScope::Capture(sprite);
+                const Vector camera(eye,-20,64),delta=sprite-camera;
+                sprite=camera+Vector(delta.x*ratio,delta.y*ratio,delta.z);
+                maxOldEffectError=std::fmax(maxOldEffectError,
+                    sqrtf((sprite-PortalPose::Position(drawn)).LengthSqr()));
+                assert(scope.Restore());
+                assert((sprite-PortalPose::Position(drawn)).LengthSqr()<1e-6f);
+                ++effectCases;
+            }
             const auto rigid=HandPose::RigidOrientation(queried);
             const auto angleFrame=PortalPose::Frame(PortalPose::Position(rigid),PortalPose::Angles(rigid));
             for(int r=0;r<3;++r)for(int c=0;c<3;++c)
@@ -137,6 +155,35 @@ int main(int argc,char **argv) {
     // Float matrix/Euler round trips stay below 0.25 mm even at 24 m,
     // far beyond native pickup reach, including exactly vertical poses.
     assert(maxPickupError<.01f);
+    assert(maxOldEffectError>1.f);
+    // Non-VR/world-model queries and failed/unrelated attachment reads must
+    // retain their native output; nested calls cannot leak a captured position.
+    Vector effectPosition(1,2,3),unrelatedPosition(4,5,6);
+    GunEffects::PositionScope::Capture(effectPosition); // outside any query
+    {
+        GunEffects::PositionScope outer(effectPosition,true);
+        GunEffects::PositionScope::Capture(unrelatedPosition);
+        assert(!outer.Restore());
+        {
+            GunEffects::PositionScope world(effectPosition,false);
+            GunEffects::PositionScope::Capture(effectPosition);
+            effectPosition={7,8,9};
+            assert(!world.Restore());
+        }
+        assert(!outer.Restore());
+        GunEffects::PositionScope::Capture(effectPosition);
+        {
+            GunEffects::PositionScope inner(unrelatedPosition,true);
+            GunEffects::PositionScope::Capture(unrelatedPosition);
+            unrelatedPosition={90,80,70};
+            assert(inner.Restore());
+            assert((unrelatedPosition-Vector(4,5,6)).LengthSqr()==0);
+        }
+        effectPosition={10,20,30};
+        assert(outer.Restore());
+        assert((effectPosition-Vector(7,8,9)).LengthSqr()==0);
+    }
+    printf("{\"gun_effect_position_checks\":%d,\"old_maximum_projection_error\":%.6f,\"world_model_and_unmatched_passthrough\":true,\"passed\":true}\n",effectCases,maxOldEffectError);
     PortalShotFx::LaunchHistory history;
     PortalShotFx::Data blue{},orange{};
     reinterpret_cast<unsigned char*>(&blue)[0x58]=1;

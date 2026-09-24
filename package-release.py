@@ -63,7 +63,12 @@ the exact shot-time launch frame for matching local shots of either color.
 The gun render pass uses the current eye camera. The travelling PortalBlast
 shot effect now starts and points along the actual muzzle; its native target,
 timing and portal color are retained. Native portal placement stays enabled.
-The latest precision correction still needs headset confirmation.
+Blue and orange shot alignment were confirmed in headset testing.
+The blue/orange gun light retains its tracked attachment position instead of
+receiving Portal's extra flat-screen FOV projection adjustment.
+During a portal crossing, the complete VR camera and first-person models now
+share Portal's linked-eye transform. Roomscale and stereo offsets stay in the
+correct space. This new crossing correction still needs headset confirmation.
 Wrist roll rotates props without triggering the native downward carry shift.
 
 Choose "VR: use left-handed controls" or "VR: use right-handed controls" in
