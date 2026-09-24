@@ -9,6 +9,7 @@
 #include "sigscanner.h"
 #include "debuglog.h"
 #include "trace.h"
+#include "corehub_vr.h"
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #include <Psapi.h>
 #include <atomic>
@@ -96,6 +97,8 @@ void UpdatePortalVr()
         for (const char *module : {"client.dll", "engine.dll", "server.dll", "materialsystem.dll", "vgui2.dll"})
             if (!GetModuleHandleA(module))
                 return;
+        if (CorehubVR::HandleFrame())
+            return;
         g_Game = new Game();
     }
     g_Game->EnsureVrBootstrap();

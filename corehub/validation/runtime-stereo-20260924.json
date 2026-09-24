@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-24",
+  "installed_dll_sha256": "2413e1345a8559f1e1cf04f09ccb6dd1f246264d770cc1f21281e7a004e2d53e",
+  "source_sha256": "eec5c323e46b581383ddac7c822466fb4b1d70af250aad09547d08c52810a323",
+  "headset": "Pico",
+  "user_confirmation": "Both eyes are stable now",
+  "user_confirmed_build": "diagnostic build containing the same rendering fix; final cleanup removed tracing only",
+  "tests": [
+    "Portal ABI regression suite passed",
+    "Corehub independent eye viewport regression suite passed"
+  ],
+  "eye_samples": [
+    {
+      "eye": "left",
+      "width": 2352,
+      "height": 2352,
+      "black_fraction": 0.005651580360035171,
+      "black_fraction_outside_desktop_rectangle": 0.010718466491074042,
+      "bmp_sha256": "924988bfba9b0e475ad3844ff4d621508a4e8952b64a81613dba32783e3b8894",
+      "captured_local": "2026-09-24 18:46:53"
+    },
+    {
+      "eye": "right",
+      "width": 2352,
+      "height": 2352,
+      "black_fraction": 0.006623397658383081,
+      "black_fraction_outside_desktop_rectangle": 0.011980538484050337,
+      "bmp_sha256": "99357eca66278df5c10481be7e3128ed15e05f2d6b48b524a885d9275d6f169e",
+      "captured_local": "2026-09-24 18:46:53"
+    }
+  ],
+  "final_run": {
+    "stereo_frames_observed": 1800,
+    "compositor_submit_errors": [
+      0,
+      0
+    ],
+    "final_compositor_capture_black_percent": {
+      "left": 0.0,
+      "right": 0.0
+    },
+    "compositor_probe_app_gpu_ms": 5.474,
+    "dropped_frames_at_probe": 0
+  }
+}

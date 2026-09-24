@@ -120,6 +120,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="corehub_abi.h" />
+    <ClInclude Include="corehub_vr.h" />
+    <ClCompile Include="corehub_vr.cpp" />
     <ClInclude Include="..\dxvk\include\openvr\openvr.hpp" />
     <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_a2w10v10u10.h" />
     <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_l6v5u5.h" />

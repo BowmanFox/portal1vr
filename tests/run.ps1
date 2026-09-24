@@ -33,3 +33,7 @@ if ($PortalGunModel) {
     & (Join-Path $output 'gun-model-attachments.exe') $PortalGunModel
     if ($LASTEXITCODE -ne 0) { throw 'Compiled gun attachment tests failed.' }
 }
+& cl.exe /nologo /std:c++17 /EHsc /RTC1 /Od "/I$repository\L4D2VR" (Join-Path $PSScriptRoot 'corehub.cpp') "/Fe$output\corehub.exe" "/Fo$output\corehub.obj"
+if ($LASTEXITCODE -ne 0) { throw 'Corehub regression build failed.' }
+& (Join-Path $output 'corehub.exe')
+if ($LASTEXITCODE -ne 0) { throw 'Corehub regression checks failed.' }

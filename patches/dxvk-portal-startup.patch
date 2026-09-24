@@ -1,8 +1,14 @@
 diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
-index b4bbd4ae..8762a4a5 100644
+index b4bbd4ae..22daeb30 100644
 --- a/src/d3d9/d3d9_device.cpp
 +++ b/src/d3d9/d3d9_device.cpp
-@@ -26,6 +26,7 @@
+@@ -1,4 +1,5 @@
+ #include "d3d9_device.h"
++#include "L4D2VR/corehub_vr.h"
+ 
+ #include "d3d9_annotation.h"
+ #include "d3d9_interface.h"
+@@ -26,6 +27,7 @@
  
  #include "L4D2VR/game.h"
  #include "L4D2VR/vr.h"
@@ -10,7 +16,7 @@ index b4bbd4ae..8762a4a5 100644
  #include "L4D2VR/sdk/sdk.h"
  #include "d3d9_vr.h"
  
-@@ -379,11 +380,8 @@ namespace dxvk {
+@@ -379,11 +381,8 @@ namespace dxvk {
  
  
    HRESULT STDMETHODCALLTYPE D3D9DeviceEx::Reset(D3DPRESENT_PARAMETERS* pPresentationParameters) {
@@ -24,7 +30,7 @@ index b4bbd4ae..8762a4a5 100644
  
      D3D9DeviceLock lock = LockDevice();
  
-@@ -528,25 +526,25 @@ namespace dxvk {
+@@ -528,25 +527,25 @@ namespace dxvk {
            if (texID == VR::Texture_LeftEye)
            {
                textureTarget = &g_Game->m_VR->m_VKLeftEye;
@@ -54,10 +60,12 @@ index b4bbd4ae..8762a4a5 100644
                g_D3DVR9->GetVRDesc(g_Game->m_VR->m_D9BlankSurface, &texDesc);
            }
  
-@@ -1313,6 +1311,30 @@ namespace dxvk {
+@@ -1313,6 +1312,32 @@ namespace dxvk {
      if (unlikely(rt != nullptr && !(texInfo->Desc()->Usage & D3DUSAGE_RENDERTARGET)))
        return D3DERR_INVALIDCALL;
  
++    if (RenderTargetIndex == 0) CorehubVR::RenderTargetBound(pRenderTarget);
++
 +    // Source reallocates render targets when loading a map. Capture the surface
 +    // it binds for each eye instead of retaining the initial allocation forever.
 +    if (RenderTargetIndex == 0 && g_Game && g_Game->m_VR && g_D3DVR9) {
@@ -85,7 +93,7 @@ index b4bbd4ae..8762a4a5 100644
      if (RenderTargetIndex == 0) {
        auto rtSize = rt->GetSurfaceExtent();
  
-@@ -1683,13 +1705,10 @@ namespace dxvk {
+@@ -1683,13 +1708,10 @@ namespace dxvk {
  
    HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetViewport(const D3DVIEWPORT9* pViewport) {
      
@@ -103,7 +111,17 @@ index b4bbd4ae..8762a4a5 100644
        
      D3D9DeviceLock lock = LockDevice();
  
-@@ -3547,17 +3566,47 @@ namespace dxvk {
+@@ -3539,7 +3561,8 @@ namespace dxvk {
+           HWND hDestWindowOverride,
+     const RGNDATA* pDirtyRegion,
+           DWORD dwFlags) {
+-    
++
++    CorehubVR::BeforePresent();
+ 	HRESULT result = m_implicitSwapchain->Present(
+     pSourceRect,
+     pDestRect,
+@@ -3547,17 +3570,47 @@ namespace dxvk {
      pDirtyRegion,
      dwFlags);
  
@@ -203,10 +221,29 @@ index 9713399c..5bf23108 100644
  	return result;
    }
 diff --git a/src/d3d9/d3d9_vr.cpp b/src/d3d9/d3d9_vr.cpp
-index 8ed15b0c..15cd8804 100644
+index 8ed15b0c..03d533d2 100644
 --- a/src/d3d9/d3d9_vr.cpp
 +++ b/src/d3d9/d3d9_vr.cpp
-@@ -122,24 +122,23 @@ namespace dxvk {
+@@ -99,6 +99,18 @@ namespace dxvk {
+             return D3D_OK;
+         }
+ 
++        HRESULT STDMETHODCALLTYPE RestoreSurface(IDirect3DSurface9 *pSurface)
++        {
++            if (!pSurface) return D3DERR_INVALIDCALL;
++            auto *tex = static_cast<D3D9Surface *>(pSurface)->GetCommonTexture();
++            const auto &image = tex->GetImage();
++            VkImageSubresourceRange range = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
++                image->info().mipLevels, 0, image->info().numLayers};
++            m_device->TransformImage(tex, &range,
++                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image->info().layout);
++            return D3D_OK;
++        }
++
+         HRESULT STDMETHODCALLTYPE LockDevice()
+         {
+             m_lock = m_device->LockDevice();
+@@ -122,24 +134,23 @@ namespace dxvk {
  
          HRESULT STDMETHODCALLTYPE GetBackBufferData(SharedTextureHolder* backBufferData)
          {
@@ -244,6 +281,32 @@ index 8ed15b0c..15cd8804 100644
          }
  
      private:
+@@ -156,4 +167,4 @@ HRESULT __stdcall Direct3DCreateVRImpl(IDirect3DDevice9 *pDevice, IDirect3DVR9 *
+     *pInterface = new dxvk::D3D9VR(pDevice);
+ 
+     return D3D_OK;
+-}
+\ No newline at end of file
++}
+diff --git a/src/d3d9/d3d9_vr.h b/src/d3d9/d3d9_vr.h
+index b906cf78..37d9885c 100644
+--- a/src/d3d9/d3d9_vr.h
++++ b/src/d3d9/d3d9_vr.h
+@@ -33,6 +33,7 @@ IDirect3DVR9 : public IUnknown{
+   virtual HRESULT STDMETHODCALLTYPE UnlockDevice() = 0;
+   virtual HRESULT STDMETHODCALLTYPE WaitDeviceIdle() = 0;
+   virtual HRESULT STDMETHODCALLTYPE GetBackBufferData(SharedTextureHolder *backBufferData) = 0;
++  virtual HRESULT STDMETHODCALLTYPE RestoreSurface(IDirect3DSurface9 *pSurface) = 0;
+ };
+ 
+ #ifdef _MSC_VER
+@@ -42,4 +43,4 @@ __CRT_UUID_DECL(IDirect3DVR9, 0x7e272b32, 0xa49c, 0x46c7, 0xb1, 0xa4, 0xef, 0x52
+ #endif
+ 
+ HRESULT __stdcall Direct3DCreateVRImpl(IDirect3DDevice9 *pDevice,
+-    IDirect3DVR9 **pInterface);
+\ No newline at end of file
++    IDirect3DVR9 **pInterface);
 diff --git a/src/dxvk/dxvk_openvr.cpp b/src/dxvk/dxvk_openvr.cpp
 index 6e505351..c393a8c8 100644
 --- a/src/dxvk/dxvk_openvr.cpp
