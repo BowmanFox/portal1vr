@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-24",
+  "mode": "fixed-pose local engine render, not headset acceptance",
+  "dll_sha256": "91da878d9ef06782227a9565293ac1eaafded33ece5fb87a633085e31467a56e",
+  "source_sha256": "5319bf42902ecbe0fa7469cf4a4674a4b9250dcb5298bf4153009a9b9779bc4a",
+  "map": "p2_lab_hub_1",
+  "eye_samples": [
+    {
+      "eye": "left",
+      "dimensions": [
+        2352,
+        2352
+      ],
+      "sha256": "0d870f0852e781f9b1557933096f006a81f94e18a980cb3ce3d57944c67757ed",
+      "captured_local": "2026-09-24T20:03:36.993032"
+    },
+    {
+      "eye": "right",
+      "dimensions": [
+        2352,
+        2352
+      ],
+      "sha256": "7f0279ddbc86fef497f11522e0c50cb6d55b652cb6ee48338e789be011238bcf",
+      "captured_local": "2026-09-24T20:03:37.027812"
+    }
+  ],
+  "passed": [
+    "Portal ABI and shared math regression suite",
+    "Corehub stereo independent-view regression suite",
+    "Unarmed left/right hands rendered locally",
+    "Left hand and equipped portal gun rendered in both eyes",
+    "SteamVR submits returned zero for both eyes",
+    "Main and pause menu capture uploaded; overlay texture accepted",
+    "Native menu pointer click opened Options",
+    "Installed hand model is v49 with expected 43-bone layout"
+  ],
+  "pending": [
+    "Live Pico hand tracking, curl, controller alignment and menu placement: user will test later",
+    "Controller-origin pickup and the remaining Portal 1 runtime parity listed in RUNTIME.md"
+  ],
+  "known_issues": [
+    "Back/Escape did not close the stock Options dialog; Cancel pointer button works",
+    "Opening bed scene can obstruct the fixed VR camera before scripted camera transition",
+    "Whole-model co-op gameplay, save/load and portal traversal are not validated by these tests"
+  ]
+}

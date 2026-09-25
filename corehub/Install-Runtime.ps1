@@ -22,6 +22,15 @@ $files=@{'bin\d3d9.dll'=(Resolve-Path -LiteralPath $SourceDll).Path;'bin\openvr_
 foreach($file in Get-ChildItem -LiteralPath (Join-Path $repo 'L4D2VR\SteamVRActionManifest') -File -Filter '*.json') {
  $files['bin\VR\SteamVRActionManifest\'+$file.Name]=$file.FullName
 }
+foreach($profile in @('bowman_singleplayer','bowman_coop')) {
+ if(Test-Path -LiteralPath (Join-Path $root "$profile\gameinfo.txt")) {
+  $launcher=if($profile -eq 'bowman_singleplayer'){'Launch Bowman Single-player.cmd'}else{'Launch Bowman Co-op.cmd'}
+  $files[$launcher]=Join-Path $PSScriptRoot ('launchers\'+$launcher)
+  foreach($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'runtime-assets\models\weapons') -File) {
+   $files["$profile\models\weapons\"+$file.Name]=$file.FullName
+  }
+ }
+}
 foreach($source in $files.Values){if(!(Test-Path -LiteralPath $source)){throw "Missing runtime file: $source"}}
 $backup=Join-Path $root ('corehub_vr_backups\'+(Get-Date -Format 'yyyyMMdd_HHmmss_fff'))
 $audit=@()

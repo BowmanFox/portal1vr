@@ -1,5 +1,5 @@
 diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
-index b4bbd4ae..22daeb30 100644
+index b4bbd4ae..b1645297 100644
 --- a/src/d3d9/d3d9_device.cpp
 +++ b/src/d3d9/d3d9_device.cpp
 @@ -1,4 +1,5 @@
@@ -117,7 +117,7 @@ index b4bbd4ae..22daeb30 100644
            DWORD dwFlags) {
 -    
 +
-+    CorehubVR::BeforePresent();
++    CorehubVR::BeforePresent(this);
  	HRESULT result = m_implicitSwapchain->Present(
      pSourceRect,
      pDestRect,

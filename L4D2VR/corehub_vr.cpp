@@ -14,6 +14,9 @@
 #include "MinHook.h"
 #include "vr.h"
 #include "debuglog.h"
+#include "handpose.h"
+#include "firstpersonbody.h"
+#include "sigscanner.h"
 #include "../dxvk/src/d3d9/d3d9_vr.h"
 #pragma comment(lib,"bcrypt.lib")
 #pragma comment(lib,"d3d11.lib")
@@ -81,7 +84,7 @@ Pose Convert(const vr::TrackedDevicePose_t& p) {
 }
 struct State {
  vr::IVRSystem* system=nullptr;vr::IVRInput* input=nullptr;
- void* engine=nullptr;void* materials=nullptr;
+ void* engine=nullptr;void* materials=nullptr;void* engineVgui=nullptr;void* vguiInput=nullptr;
  unsigned width=0,height=0;float fov=90,aspect=1,yaw=0;
  bool installed=false,calibrated=false,rendered=false,enabled=true,inGame=false,turnHeld=false,ownAngles=false;
  bool insideRender=false,insideMove=false;unsigned long retry=0;unsigned long long frames=0;
@@ -97,17 +100,57 @@ struct State {
  bool directX=true;
  ComPtr<ID3D11Device> submitDevice;
  ComPtr<ID3D11DeviceContext> submitContext;
- std::array<ComPtr<ID3D11Texture2D>,2> directEyes;
- std::array<ComPtr<IDirect3DSurface9>,2> readback;
+ // Slot 2 is the desktop menu, kept separate from both submitted eyes.
+ std::array<ComPtr<ID3D11Texture2D>,3> directEyes;
+ std::array<ComPtr<IDirect3DSurface9>,3> readback;
+ ComPtr<IDirect3DSurface9> menuSurface;
+ vr::Texture_t menuTexture{};bool menuReady=false,menuShown=false;
+ HWND window=nullptr;unsigned menuWidth=0,menuHeight=0;int mouseX=0,mouseY=0;
  std::array<vr::VRTextureBounds_t,2> bounds{};
  int bindingEye=-1;void* activeTarget=nullptr;
  vr::VROverlayHandle_t menu=vr::k_ulOverlayHandleInvalid;
  vr::VRActionSetHandle_t mainSet=0,baseSet=0;
- vr::VRActionHandle_t walk=0,turn=0,reset=0,activate=0,leftPose=0,rightPose=0,pause=0;
+ vr::VRActionHandle_t walk=0,turn=0,reset=0,leftPose=0,rightPose=0,pause=0;
+ vr::VRActionHandle_t skeletonLeft=0,skeletonRight=0;
+ float leftCurl[5]{.15f,.20f,.25f,.25f,.25f},rightCurl[5]{.15f,.20f,.25f,.25f,.25f};
+ void* leftArm=nullptr;bool drawingHands=false;
+ void* modelRender=nullptr;bool bodyEnabled=true,bodyHideUpper=true,drawingBody=false,bodyEligible=false,bodyDrawn=false;
+ float bodyBackOffset=8;View bodyView{};Vec3 bodyCenter{};std::vector<bool> bodyStack;
  std::array<vr::VRActionHandle_t,6> buttons{};
+ std::array<vr::VRActionHandle_t,6> menuButtons{};
+ std::vector<int> menuKeyReleases;
  std::array<bool,6> pressed{};
  Vec3 walkAxis;bool snapReady=true;
 } s;
+void* Interface(const char* module,const char* name) {
+ const auto factory=reinterpret_cast<void*(__cdecl*)(const char*,int*)>(GetProcAddress(GetModuleHandleA(module),"CreateInterface"));
+ return factory?factory(name,nullptr):nullptr;
+}
+bool MenuVisible(){return !s.inGame || (s.engineVgui && Call<bool>(s.engineVgui,2));}
+void MenuKey(int code) {
+ if(!s.vguiInput)return;
+ // CInputWin32 / VGUI_InputInternal001 in build 3916. Deliver to the game's
+ // UI queue directly; WM_KEYDOWN without a scan code is ignored by this build.
+ Call<void>(s.vguiInput,72,code); // InternalKeyCodePressed
+ Call<void>(s.vguiInput,73,code); // InternalKeyCodeTyped
+ // Retain key-down through one native UI frame for controls which query
+ // IsKeyDown as well as consuming the queued key message.
+ s.menuKeyReleases.push_back(code);
+ static int logged=0;if(logged++<8) {
+  char name[64]{};Call<void>(s.vguiInput,3,code,name,int(sizeof(name)));
+  PortalVrLog("Corehub: menu key %d (%s) focus=%p",code,name,Call<void*>(s.vguiInput,4));
+ }
+}
+void MenuCursor(int x,int y) {
+ if(!s.vguiInput)return;
+ Call<void>(s.vguiInput,65,x,y); // UpdateMouseFocus
+ Call<void>(s.vguiInput,67,x,y); // InternalCursorMoved
+}
+void MenuClick() {
+ if(!s.vguiInput)return;
+ Call<void>(s.vguiInput,68,107); // InternalMousePressed(MOUSE_LEFT)
+ Call<void>(s.vguiInput,71,107); // InternalMouseReleased; never leave attack held
+}
 using RenderFn=void(__thiscall*)(void*,View&,View&,int,int);
 using MoveFn=bool(__thiscall*)(void*,float,Command*);
 using AnglesFn=void(__thiscall*)(void*,Vec3*);
@@ -140,9 +183,133 @@ RenderFn originalRender=nullptr;MoveFn originalMove=nullptr;AnglesFn originalAng
 Vec3 HeadAngles(){auto a=s.hmd.angles;a.y=Wrap(a.y+s.yaw);return a;}
 Vec3 HandAngles(){auto a=s.right.valid?s.right.angles:s.hmd.angles;a.y=Wrap(a.y+s.yaw);return a;}
 Vec3 WorldPosition(Vec3 local){return s.nativeOrigin+RotateYaw(local-s.trackingOrigin,s.yaw)*UnitsPerMetre;}
+void* LocalPlayer(){return reinterpret_cast<void*(__cdecl*)(int)>(Address("client.dll",0x44d30))(-1);}
+using CreateViewmodelFn=void(__thiscall*)(void*,int);
+CreateViewmodelFn originalCreateViewmodel=nullptr;
+void __fastcall CreateViewmodel(void* self,void*,int index) {
+ // SetWeaponModel resolves an index in the server's model-precache table;
+ // a client-only filename is otherwise silently resolved to no model.
+ if(s.enabled && index==0)
+  reinterpret_cast<int(__cdecl*)(const char*)>(Address("server.dll",0xce080))("models/weapons/v_hands.mdl");
+ originalCreateViewmodel(self,index);
+ if(s.enabled && index==0) {
+  originalCreateViewmodel(self,1);
+  PortalVrLog("Corehub: created independent left-hand viewmodel");
+ }
+}
+using DrawModelFn=void(__thiscall*)(void*,void*,const void*,const matrix3x4_t*);
+DrawModelFn originalDrawModel=nullptr;
+Vector AsVector(Vec3 v){return {v.x,v.y,v.z};}
+void HandVectors(const Pose& pose,Vector& forward,Vector& right,Vector& up) {
+ QAngle::AngleVectors({pose.angles.x,Wrap(pose.angles.y+s.yaw),pose.angles.z},&forward,&right,&up);
+}
+bool BodyPalette(const unsigned char* hdr,const matrix3x4_t* bones,matrix3x4_t* result) {
+ const int length=*reinterpret_cast<const int*>(hdr+76),count=*reinterpret_cast<const int*>(hdr+156),offset=*reinterpret_cast<const int*>(hdr+160);
+ if(count<=0 || count>128 || offset<164 || length<offset || length-offset<count*216 ||
+    !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(hdr),length) ||
+    !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(bones),count*sizeof(matrix3x4_t)))return false;
+ memcpy(result,bones,count*sizeof(matrix3x4_t));
+ Vector shift=AsVector(WorldPosition(s.hmd.position)-s.nativeOrigin);shift.z=0;
+ if(length>=248) {
+  const int attachments=*reinterpret_cast<const int*>(hdr+240),at=*reinterpret_cast<const int*>(hdr+244);
+  if(attachments>0 && attachments<=256 && at>=248 && at<=length-attachments*92)for(int i=0;i<attachments;++i) {
+   const auto* a=hdr+at+i*92;const int name=*reinterpret_cast<const int*>(a),bone=*reinterpret_cast<const int*>(a+8);
+   if(name<=0 || name>length-(a-hdr)-5 || bone<0 || bone>=count || memcmp(a+name,"eyes",5))continue;
+   const auto eyes=HandPose::Concat(bones[bone],*reinterpret_cast<const matrix3x4_t*>(a+12));
+   shift=FirstPersonBody::HorizontalCameraOffset({eyes[0][3],eyes[1][3],eyes[2][3]},AsVector(s.bodyCenter));break;
+  }
+ }
+ shift+=FirstPersonBody::BackwardOffset(s.bodyView.angles.y,s.bodyBackOffset);
+ for(int i=0;i<count;++i){result[i][0][3]+=shift.x;result[i][1][3]+=shift.y;}
+ if(s.bodyHideUpper) {
+  int parents[128]{},roots[6]{},rootCount=0;
+  for(int i=0;i<count;++i) {
+   const auto* b=hdr+offset+i*216;parents[i]=*reinterpret_cast<const int*>(b+4);
+   const int name=*reinterpret_cast<const int*>(b);
+   if(name<=0 || name>=length-(b-hdr) || !memchr(b+name,0,length-(b-hdr)-name))continue;
+   for(const char* candidate:{"neck","clavicle_L","clavicle_R","ValveBiped.Bip01_Neck1","ValveBiped.Bip01_L_Clavicle","ValveBiped.Bip01_R_Clavicle"})
+    if(rootCount<6 && !_stricmp(reinterpret_cast<const char*>(b+name),candidate))roots[rootCount++]=i;
+  }
+  FirstPersonBody::CollapseBranchesAtRoots(result,parents,count,roots,rootCount);
+ }
+ return true;
+}
+void __fastcall DrawModel(void* self,void*,void* state,const void* info,const matrix3x4_t* bones) {
+ if(!s.enabled || !s.calibrated || !s.inGame || !state || !info || !bones)
+  return originalDrawModel(self,state,info,bones);
+ const auto* header=*static_cast<const unsigned char**>(state);
+ if(!header || !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(header),164))
+  return originalDrawModel(self,state,info,bones);
+ const char* name=reinterpret_cast<const char*>(header+12);
+ const int count=*reinterpret_cast<const int*>(header+156);
+ const auto renderable=*reinterpret_cast<void* const*>(static_cast<const unsigned char*>(info)+24);
+ if(s.activeTarget && s.bodyEligible && !s.drawingBody && !s.drawingHands &&
+    !s.bodyStack.empty() && s.bodyStack.back()) {
+  auto player=LocalPlayer();
+  if(player && renderable==static_cast<unsigned char*>(player)+4) {
+   static bool logged=false;if(!logged){logged=true;PortalVrLog("Corehub: suppressed native local body in eye view model=%s",name);}
+   return; // Only the head-hidden additive copy belongs in the headset view.
+  }
+ }
+ if(s.drawingBody) {
+  matrix3x4_t body[128];
+  if(BodyPalette(header,bones,body))return originalDrawModel(self,state,info,body);
+  return; // A malformed palette must not put a complete head in the camera.
+ }
+ const auto kind=HandPose::Identify(name,count);
+ if(kind==HandPose::Model::Other)return originalDrawModel(self,state,info,bones);
+ const bool gun=kind==HandPose::Model::Gun;
+ if(!s.drawingHands)return;
+ const bool leftOnly=!gun && s.leftArm && renderable==s.leftArm;
+ // A missing pose must not leave a detached hand at the tracking origin.
+ if(!(leftOnly?s.left.valid:s.right.valid))return;
+ const int offset=*reinterpret_cast<const int*>(header+160),length=*reinterpret_cast<const int*>(header+76);
+ if(offset<164 || length<offset || length-offset<count*216 ||
+    !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(header+offset),count*216) ||
+    !SigScanner::IsReadable(reinterpret_cast<uintptr_t>(bones),count*sizeof(matrix3x4_t)))
+  return originalDrawModel(self,state,info,bones);
+ matrix3x4_t reference[128],tracked[128];memcpy(tracked,bones,count*sizeof(matrix3x4_t));
+ for(int i=0;i<count;++i)reference[i]=HandPose::InverseRigid(*reinterpret_cast<const matrix3x4_t*>(header+offset+i*216+96));
+ Vector rf,rr,ru,lf,lr,lu;HandVectors(s.right,rf,rr,ru);HandVectors(s.left,lf,lr,lu);
+ const auto rp=AsVector(WorldPosition(s.right.position)),lp=AsVector(WorldPosition(s.left.position));
+ if(gun) {
+  auto source=reference[24];for(int row=0;row<3;++row)source[row][3]=reference[8][row][3];
+  const auto target=HandPose::Frame(-rr,ru,rf,rp);
+  for(int i=0;i<24;++i)tracked[i]=HandPose::Reanchor(reference[i],source,target);
+  const auto gunTarget=HandPose::Reanchor(reference[24],source,target);
+  for(int i=24;i<count;++i)tracked[i]=HandPose::Reanchor(bones[i],bones[24],gunTarget);
+  HandPose::ApplyGunGrip(reference,tracked,s.rightCurl);
+ } else {
+  HandPose::AlignBareArms(reference,tracked,HandPose::ControllerHandFrame(lf,lr,lu,lp,true),
+   HandPose::ControllerHandFrame(rf,rr,ru,rp,false));
+  HandPose::ApplyFingerCurl(reference,tracked,s.leftCurl,s.rightCurl);
+  const auto collapsed=HandPose::Frame({0,0,0},{0,0,0},{0,0,0},leftOnly?lp:rp);
+  for(int i=0;i<count;++i)if(i<5 || (leftOnly?i>=24:i<24))tracked[i]=collapsed;
+ }
+ static unsigned logged=0;
+ if(logged++<12)PortalVrLog("Corehub: tracked model=%s left=%d bones=%d",name,leftOnly,count);
+ originalDrawModel(self,state,info,tracked);
+}
 void __fastcall ViewmodelView(void* self,void*,Vec3& origin,Vec3& angles) {
- auto local=reinterpret_cast<void*(__cdecl*)(int)>(Address("client.dll",0x44d30))(-1);
- if(s.enabled && s.calibrated && s.right.valid && s.inGame && self==local) {
+ auto local=LocalPlayer();
+ if(s.enabled && s.calibrated && s.inGame && self==local) {
+  s.leftArm=nullptr;
+  for(int index=0;index<2;++index) {
+   // Corehub GetViewModel has ONE argument (RET 4), unlike Portal 1.
+   auto vm=reinterpret_cast<void*(__thiscall*)(void*,int)>(Address("client.dll",0x47ee0))(self,index);
+   if(!vm)continue;
+   auto renderable=static_cast<unsigned char*>(vm)+4;
+   if(index==1)s.leftArm=renderable;
+   if(!Call<void*>(vm,209)) {
+    auto model=Call<void*>(renderable,8);
+    const char* name=model?reinterpret_cast<const char*(__stdcall*)(void*)>(Address("engine.dll",0x6f5e0))(model):nullptr;
+    if(!name || _stricmp(name,"models/weapons/v_hands.mdl")) {
+     Call<void>(vm,202,"models/weapons/v_hands.mdl",static_cast<void*>(nullptr));
+     PortalVrLog("Corehub: assigned bare hand model index=%d entity=%p",index,vm);
+    }
+    Call<void>(vm,208,1|32);
+   }
+  }
   auto hand=WorldPosition(s.right.position),aim=HandAngles();
   originalViewmodel(self,hand,aim);return;
  }
@@ -159,15 +326,67 @@ void __fastcall UpdatePlayerAnimation(void* self,void*,float yaw,float pitch) {
  }
  originalAnimUpdate(self,yaw,pitch);
 }
+bool IsBodyView(const View& view,void* target,void* depth=nullptr) {
+ auto close=[](Vec3 a,Vec3 b){auto d=a-b;return d.x*d.x+d.y*d.y+d.z*d.z<.0001f;};
+ return s.bodyEligible && !depth && (!target || target==s.activeTarget) && !view.ortho &&
+  close(view.origin,s.bodyView.origin) && close(view.angles,s.bodyView.angles) &&
+  std::abs(view.nearZ-s.bodyView.nearZ)<.001f && std::abs(view.fov-s.bodyView.fov)<.001f;
+}
+using PopViewFn=void(__thiscall*)(void*,void*);
+PopViewFn originalPopView=nullptr;
+void DrawHands() {
+ if(!s.modelRender)return;
+ auto player=LocalPlayer();if(!player)return;
+ for(int index=0;index<2;++index) {
+  if(!(index?s.left.valid:s.right.valid))continue;
+  auto vm=reinterpret_cast<void*(__thiscall*)(void*,int)>(Address("client.dll",0x47ee0))(player,index);
+  if(!vm)continue;
+  auto renderable=static_cast<unsigned char*>(vm)+4;
+  auto model=Call<void*>(renderable,8);if(!model)continue;
+  const char* name=reinterpret_cast<const char*(__stdcall*)(void*)>(Address("engine.dll",0x6f5e0))(model);
+  if(!name || (_stricmp(name,"models/weapons/v_hands.mdl") && _stricmp(name,"models/weapons/v_portalgun.mdl")))continue;
+  const auto origin=WorldPosition(index?s.left.position:s.right.position);
+  auto angles=index?s.left.angles:s.right.angles;angles.y=Wrap(angles.y+s.yaw);
+  s.drawingHands=true;
+  // 0 is a real renderer instance, not an empty handle. Reusing it brings
+  // unrelated cached/decal geometry into the hand draw. Use the invalid
+  // instance sentinel for these additional, independently posed draws.
+  const int result=Call<int>(s.modelRender,0,1,renderable,0xffff,Call<int>(s.engine,Slot::LocalPlayer),model,&origin,&angles,0,0,0,
+   static_cast<void*>(nullptr),static_cast<void*>(nullptr));
+  s.drawingHands=false;
+  static unsigned logs=0;if(logs++<12)PortalVrLog("Corehub: independent hand draw index=%d result=%d",index,result);
+ }
+}
+void DrawBody() {
+ if(!s.bodyEnabled || !s.modelRender || !FirstPersonBody::LookingDown(s.bodyView.angles.x))return;
+ auto* player=static_cast<unsigned char*>(LocalPlayer());if(!player)return;
+ auto* renderable=player+4;auto model=Call<void*>(renderable,8);if(!model)return;
+ const auto* origin=Call<const Vec3*>(renderable,1);const auto* angles=Call<const Vec3*>(renderable,2);
+ const int index=Call<int>(s.engine,Slot::LocalPlayer);if(index<=0 || !origin || !angles)return;
+ s.drawingBody=true;
+ // Corehub's DrawModel has two additional matrix pointers after hitboxset.
+ const int result=Call<int>(s.modelRender,0,1,renderable,0xffff,index,model,origin,angles,0,0,0,
+  static_cast<void*>(nullptr),static_cast<void*>(nullptr));
+ s.drawingBody=false;
+ static unsigned logs=0;if(logs++<6)PortalVrLog("Corehub: first-person body drawn result=%d eye=%p",result,s.activeTarget);
+}
+void __fastcall PopView(void* self,void*,void* frustum) {
+ if(!s.bodyStack.empty()) {
+  if(s.bodyStack.back() && s.bodyEligible && !s.bodyDrawn){s.bodyDrawn=true;DrawHands();DrawBody();}
+  s.bodyStack.pop_back();
+ }
+ originalPopView(self,frustum);
+}
 void __fastcall PushView(void* self,void*,View& view,int flags,void* texture,void* frustum) {
  if(s.activeTarget && s.frames<2)PortalVrLog("Corehub: native 3D view rect=%d,%d %dx%d target=%p redirected=%p",view.x,view.y,view.width,view.height,texture,s.activeTarget);
  // Corehub explicitly pushes a null desktop target inside RenderView.
  // Redirect default-target views while retaining shadow/reflection targets.
  originalPushView(self,view,flags,texture?texture:s.activeTarget,frustum);
-
+ s.bodyStack.push_back(IsBodyView(view,texture));
 }
 void __fastcall PushViewDepth(void* self,void*,View& view,int flags,void* texture,void* frustum,void* depth) {
  originalPushViewDepth(self,view,flags,texture?texture:s.activeTarget,frustum,depth);
+ s.bodyStack.push_back(IsBodyView(view,texture,depth));
 }
 void __fastcall Push2D(void* self,void*,View& view,int flags,void* texture,void* frustum) {
  // Corehub creates an additional desktop-sized 2D view internally before
@@ -176,6 +395,7 @@ void __fastcall Push2D(void* self,void*,View& view,int flags,void* texture,void*
   View eye=view;eye.x=eye.y=0;eye.width=s.width;eye.height=s.height;eye.aspect=s.aspect;
   originalPush2D(self,eye,flags,s.activeTarget,frustum);
  } else originalPush2D(self,view,flags,texture,frustum);
+ s.bodyStack.push_back(false);
 }
 void CommandText(const char* text){Call<void>(s.engine,Slot::EngineCommand,text);}
 bool Digital(vr::VRActionHandle_t action,bool edge=false) {
@@ -199,7 +419,7 @@ void __fastcall SetAngles(void* self,void*,Vec3* value) {
 }
 bool __fastcall CreateMove(void* self,void*,float sample,Command* cmd) {
  s.insideMove=true;const bool result=originalMove(self,sample,cmd);s.insideMove=false;
- if(!cmd || !cmd->number || !s.enabled || !s.hmd.valid || !s.calibrated || !s.inGame)return result;
+ if(!cmd || !cmd->number || !s.enabled || !s.hmd.valid || !s.calibrated || !s.inGame || MenuVisible())return result;
  const Vec3 head=HeadAngles(),aim=HandAngles();
  // Keep locomotion aligned with the HMD even though the command's aim follows
  // the right controller. Preserve ordinary keyboard movement when no stick is used.
@@ -253,8 +473,10 @@ void __fastcall RenderView(void* self,void*,View& main,View& hud,int flags,int d
  Call<void>(context,Slot::BeginRender);
  for(int eye=0;eye<2;++eye) {
   auto eyeViews=PrepareEyeViews(desktopView,desktopHud,s.width,s.height,s.fov,s.aspect,EyePosition(eye),HeadAngles());
+  s.bodyEligible=true;s.bodyDrawn=false;s.bodyView=eyeViews.world;s.bodyCenter=WorldPosition(s.hmd.position);
   s.bindingEye=eye;s.activeTarget=s.textures[eye];Call<void>(context,Slot::PushTarget,s.activeTarget);
   originalRender(self,eyeViews.world,eyeViews.overlay,flags|3,draw&~2);
+  s.bodyEligible=false;
   s.bindingEye=-1;
   // Preserve this eye BEFORE any later engine pass can clear/reuse its target.
   s.resolved[eye]=ResolveEye(eye);
@@ -264,7 +486,9 @@ void __fastcall RenderView(void* self,void*,View& main,View& hud,int flags,int d
  s.rendered=s.surfaces[0] && s.surfaces[1] && s.surfaces[0]!=s.surfaces[1];s.insideRender=false;
  // Preserve the regular desktop/menu rendering and native render bookkeeping.
  View desktop=desktopView,desktopOverlay=desktopHud;
+ s.bodyEligible=true;s.bodyDrawn=false;s.bodyView=desktop;s.bodyCenter=desktop.origin;
  originalRender(self,desktop,desktopOverlay,flags,draw);
+ s.bodyEligible=false;s.bodyStack.clear();
  if(++s.frames==1 || s.frames%600==0)PortalVrLog("Corehub: stereo frame=%llu native=(%.1f %.1f %.1f) HMD=(%.1f %.1f %.1f)",s.frames,main.origin.x,main.origin.y,main.origin.z,HeadAngles().x,HeadAngles().y,HeadAngles().z);
 }
 struct Hook { const char* module;unsigned rva;void* detour;void** original; };
@@ -274,9 +498,12 @@ bool InstallHooks() {
   {"client.dll",0x95940,reinterpret_cast<void*>(&CreateMove),reinterpret_cast<void**>(&originalMove)},
   {"client.dll",0x1e9aa0,reinterpret_cast<void*>(&UpdatePlayerAnimation),reinterpret_cast<void**>(&originalAnimUpdate)},
   {"client.dll",0x1d6f00,reinterpret_cast<void*>(&ViewmodelView),reinterpret_cast<void**>(&originalViewmodel)},
+  {"server.dll",0x302880,reinterpret_cast<void*>(&CreateViewmodel),reinterpret_cast<void**>(&originalCreateViewmodel)},
+  {"engine.dll",0x147eb0,reinterpret_cast<void*>(&DrawModel),reinterpret_cast<void**>(&originalDrawModel)},
   {"engine.dll",0xd5fc0,reinterpret_cast<void*>(&SetAngles),reinterpret_cast<void**>(&originalAngles)},
   {"engine.dll",0x175da0,reinterpret_cast<void*>(&PushView),reinterpret_cast<void**>(&originalPushView)},
   {"engine.dll",0x175dd0,reinterpret_cast<void*>(&Push2D),reinterpret_cast<void**>(&originalPush2D)},
+  {"engine.dll",0x175de0,reinterpret_cast<void*>(&PopView),reinterpret_cast<void**>(&originalPopView)},
   {"shaderapidx9.dll",0x21070,reinterpret_cast<void*>(&ShaderTarget),reinterpret_cast<void**>(&originalShaderTarget)},
   {"engine.dll",0x175e60,reinterpret_cast<void*>(&PushViewDepth),reinterpret_cast<void**>(&originalPushViewDepth)}
  };
@@ -334,18 +561,31 @@ bool Start() {
  auto action=[](const char* name,vr::VRActionHandle_t& a){s.input->GetActionHandle(name,&a);};
  const char* names[]={"PrimaryAttack","SecondaryAttack","Jump","Use","Crouch","Reload"};
  for(int i=0;i<6;++i)action((std::string("/actions/main/in/")+names[i]).c_str(),s.buttons[i]);
- action("/actions/main/in/Walk",s.walk);action("/actions/main/in/Turn",s.turn);action("/actions/main/in/ResetPosition",s.reset);action("/actions/main/in/ActivateVR",s.activate);action("/actions/main/in/Pause",s.pause);
+ action("/actions/main/in/Walk",s.walk);action("/actions/main/in/Turn",s.turn);action("/actions/main/in/ResetPosition",s.reset);action("/actions/main/in/Pause",s.pause);
  action("/actions/base/in/pose_lefthand",s.leftPose);action("/actions/base/in/pose_righthand",s.rightPose);
+ action("/actions/base/in/skeleton_lefthand",s.skeletonLeft);action("/actions/base/in/skeleton_righthand",s.skeletonRight);
+ const char* menus[]={"MenuSelect","MenuBack","MenuUp","MenuDown","MenuLeft","MenuRight"};
+ for(int i=0;i<6;++i)action((std::string("/actions/main/in/")+menus[i]).c_str(),s.menuButtons[i]);
+ s.engineVgui=Interface("engine.dll","VEngineVGui001");
+ s.vguiInput=Interface("vgui2.dll","VGUI_InputInternal001");
+ s.modelRender=Interface("engine.dll","VEngineModel016");
  if(auto overlay=vr::VROverlay()) {
   overlay->CreateOverlay("corehub.vr.desktop","Corehub",&s.menu);
-  if(s.menu!=vr::k_ulOverlayHandleInvalid){vr::HmdMatrix34_t transform{{{1,0,0,0},{0,1,0,0},{0,0,1,-2}}};overlay->SetOverlayWidthInMeters(s.menu,2.5f);overlay->SetOverlayTransformTrackedDeviceRelative(s.menu,vr::k_unTrackedDeviceIndex_Hmd,&transform);}
+  if(s.menu!=vr::k_ulOverlayHandleInvalid){
+   vr::HmdMatrix34_t transform{{{1,0,0,0},{0,1,0,0},{0,0,1,-2}}};overlay->SetOverlayWidthInMeters(s.menu,2.5f);
+   overlay->SetOverlayTransformTrackedDeviceRelative(s.menu,vr::k_unTrackedDeviceIndex_Hmd,&transform);
+   overlay->SetOverlayInputMethod(s.menu,vr::VROverlayInputMethod_Mouse);
+   overlay->SetOverlayFlag(s.menu,vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible,true);
+  }
  }
  if(!CreateTargets()){PortalVrLog("Corehub: render-target allocation failed; stereo disabled");vr::VR_Shutdown();s.system=nullptr;return false;}
  if(!s.installed && !(s.installed=InstallHooks())){vr::VR_Shutdown();s.system=nullptr;return false;}
- CommandText("mat_queue_mode 0; mat_motion_blur_enabled 0; mat_depth_of_field_enabled 0");
+ CommandText("mat_queue_mode 0; mat_motion_blur_enabled 0");
  PortalVrLog("Corehub: OpenVR started, eye target=%ux%u FOV=%.2f aspect=%.3f",s.width,s.height,s.fov,s.aspect);return true;
 }
 void Update() {
+ if(s.vguiInput)for(int code:s.menuKeyReleases)Call<void>(s.vguiInput,75,code);
+ s.menuKeyReleases.clear();
  if(s.submissionReady) {
   // SteamVR requires TRANSFER_SRC_OPTIMAL even when Submit reports success.
   // Finish DXVK work before external queue access, then restore its layout.
@@ -364,13 +604,27 @@ void Update() {
    g_D3DVR9->RestoreSurface(s.submitted[1]);
    g_D3DVR9->WaitDeviceIdle();
   }
-  if(s.menu!=vr::k_ulOverlayHandleInvalid)vr::VROverlay()->HideOverlay(s.menu);
- } else if(!s.directX && !s.inGame && s.menu!=vr::k_ulOverlayHandleInvalid && SUCCEEDED(g_D3DVR9->GetBackBufferData(&s.backbuffer))) {
-  g_D3DVR9->WaitDeviceIdle();vr::VROverlay()->SetOverlayTexture(s.menu,&s.backbuffer.m_VRTexture);vr::VROverlay()->ShowOverlay(s.menu);
  }
  s.rendered=false;s.submissionReady=false;
  const auto poseError=vr::VRCompositor()->WaitGetPoses(s.poses.data(),s.poses.size(),nullptr,0);
  s.hmd=poseError==vr::VRCompositorError_None?Convert(s.poses[0]):Pose{};
+ if(s.menu!=vr::k_ulOverlayHandleInvalid) {
+  auto overlay=vr::VROverlay();
+  const bool visible=s.enabled && MenuVisible() && s.menuReady;
+  if(visible) {
+   // Keep the menu in front of the headset. An absolute transform sampled
+   // during startup can leave it behind the user when they put the Pico on.
+   vr::HmdMatrix34_t transform{{{1,0,0,0},{0,1,0,0},{0,0,1,-2}}};
+   overlay->SetOverlayTransformTrackedDeviceRelative(s.menu,vr::k_unTrackedDeviceIndex_Hmd,&transform);
+   const auto error=overlay->SetOverlayTexture(s.menu,&s.menuTexture);
+   overlay->ShowOverlay(s.menu);
+   if(!s.menuShown)PortalVrLog("Corehub: menu shown %ux%u texture result=%d",s.menuWidth,s.menuHeight,error);
+  } else if(s.menuShown) {
+   overlay->HideOverlay(s.menu);
+   PortalVrLog("Corehub: menu hidden");
+  }
+  s.menuShown=visible;
+ }
  vr::VRActiveActionSet_t sets[2]{};sets[0].ulActionSet=s.mainSet;sets[1].ulActionSet=s.baseSet;
  s.input->UpdateActionState(sets,sizeof(sets[0]),2);
  auto hand=[](vr::VRActionHandle_t action,vr::ETrackedControllerRole role) {
@@ -380,19 +634,82 @@ void Update() {
   return index<s.poses.size()?Convert(s.poses[index]):Pose{};
  };
  s.left=hand(s.leftPose,vr::TrackedControllerRole_LeftHand);s.right=hand(s.rightPose,vr::TrackedControllerRole_RightHand);
+ if(s.menuShown) {
+  bool pointedAt=false;
+  for(auto role:{vr::TrackedControllerRole_LeftHand,vr::TrackedControllerRole_RightHand}) {
+   const auto index=s.system->GetTrackedDeviceIndexForControllerRole(role);
+   if(index>=s.poses.size() || !s.poses[index].bPoseIsValid || !s.poses[index].bDeviceIsConnected)continue;
+   const auto& m=s.poses[index].mDeviceToAbsoluteTracking.m;
+   vr::VROverlayIntersectionParams_t ray{};vr::VROverlayIntersectionResults_t hit{};
+   ray.eOrigin=vr::TrackingUniverseStanding;
+   ray.vSource={{m[0][3],m[1][3],m[2][3]}};ray.vDirection={{-m[0][2],-m[1][2],-m[2][2]}};
+   pointedAt|=vr::VROverlay()->ComputeOverlayIntersection(s.menu,&ray,&hit);
+  }
+  // SteamVR consumes action input while its overlay laser is active. Keep
+  // button navigation available when neither controller points at the panel.
+  vr::VROverlay()->SetOverlayFlag(s.menu,vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible,pointedAt);
+ }
+ // Explicit render-test fixture only; normal play always uses tracked poses.
+ if(strstr(GetCommandLineA(),"-corehubvr-test-hands")) {
+  s.poses[0].mDeviceToAbsoluteTracking={{{1,0,0,0},{0,1,0,1.6f},{0,0,1,0}}};
+  s.poses[0].bPoseIsValid=s.poses[0].bDeviceIsConnected=true;
+  s.hmd=Convert(s.poses[0]);s.left={{.70f,.22f,1.45f},{0,0,0},true};s.right={{.70f,-.22f,1.45f},{0,0,0},true};
+  static bool logged=false;if(!logged){logged=true;PortalVrLog("Corehub: TEST HAND POSES active; this is not live tracking validation");}
+  if(strstr(GetCommandLineA(),"-corehubvr-test-gun")) {
+   static int stage=0;
+   if(stage==0 && s.frames>120){CommandText("sv_cheats 1; give weapon_portalgun");stage=1;PortalVrLog("Corehub: TEST GUN requested");}
+   else if(stage==1 && s.frames>650){CommandText("gameui_activate");stage=2;PortalVrLog("Corehub: TEST GUN pause requested");}
+  }
+ }
+ auto fingers=[](vr::VRActionHandle_t action,float* curl) {
+  vr::InputSkeletalActionData_t state{};vr::VRSkeletalSummaryData_t summary{};
+  bool valid=action && s.input->GetSkeletalActionData(action,&state,sizeof(state))==vr::VRInputError_None && state.bActive &&
+   s.input->GetSkeletalSummaryData(action,vr::VRSummaryType_FromDevice,&summary)==vr::VRInputError_None;
+  for(int i=0;i<5 && valid;++i)valid=std::isfinite(summary.flFingerCurl[i]);
+  constexpr float relaxed[5]={.15f,.20f,.25f,.25f,.25f};
+  for(int i=0;i<5;++i)curl[i]=valid?std::clamp(summary.flFingerCurl[i],0.0f,1.0f):relaxed[i];
+ };
+ fingers(s.skeletonLeft,s.leftCurl);fingers(s.skeletonRight,s.rightCurl);
  const bool game=Call<bool>(s.engine,Slot::InGame);if(game!=s.inGame){s.calibrated=false;s.inGame=game;}
- if(Digital(s.activate,true)){s.enabled=!s.enabled;s.calibrated=false;}
- if(Digital(s.reset,true))Recenter();
- if(Digital(s.pause,true))CommandText("gameui_activate");
- for(int i=0;i<6;++i)s.pressed[i]=s.hmd.valid && Digital(s.buttons[i]);
+ // The inherited Touch/Pico bindings map ActivateVR, Jump and MenuSelect to A.
+ // A VR launch stays enabled: selecting a menu item or jumping must never
+ // disable the renderer. Portal 1's separate runtime retains its own toggle.
+ if(Digital(s.reset,true)){Recenter();if(s.menuShown)s.menuShown=false;}
+ if(Digital(s.pause,true))CommandText(MenuVisible()?"gameui_hide":"gameui_activate");
+ if(s.menuShown && s.window) {
+  vr::VREvent_t event{};
+  while(vr::VROverlay()->PollNextOverlayEvent(s.menu,&event,sizeof(event))) {
+   if(event.eventType==vr::VREvent_MouseMove) {
+    s.mouseX=std::clamp(int(event.data.mouse.x),0,int(s.menuWidth)-1);
+    s.mouseY=std::clamp(int(s.menuHeight-event.data.mouse.y),0,int(s.menuHeight)-1);
+    MenuCursor(s.mouseX,s.mouseY);
+   } else if(event.eventType==vr::VREvent_MouseButtonDown) {
+    // Complete the click immediately: selecting Resume can hide the overlay
+    // before SteamVR emits button-up. Never leave an attack button held.
+    MenuClick();
+   } else if(event.eventType==vr::VREvent_ScrollDiscrete)
+    if(s.vguiInput)Call<void>(s.vguiInput,70,int(event.data.scroll.ydelta));
+  }
+  constexpr int keys[]={64,70,88,90,89,91}; // Source ButtonCode_t, not Win32 VKs.
+  for(int i=0;i<6;++i)if(Digital(s.menuButtons[i],true)) {
+   MenuKey(keys[i]);
+  }
+  if(strstr(GetCommandLineA(),"-corehubvr-test-menu")) {
+   static DWORD start=GetTickCount();static int stage=0;const DWORD elapsed=GetTickCount()-start;
+   if(stage==0 && elapsed>5000){MenuCursor(int(s.menuWidth*85/1280),int(s.menuHeight*626/720));stage=1;}
+   else if(stage==1 && elapsed>5500){MenuClick();stage=2;PortalVrLog("Corehub: TEST MENU native options click");}
+   else if(stage==2 && elapsed>20000){MenuKey(70);stage=3;PortalVrLog("Corehub: TEST MENU native Escape");}
+  }
+ }
+ for(int i=0;i<6;++i)s.pressed[i]=s.hmd.valid && !MenuVisible() && Digital(s.buttons[i]);
  vr::InputAnalogActionData_t walk{},turn{};s.walkAxis={};
  s.input->GetAnalogActionData(s.walk,&walk,sizeof(walk),vr::k_ulInvalidInputValueHandle);
  s.input->GetAnalogActionData(s.turn,&turn,sizeof(turn),vr::k_ulInvalidInputValueHandle);
- if(walk.bActive && s.hmd.valid)s.walkAxis={walk.x,walk.y,0};
+ if(walk.bActive && s.hmd.valid && !MenuVisible())s.walkAxis={walk.x,walk.y,0};
  if(!turn.bActive || std::abs(turn.x)<.3f)s.snapReady=true;
- else if(s.snapReady && std::abs(turn.x)>.7f && s.enabled && s.hmd.valid){s.yaw=Wrap(s.yaw-(turn.x>0?30.0f:-30.0f));s.snapReady=false;}
+ else if(s.snapReady && std::abs(turn.x)>.7f && s.enabled && s.hmd.valid && !MenuVisible()){s.yaw=Wrap(s.yaw-(turn.x>0?30.0f:-30.0f));s.snapReady=false;}
  vr::VREvent_t event{};while(s.system->PollNextEvent(&event,sizeof(event))) {
-  if(event.eventType==vr::VREvent_Quit){s.enabled=false;s.hmd.valid=false;s.pressed.fill(false);s.system->AcknowledgeQuit_Exiting();}
+  if(event.eventType==vr::VREvent_Quit){PortalVrLog("Corehub: SteamVR requested application exit; rendering disabled");s.enabled=false;s.hmd.valid=false;s.pressed.fill(false);s.system->AcknowledgeQuit_Exiting();}
  }
 }
 }
@@ -414,9 +731,9 @@ HRESULT UploadDirectEye(IDirect3DDevice9* device,int eye,const D3DSURFACE_DESC& 
   texture.Usage=D3D11_USAGE_DEFAULT;texture.BindFlags=D3D11_BIND_SHADER_RESOURCE|D3D11_BIND_RENDER_TARGET;
   hr=s.submitDevice->CreateTexture2D(&texture,nullptr,&s.directEyes[eye]);if(FAILED(hr))return hr;
  }
- hr=device->GetRenderTargetData(s.submitted[eye],s.readback[eye].Get());if(FAILED(hr))return hr;
+ hr=device->GetRenderTargetData(eye==2?s.menuSurface.Get():s.submitted[eye],s.readback[eye].Get());if(FAILED(hr))return hr;
  D3DLOCKED_RECT map{};hr=s.readback[eye]->LockRect(&map,nullptr,D3DLOCK_READONLY);if(FAILED(hr))return hr;
- if((s.frames==60 || s.frames%600==0) && strstr(GetCommandLineA(),"-corehubvr-debug-textures")) {
+ if(eye<2 && (s.frames==60 || s.frames%600==0) && strstr(GetCommandLineA(),"-corehubvr-debug-textures")) {
   BITMAPFILEHEADER header{};BITMAPINFOHEADER info{};
   header.bfType=0x4d42;header.bfOffBits=sizeof(header)+sizeof(info);header.bfSize=header.bfOffBits+desc.Width*desc.Height*4;
   info.biSize=sizeof(info);info.biWidth=desc.Width;info.biHeight=-LONG(desc.Height);info.biPlanes=1;info.biBitCount=32;
@@ -425,7 +742,8 @@ HRESULT UploadDirectEye(IDirect3DDevice9* device,int eye,const D3DSURFACE_DESC& 
  }
  s.submitContext->UpdateSubresource(s.directEyes[eye].Get(),0,nullptr,map.pBits,map.Pitch,0);
  s.readback[eye]->UnlockRect();
- s.shared[eye].m_VRTexture={s.directEyes[eye].Get(),vr::TextureType_DirectX,vr::ColorSpace_Auto};
+ if(eye==2)s.menuTexture={s.directEyes[eye].Get(),vr::TextureType_DirectX,vr::ColorSpace_Auto};
+ else s.shared[eye].m_VRTexture={s.directEyes[eye].Get(),vr::TextureType_DirectX,vr::ColorSpace_Auto};
  return S_OK;
 }
 }
@@ -464,7 +782,28 @@ bool ResolveEye(int eye) {
  return ready;
 }
 }
-void BeforePresent() {
+void BeforePresent(IDirect3DDevice9* device) {
+ if(!s.system || !s.installed)return;
+ if(!s.window){D3DDEVICE_CREATION_PARAMETERS params{};if(SUCCEEDED(device->GetCreationParameters(&params)))s.window=params.hFocusWindow;}
+ s.menuReady=false;
+ if(s.directX && s.enabled && MenuVisible()) {
+  ComPtr<IDirect3DSurface9> back;
+  if(SUCCEEDED(device->GetBackBuffer(0,0,D3DBACKBUFFER_TYPE_MONO,&back))) {
+   D3DSURFACE_DESC desc{};back->GetDesc(&desc);
+   if(s.menuWidth!=desc.Width || s.menuHeight!=desc.Height) {
+    s.menuSurface.Reset();s.menuWidth=desc.Width;s.menuHeight=desc.Height;
+    vr::HmdVector2_t scale{{float(s.menuWidth),float(s.menuHeight)}};
+    vr::VROverlay()->SetOverlayMouseScale(s.menu,&scale);
+   }
+   if(!s.menuSurface)device->CreateRenderTarget(desc.Width,desc.Height,desc.Format,D3DMULTISAMPLE_NONE,0,FALSE,&s.menuSurface,nullptr);
+   if(s.menuSurface && SUCCEEDED(device->StretchRect(back.Get(),nullptr,s.menuSurface.Get(),nullptr,D3DTEXF_NONE)) &&
+      SUCCEEDED(UploadDirectEye(device,2,desc))) {
+    s.submitContext->Flush();s.menuReady=true;
+   }
+  }
+ } else if(!s.directX && s.enabled && MenuVisible() && SUCCEEDED(g_D3DVR9->GetBackBufferData(&s.backbuffer))) {
+  g_D3DVR9->WaitDeviceIdle();s.menuTexture=s.backbuffer.m_VRTexture;s.menuReady=true;
+ }
  s.submissionReady=false;
  if(!s.rendered || !s.resolved[0] || !s.resolved[1])return;
  bool ready=true;
@@ -481,7 +820,7 @@ void BeforePresent() {
  if(!ready)return;
   // Optional diagnostic mirror shows the exact submitted images, side by side.
   // It does not rely on another engine camera pass to verify eye coverage.
-  if(strstr(GetCommandLineA(),"-corehubvr-mirror")) {
+  if(!MenuVisible() && strstr(GetCommandLineA(),"-corehubvr-mirror")) {
    IDirect3DDevice9* device=nullptr;IDirect3DSurface9* back=nullptr;
    if(SUCCEEDED(s.surfaces[0]->GetDevice(&device))) {
     if(SUCCEEDED(device->GetBackBuffer(0,0,D3DBACKBUFFER_TYPE_MONO,&back))) {
@@ -502,7 +841,10 @@ bool HandleFrame() {
   auto* h=Header(GetModuleHandleA("engine.dll"));if(!h)return false;
   const bool requested=strstr(GetCommandLineA(),"-corehubvr")!=nullptr;
   selected=requested || h->FileHeader.TimeDateStamp==builds[1].timestamp ? 1:0;
-  if(selected && !Verified())selected=2;
+  // A copied runtime used for ordinary Hammer previews must not claim the
+  // headset and make SteamVR terminate the user's running VR game.
+  if(selected && !requested){PortalVrLog("Corehub: desktop launch (no -corehubvr); VR bootstrap skipped");selected=2;}
+  if(selected==1 && !Verified())selected=2;
  }
  if(!selected)return false;if(selected==2)return true;
  if(!s.engine)s.engine=Address("engine.dll",0x3c0144);
