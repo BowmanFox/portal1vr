@@ -1,0 +1,384 @@
+{
+  "kind": "corehub-native-character-assets",
+  "vr_runtime_included": false,
+  "model_checksum": 1320713534,
+  "singleplayer_weapon_checksum": 187570092,
+  "package_sha256": "72d502c3fa2838cb2622f902a326022d11c603728a9138952154fa14fb75625b",
+  "files": [
+    {
+      "path": "Launch Bowman Co-op.cmd",
+      "sha256": "678835df2691e84b18e9df7cc4a89c6301221f598747a27b8ae2f16479aecfcb",
+      "bytes": 190
+    },
+    {
+      "path": "Launch Bowman Single-player.cmd",
+      "sha256": "670e65cde9469109ffc480a1c4d8402ae96597c5ccef217cdfe5deb0583b91b1",
+      "bytes": 179
+    },
+    {
+      "path": "bowman_coop/README.txt",
+      "sha256": "5773b34f10f0e790e7eb41d98ab93726d3e94cf4ea311730d74df118769a3db1",
+      "bytes": 474
+    },
+    {
+      "path": "bowman_coop/gameinfo.txt",
+      "sha256": "1b36ea98c75c7b0a83ac42f7dc139ab7433d7b76d95a34c97f739c3aa53d63f7",
+      "bytes": 301
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eye_l.vmt",
+      "sha256": "ae9220b2ea771548e431daf308b89eac3ef27d025e806469b72b2a7aaf2a6edf",
+      "bytes": 152
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eye_l_orange.vmt",
+      "sha256": "bc118c0c3797763405fc5722684138e167e1397c22ca292c16acae1212ecf585",
+      "bytes": 154
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eye_r.vmt",
+      "sha256": "ae9220b2ea771548e431daf308b89eac3ef27d025e806469b72b2a7aaf2a6edf",
+      "bytes": 152
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eye_r_orange.vmt",
+      "sha256": "bc118c0c3797763405fc5722684138e167e1397c22ca292c16acae1212ecf585",
+      "bytes": 154
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eyeliner.vtf",
+      "sha256": "35218a8a0d72d5e53150355869f2ee8119ad3a97db22b819c1b2af4ba7df9dc1",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/eyeliner_head.vmt",
+      "sha256": "96f6c0be04d7169518ca94bacf414796947272ea7436ffdb5dca5ff57ecf547f",
+      "bytes": 128
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fluff.vmt",
+      "sha256": "5c7e526c6e5cedc4144e86267e014428cf03e1292296cb7a9e1c2ae6492a70a4",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fluff.vtf",
+      "sha256": "abd29f6b4a7233999bc79f909055d0c437259179f20d857777ac787c263dc9f2",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fluff_head.vmt",
+      "sha256": "5c7e526c6e5cedc4144e86267e014428cf03e1292296cb7a9e1c2ae6492a70a4",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur.vtf",
+      "sha256": "9152f95ccc8f4f617ba1e5e51c2d3b16ada5d6048fdee85b319b3f3721d0ce0c",
+      "bytes": 5592664
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_blue.vmt",
+      "sha256": "bb36e765e703d8211efedfd4d80a7133b9bc535c5223c3a68d7ac9a7eed1b31d",
+      "bytes": 121
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_blue_head.vmt",
+      "sha256": "bb36e765e703d8211efedfd4d80a7133b9bc535c5223c3a68d7ac9a7eed1b31d",
+      "bytes": 121
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_blue_markings.vtf",
+      "sha256": "c9f8342f7021fbcdf019c4f9e906def282bcbb7dc15c16af0b46ec725ac7b73d",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_orange.vmt",
+      "sha256": "af21712cc69632a20d8248cd88a4a08c4fa6309aded4fd007a37442d0435dfcf",
+      "bytes": 123
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_orange_head.vmt",
+      "sha256": "af21712cc69632a20d8248cd88a4a08c4fa6309aded4fd007a37442d0435dfcf",
+      "bytes": 123
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/fur_orange_markings.vtf",
+      "sha256": "c12e304dd24b1cc9a30a7cdc1a931e9324808bff2a462f5269980a0543299edd",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/iris_blue_markings.vtf",
+      "sha256": "ff96e3c77fb8c9efb7b4a775f852679ebbbebdc2247444aabdfd22efef9905b0",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/iris_orange_markings.vtf",
+      "sha256": "c01858002dab24598cf316031b3d068371945bd8b710bfdd6b5815b6bdb7c92b",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/mouth.vtf",
+      "sha256": "c562d925b3f611366f202edb50b00788109747d4a30f36bd0cce1928dab46bfe",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/mouth_head.vmt",
+      "sha256": "b3bfe3190539373555810e9d6db1936408f1940307c9a701d1d22fb50b939de1",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/nodraw.vmt",
+      "sha256": "b80045f6fcffbbe274c67884246507c24ff3bed412e5ee64395e69b041d8c2bb",
+      "bytes": 82
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/outline.vtf",
+      "sha256": "829b260298264d529dcc74d5975a445d1a2dee1448955ac97fd9d5284a1400b9",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/paws.vmt",
+      "sha256": "347e5ce5e289e53151e41d90bbd5c390c0e937e33cf0ec26c2b747a03b310457",
+      "bytes": 108
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/paws.vtf",
+      "sha256": "3988f967004a0198b94991e50c0e588a39fdcc311119332adfac9f35a1d2d53d",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/silhouette.vmt",
+      "sha256": "c81c09d1b9d1193307bcf0bf980aa5c18e6c934883f680bffc7a01e67603893d",
+      "bytes": 99
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/teeth.vtf",
+      "sha256": "abd29f6b4a7233999bc79f909055d0c437259179f20d857777ac787c263dc9f2",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_coop/materials/models/bowman_corehub/teeth_head.vmt",
+      "sha256": "a83652b067dd826f6f1069f0378555806cd3a3168590212eaf053f26fafefca9",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_coop/models/player.dx80.vtx",
+      "sha256": "d77e859dde6d6ff15cf4f3ab9beb89ada7d966881930a6d59916d5651be5a862",
+      "bytes": 764615
+    },
+    {
+      "path": "bowman_coop/models/player.dx90.vtx",
+      "sha256": "e0682a66d30e2992ad8bd85c11f9a8cd6e50b3163d2e6f53da835e649ad65d27",
+      "bytes": 759735
+    },
+    {
+      "path": "bowman_coop/models/player.mdl",
+      "sha256": "68182ff7e54854a243d4233b26eb9a9a193d8d37b3180ab2a0775fce227e1055",
+      "bytes": 53316
+    },
+    {
+      "path": "bowman_coop/models/player.phy",
+      "sha256": "088f8fdbc25e0a0a5ac6e24a69f35810168358f227bc720ac69ed7ab7f745766",
+      "bytes": 27580
+    },
+    {
+      "path": "bowman_coop/models/player.sw.vtx",
+      "sha256": "76a5233691beec8a7ffc242deabc3ee28300b42d1101deed44a643749dfd7fdf",
+      "bytes": 757794
+    },
+    {
+      "path": "bowman_coop/models/player.vvd",
+      "sha256": "944bb44d451ccc13137b5cb3b5833533107550e4783ca50f437ac78d80fc6c58",
+      "bytes": 2436800
+    },
+    {
+      "path": "bowman_singleplayer/README.txt",
+      "sha256": "7b73c219f8e359bd0438678a4c4bb7e921351850ac9401b7e3a96374cfc8e1d0",
+      "bytes": 293
+    },
+    {
+      "path": "bowman_singleplayer/gameinfo.txt",
+      "sha256": "04a4635b6380f90e536d6534b19580e3e2f56a3805666b0c5f77e9e8ce0ee377",
+      "bytes": 303
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eye_l.vmt",
+      "sha256": "99a76ea9423657d55a981a62912621d7e2933c84ae7612c53a629e0bfedfb964",
+      "bytes": 138
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eye_l_orange.vmt",
+      "sha256": "99a76ea9423657d55a981a62912621d7e2933c84ae7612c53a629e0bfedfb964",
+      "bytes": 138
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eye_r.vmt",
+      "sha256": "99a76ea9423657d55a981a62912621d7e2933c84ae7612c53a629e0bfedfb964",
+      "bytes": 138
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eye_r_orange.vmt",
+      "sha256": "99a76ea9423657d55a981a62912621d7e2933c84ae7612c53a629e0bfedfb964",
+      "bytes": 138
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eyeliner.vtf",
+      "sha256": "35218a8a0d72d5e53150355869f2ee8119ad3a97db22b819c1b2af4ba7df9dc1",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eyeliner_head.vmt",
+      "sha256": "96f6c0be04d7169518ca94bacf414796947272ea7436ffdb5dca5ff57ecf547f",
+      "bytes": 128
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/eyes.vtf",
+      "sha256": "b4ac7cc94f96bca90ef29d26c1ff6080954aae82e19faba08c8a6a5f90bb1945",
+      "bytes": 2796448
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fluff.vmt",
+      "sha256": "5c7e526c6e5cedc4144e86267e014428cf03e1292296cb7a9e1c2ae6492a70a4",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fluff.vtf",
+      "sha256": "abd29f6b4a7233999bc79f909055d0c437259179f20d857777ac787c263dc9f2",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fluff_head.vmt",
+      "sha256": "5c7e526c6e5cedc4144e86267e014428cf03e1292296cb7a9e1c2ae6492a70a4",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur.vmt",
+      "sha256": "59544cf09fe6c49fdfb4e058c27b3a54532e3eeef225cdcb7ea055a80155ac4c",
+      "bytes": 123
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur.vtf",
+      "sha256": "9152f95ccc8f4f617ba1e5e51c2d3b16ada5d6048fdee85b319b3f3721d0ce0c",
+      "bytes": 5592664
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur_blue.vmt",
+      "sha256": "174ad90273943ac43ba8998276535bb8279e9a1d037818d396222611f8d60f85",
+      "bytes": 107
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur_blue_head.vmt",
+      "sha256": "174ad90273943ac43ba8998276535bb8279e9a1d037818d396222611f8d60f85",
+      "bytes": 107
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur_orange.vmt",
+      "sha256": "174ad90273943ac43ba8998276535bb8279e9a1d037818d396222611f8d60f85",
+      "bytes": 107
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/fur_orange_head.vmt",
+      "sha256": "174ad90273943ac43ba8998276535bb8279e9a1d037818d396222611f8d60f85",
+      "bytes": 107
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/mouth.vtf",
+      "sha256": "c562d925b3f611366f202edb50b00788109747d4a30f36bd0cce1928dab46bfe",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/mouth_head.vmt",
+      "sha256": "b3bfe3190539373555810e9d6db1936408f1940307c9a701d1d22fb50b939de1",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/nodraw.vmt",
+      "sha256": "b80045f6fcffbbe274c67884246507c24ff3bed412e5ee64395e69b041d8c2bb",
+      "bytes": 82
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/outline.vtf",
+      "sha256": "829b260298264d529dcc74d5975a445d1a2dee1448955ac97fd9d5284a1400b9",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/paws.vmt",
+      "sha256": "347e5ce5e289e53151e41d90bbd5c390c0e937e33cf0ec26c2b747a03b310457",
+      "bytes": 108
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/paws.vtf",
+      "sha256": "3988f967004a0198b94991e50c0e588a39fdcc311119332adfac9f35a1d2d53d",
+      "bytes": 22369700
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/silhouette.vmt",
+      "sha256": "c81c09d1b9d1193307bcf0bf980aa5c18e6c934883f680bffc7a01e67603893d",
+      "bytes": 99
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/teeth.vtf",
+      "sha256": "abd29f6b4a7233999bc79f909055d0c437259179f20d857777ac787c263dc9f2",
+      "bytes": 1444
+    },
+    {
+      "path": "bowman_singleplayer/materials/models/bowman_corehub/teeth_head.vmt",
+      "sha256": "a83652b067dd826f6f1069f0378555806cd3a3168590212eaf053f26fafefca9",
+      "bytes": 125
+    },
+    {
+      "path": "bowman_singleplayer/models/player.dx80.vtx",
+      "sha256": "d77e859dde6d6ff15cf4f3ab9beb89ada7d966881930a6d59916d5651be5a862",
+      "bytes": 764615
+    },
+    {
+      "path": "bowman_singleplayer/models/player.dx90.vtx",
+      "sha256": "e0682a66d30e2992ad8bd85c11f9a8cd6e50b3163d2e6f53da835e649ad65d27",
+      "bytes": 759735
+    },
+    {
+      "path": "bowman_singleplayer/models/player.mdl",
+      "sha256": "68182ff7e54854a243d4233b26eb9a9a193d8d37b3180ab2a0775fce227e1055",
+      "bytes": 53316
+    },
+    {
+      "path": "bowman_singleplayer/models/player.phy",
+      "sha256": "088f8fdbc25e0a0a5ac6e24a69f35810168358f227bc720ac69ed7ab7f745766",
+      "bytes": 27580
+    },
+    {
+      "path": "bowman_singleplayer/models/player.sw.vtx",
+      "sha256": "76a5233691beec8a7ffc242deabc3ee28300b42d1101deed44a643749dfd7fdf",
+      "bytes": 757794
+    },
+    {
+      "path": "bowman_singleplayer/models/player.vvd",
+      "sha256": "944bb44d451ccc13137b5cb3b5833533107550e4783ca50f437ac78d80fc6c58",
+      "bytes": 2436800
+    },
+    {
+      "path": "bowman_singleplayer/models/weapons/v_portalgun.dx80.vtx",
+      "sha256": "30ce1c65d432d2397d278ea7eea1a88f72a5cc135273dce74397a4645b8a4c33",
+      "bytes": 155925
+    },
+    {
+      "path": "bowman_singleplayer/models/weapons/v_portalgun.dx90.vtx",
+      "sha256": "7a7a4eda9c2ded8a971fd7bef2634e1bc17535e8c8915e877d19ead294f886bd",
+      "bytes": 155874
+    },
+    {
+      "path": "bowman_singleplayer/models/weapons/v_portalgun.mdl",
+      "sha256": "82d325f43e53ff8ef58d44f0dc0cf7491d37207398783361175f14b287b8042e",
+      "bytes": 37320
+    },
+    {
+      "path": "bowman_singleplayer/models/weapons/v_portalgun.sw.vtx",
+      "sha256": "49b7d08fc16bf8ebfa81c81f069439f32699c7ce96afcaf09d734ee3d4a52b62",
+      "bytes": 155562
+    },
+    {
+      "path": "bowman_singleplayer/models/weapons/v_portalgun.vvd",
+      "sha256": "d4be6a9a5f71d9079c6bf70ee469267a51d7eab22e7fcf9161ab43f2621399bb",
+      "bytes": 618752
+    }
+  ]
+}

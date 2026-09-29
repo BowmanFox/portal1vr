@@ -1,0 +1,18 @@
+{
+  "geometry_and_weights_sha256": [
+    "bf6320dc0ad8c2133caa75a41caa55887e1fbd8b26b6f1d129d7a3d56cd2a2a2",
+    "bf6320dc0ad8c2133caa75a41caa55887e1fbd8b26b6f1d129d7a3d56cd2a2a2"
+  ],
+  "unchanged": true,
+  "foot_polygons": [
+    1914,
+    1914
+  ],
+  "smd_foot_triangles": 1914,
+  "uv_mapping": "mirrored planar sole islands; separate white outer-foot islands",
+  "pad_srgb": [
+    0.43,
+    0.43,
+    0.43
+  ]
+}

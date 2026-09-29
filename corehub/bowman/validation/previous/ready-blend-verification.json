@@ -1,0 +1,23 @@
+{
+  "file": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Ready.blend",
+  "sha256": "0365fbf92f54eb2a7fe96603b449a926dd6a42918dc9fcdbefcfde9324926ba0",
+  "reopened_successfully": true,
+  "blue_orange_basis_keys_and_uvs_equal": true,
+  "key_entries_including_basis": 137,
+  "geometry_mirror_error": 0.7993354407684904,
+  "weight_mirror_error": 0,
+  "latest_user_save_included": true,
+  "smoothing_modifiers": [
+    [
+      "Paw contour smoothing - adjustable",
+      "SMOOTH",
+      3
+    ],
+    [
+      "Source skeleton",
+      "ARMATURE",
+      null
+    ]
+  ],
+  "source_facial_flex_exported": false
+}

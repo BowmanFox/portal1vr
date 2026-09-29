@@ -1,0 +1,32 @@
+{
+  "input": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Before_Toe_Alignment_20260924_141028.blend",
+  "input_sha256": "51a2288cfcb3b25cd1a72e66263af9d5f4165733ba312902e5213d9a40d04cba",
+  "output": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Final.blend",
+  "user_sculpt_preserved_except_requested_outer_toe_alignment": true,
+  "orange_matches_blue": true,
+  "copied_changed_vertices": 5027,
+  "largest_sculpt_displacement": 1.135964544871584,
+  "input_geometry_sha256": "1a8c813f97577bb928ae8d3fb0cb69042e725b5b677c47b9eeaa176c0993f079",
+  "geometry_sha256": "806afa05b8c39ed681b4c40f6078322feb48730c902ff9d9010a0a4c2f3b4c68",
+  "outer_toe_adjustment_vertices": 354,
+  "outer_toe_forward_adjustment_max": 0.6,
+  "weights_sha256": [
+    "4636bfd0e5d6db592253a5c08ecc918da7f16d52ee4a7d6b6bb32a56875ac7cf",
+    "4636bfd0e5d6db592253a5c08ecc918da7f16d52ee4a7d6b6bb32a56875ac7cf"
+  ],
+  "max_mirror_position_error": 7.63311891205376e-06,
+  "max_mirror_weight_error": 0,
+  "foot_faces": [
+    {
+      "foot_faces": 1914,
+      "sole_faces": 774
+    },
+    {
+      "foot_faces": 1914,
+      "sole_faces": 774
+    }
+  ],
+  "center_pad_width": 6.55,
+  "center_pad_height": 4.65,
+  "design": "Four oval toes and broad Bezier center pad traced from supplied reference; outward toe alignment and first-surface UV projection keep the print on the toe lobes"
+}

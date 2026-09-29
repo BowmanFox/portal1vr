@@ -1,0 +1,24 @@
+{
+  "source": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Models.blend",
+  "sha256": "199f84fd3c4ac878c782369fc424aa91938b915f586bafe58e72fb6bd86b1a93",
+  "backup": {
+    "source": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Ready.blend",
+    "backup": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Before_Sole_Repair_20260924_144838.blend",
+    "sha256": "E5257F5A7E27F3B7AA130F4E1004741A9FA7817F9728F61355911E12C8A508A6"
+  },
+  "variants": [
+    "Portal 1 original colours",
+    "Co-op blue",
+    "Co-op orange"
+  ],
+  "vertices_per_body": 34888,
+  "key_entries_per_body": 137,
+  "max_shape_key_delta_error": 2.384185791015625e-07,
+  "original_weights_unchanged": true,
+  "new_toe_weights_interpolated": true,
+  "upper_body_coordinates_unchanged": true,
+  "upper_body_topology_unchanged": true,
+  "blue_orange_keys_equal": true,
+  "all_variant_meshes_equal": true,
+  "source_facial_flex_exported": false
+}

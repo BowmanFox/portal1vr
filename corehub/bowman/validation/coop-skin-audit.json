@@ -1,0 +1,98 @@
+{
+  "design": "existing grey patches and iris recolor; no added bands",
+  "families": [
+    [
+      "eye_l",
+      "eye_r",
+      "eyeliner_head",
+      "fluff",
+      "fluff_head",
+      "fur_blue",
+      "fur_blue_head",
+      "mouth_head",
+      "paws",
+      "teeth_head"
+    ],
+    [
+      "eye_l_orange",
+      "eye_r_orange",
+      "eyeliner_head",
+      "fluff",
+      "fluff_head",
+      "fur_orange",
+      "fur_orange_head",
+      "mouth_head",
+      "paws",
+      "teeth_head"
+    ],
+    [
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette",
+      "silhouette"
+    ],
+    [
+      "nodraw",
+      "nodraw",
+      "nodraw",
+      "fluff",
+      "nodraw",
+      "fur_blue",
+      "nodraw",
+      "nodraw",
+      "paws",
+      "nodraw"
+    ],
+    [
+      "nodraw",
+      "nodraw",
+      "nodraw",
+      "fluff",
+      "nodraw",
+      "fur_orange",
+      "nodraw",
+      "nodraw",
+      "paws",
+      "nodraw"
+    ]
+  ],
+  "materials": [
+    "eye_l",
+    "eye_r",
+    "eyeliner_head",
+    "fluff",
+    "fluff_head",
+    "fur_blue",
+    "fur_blue_head",
+    "mouth_head",
+    "paws",
+    "teeth_head"
+  ],
+  "textures": {
+    "blue": {
+      "fur": "fur_blue_markings",
+      "iris": "iris_blue_markings"
+    },
+    "orange": {
+      "fur": "fur_orange_markings",
+      "iris": "iris_orange_markings"
+    }
+  },
+  "hidden_head_materials": [
+    "eye_l",
+    "eye_r",
+    "eyeliner_head",
+    "fluff_head",
+    "fur_blue_head",
+    "mouth_head",
+    "teeth_head"
+  ],
+  "vertices_unchanged": true,
+  "weights_unchanged": true
+}

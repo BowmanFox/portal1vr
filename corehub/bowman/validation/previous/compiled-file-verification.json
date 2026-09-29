@@ -1,0 +1,32 @@
+{
+  "player.dx80.vtx": {
+    "sha256": "0c5ad98381f0a7fac4dc242c13d41cffc0776e3618eae3385e06dd89706c4650",
+    "bytes": 732263,
+    "checksum": 160627182
+  },
+  "player.dx90.vtx": {
+    "sha256": "a86f062a05aed15a3f3cbd8175330680a6ebefe5860297eaba28af8247462e24",
+    "bytes": 727383,
+    "checksum": 160627182
+  },
+  "player.mdl": {
+    "sha256": "69b31204b7033bf6017897ef1fbfddafc9b99c3c9bdaf490277e57f78f6f2221",
+    "bytes": 51876,
+    "checksum": 160627182
+  },
+  "player.phy": {
+    "sha256": "6d6a79bb7459db2d30d6729c0a6c7470ad3585f8d44a9140f5d64260a7637bf7",
+    "bytes": 27580,
+    "checksum": 160627182
+  },
+  "player.sw.vtx": {
+    "sha256": "fac9522c2ee5d114921376f26c3606ddd551ff394ad8422a45de6e52dd493f0f",
+    "bytes": 725442,
+    "checksum": 160627182
+  },
+  "player.vvd": {
+    "sha256": "42f8ca41fa142aeb7708512b7f0d5d7b3bc500394ec23eb43a9a4efce700cc70",
+    "bytes": 2347712,
+    "checksum": 160627182
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "input": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_With_ShapeKeys.blend",
+  "output": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Ready.blend",
+  "geometry_unchanged": true,
+  "shape_keys_unchanged": true,
+  "geometry_hashes": [
+    "7521898ad55954399cfce95aa2f152c401805b4d9e9fc3324dd33712804d1be8",
+    "7521898ad55954399cfce95aa2f152c401805b4d9e9fc3324dd33712804d1be8"
+  ],
+  "shape_key_hashes": [
+    "1e12b0c747c7f65f2f9679beff9c07db06307bf3ef5aed22e44d7b5964b426ae",
+    "1e12b0c747c7f65f2f9679beff9c07db06307bf3ef5aed22e44d7b5964b426ae"
+  ],
+  "foot_faces": 1914,
+  "uv_design": "Unique foot islands with a continuous projection across neighboring faces; height clips the top of each toe per texel"
+}

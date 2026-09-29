@@ -1,0 +1,14 @@
+{
+  "backup": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Before_Asymmetric_Fluff_20260924_162050.blend",
+  "input_sha256": "b2a99a56ae7f85d61d0df5ad6c1ed87725e21fcca99ae6c5aa163c0d622fe53b",
+  "output_sha256": "3d366e906e9e4a5d0e3b37042dc3167c8e9e7185977df81bfa9f134073b56e02",
+  "hair_vertices": 1132,
+  "neck_vertices": 868,
+  "max_displacement": 2.2911088466644287,
+  "all_other_vertices_unchanged": true,
+  "shape_key_count": 137,
+  "no_new_shape_key": true,
+  "all_variants_equal": true,
+  "hair_sweep": "toward positive local X",
+  "neck_sweep": "toward negative local X"
+}

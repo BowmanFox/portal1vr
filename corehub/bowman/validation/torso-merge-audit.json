@@ -1,0 +1,26 @@
+{
+  "source": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Models_User_Torso.blend",
+  "source_sha256": "639670204a6f1a2989b3c8439fca0e53d666336de3cd509c27d56372dd3a40d9",
+  "source_backup": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_User_Torso_Before_Merge_20260924_155033.blend",
+  "locked_feet": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Feet_Locked_20260924_1547.blend",
+  "output": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Models.blend",
+  "output_sha256": "6bd093da44dc4135f5d656b5edc8ee7682e93c939ba47961ef25a2d6cab57a98",
+  "changed_torso_vertices": 31280,
+  "change_bounds": [
+    [
+      -31.816997528076172,
+      -9.19789981842041,
+      15.021501541137695
+    ],
+    [
+      31.81699562072754,
+      26.53333282470703,
+      72.00729370117188
+    ]
+  ],
+  "max_displacement": 1.640513300895691,
+  "all_variant_meshes_equal": true,
+  "feet_all_keys_unchanged": true,
+  "uvs_unchanged": true,
+  "shape_key_entries": 137
+}

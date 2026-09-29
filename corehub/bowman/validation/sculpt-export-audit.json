@@ -1,0 +1,30 @@
+{
+  "source_blend": "outputs\\Bowman_Corehub_Models.blend",
+  "source_sha256": "3d366e906e9e4a5d0e3b37042dc3167c8e9e7185977df81bfa9f134073b56e02",
+  "vertices": 34888,
+  "triangles": 69043,
+  "materials": {
+    "teeth_head": 2612,
+    "eye_l": 960,
+    "fluff_head": 8838,
+    "mouth_head": 506,
+    "fur_blue_head": 21415,
+    "eye_r": 960,
+    "fur_blue": 23102,
+    "fluff": 1752,
+    "paws": 5218,
+    "eyeliner_head": 3680
+  },
+  "max_weight_sum_error": 1.1102230246251565e-16,
+  "files": {
+    "bowman_body.smd": "8f42b9e9b1c0af4fa600792f4f44a9cf57b7f60e0c84dc3c1e2afd983591d137",
+    "bowman_details.smd": "3a38712967e4632a380258dba35416ff9d7db424d5a8e0c27ff9aaadc2b2e474",
+    "bowman_physics.smd": "2288a0bea0ff1a72340d8da81d03147c95bddd4d55be1ca5d1e1dbb1d5d7d1ca",
+    "player.qc": "243fc2039667d04e6d8c8387450a4935fc81177aea346a74c68944ed8a7dbaae",
+    "proportion_basis.smd": "da2c3fa899664b70187a2c658349116ab97a002c4969dd086613c9b947f43d41",
+    "proportion_target.smd": "b2522b0ba6ec0bffd14d5ab875d47f76e93f9daeab50e13fcfce6114a3c534e0"
+  },
+  "shape_keys_in_blender": 137,
+  "paw_smoothing_baked_into_export": true,
+  "texture": "Paws - continuous sole projection"
+}

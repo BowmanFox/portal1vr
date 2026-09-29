@@ -1,0 +1,42 @@
+{
+  "input": {
+    "source": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Ready.blend",
+    "backup": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Before_Sole_Repair_20260924_144838.blend",
+    "sha256": "E5257F5A7E27F3B7AA130F4E1004741A9FA7817F9728F61355911E12C8A508A6"
+  },
+  "output": "C:\\Users\\Bowman\\Documents\\Codex\\2026-09-14\\i-am-trying-to-create-a-2\\outputs\\Bowman_Corehub_Coop_Repaired.blend",
+  "vertices": 34888,
+  "original_vertices": 33236,
+  "added_toe_vertices": 1652,
+  "key_entries": 137,
+  "changed_original_vertices": 670,
+  "max_original_displacement": 1.272194239301502,
+  "upper_body_topology_unchanged": true,
+  "existing_weights_unchanged": true,
+  "new_weights_interpolated": true,
+  "key_offsets_preserved": true,
+  "side_toe_alignment": [
+    {
+      "side": -1,
+      "before": [
+        -3.6446724727487263,
+        -3.638456984357941
+      ],
+      "after": [
+        -3.6446724727487263,
+        -3.6446724727487263
+      ]
+    },
+    {
+      "side": 1,
+      "before": [
+        -3.646466833596651,
+        -3.6268609300436774
+      ],
+      "after": [
+        -3.646466833596651,
+        -3.646466833596651
+      ]
+    }
+  ]
+}
