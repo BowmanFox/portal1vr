@@ -38,7 +38,7 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10ax` + `director_r10ax` (outputs/Corehub-Intro). Test run: `videos/r10m_ax2_side.mp4`.
+Published build: `corehub_r10ay` + `director_r10ay` (outputs/Corehub-Intro). Test run: `videos/r10m_ay_side.mp4`.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|

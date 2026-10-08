@@ -732,6 +732,41 @@ for e in v.entities:
         if (abs(o.x - 6767) < 2 or abs(o.x - 6818.3) < 2) and abs(o.y) < 2 and abs(o.z - 256) < 2:
             e['model'] = 'models/corehub_intro/transport_ring_white.mdl'; e['skin'] = '0'; cf += 1
 print('cream collar faces/props', cf)
+# ---------- r10ay: turret glare and warm rust walls ----------
+# the video's lens glare (69.5-71.2 s) is a wide soft pink glow from the turret's eye down to the bottom of the frame:
+# a second, wide and faint beam on the laser's own endpoints, switched on by the director for the glare only
+v.create_ent('env_beam', targetname='laser_turret_glow', LightningStart='laser_turret_a', LightningEnd='laser_turret_b',
+             BoltWidth='26', NoiseAmplitude='0', renderamt='70', rendercolor='255 135 130', texture='sprites/laserbeam.spr',
+             spawnflags='0', life='0', damage='0', origin='4576 54 1159', TextureScroll='0', framerate='0', framestart='0', HDRColorScale='1.0')
+# the "16" wall and the gallery read warm brown rust in the video; the same texture showed its grey panels there
+RUST_WARM = unlit('rust_warm', 'metal/metalwall_bts_001b', '1.25 0.95 0.70')
+rw = 0
+for e in [v.spawn] + list(v.entities):
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        wall16 = abs(lo.x - 4980) < 1 and abs(hi.x - 5012) < 1
+        gal = lo.x >= 6330 and hi.x <= 6815 and lo.y >= -1030 and hi.y <= 1160
+        for f in so.sides:
+            if f.mat.lower() == 'corehub_intro/r10/rust' and ((wall16 and f.normal().x > 0.5) or gal):
+                f.mat = RUST_WARM; rw += 1
+print('warm rust faces', rw)
+# ---------- r10az: lab (100-103 s) ----------
+# the video's tube view of the lab shows black tiles and a pipe on the right until the camera turns at 103 s; the three
+# hanging turrets only come into view then. They get names so the director can bring them in at 102.8 s.
+ht = 0
+for e in v.entities:
+    if e['classname'] == 'prop_dynamic_override' and e['model'] == 'models/props_backstage/vacum_hover.mdl':
+        o = Vec.from_str(e['origin'])
+        if 7700 < o.x < 7950 and -200 < o.y < -100 and abs(o.z - 206.8) < 1:
+            e['targetname'] = f'r10_lab_tur_{ht}'; ht += 1
+print('lab hanging turrets named', ht)
+# ---------- r10ba: incinerator approach (110-114 s) ----------
+# the video looks down the shaft at a white iris with dark rings round it; the furnace's orange top showed round the
+# iris from 110 s. A dark frame just above it (open in the middle for the camera and the falling parts) hides it until
+# the camera drops through at 114.25 s.
+for lo, hi in (((8188, -260, 1300), (8708, -75, 1306)), ((8188, 75, 1300), (8708, 260, 1306)),
+               ((8188, -75, 1300), (8373, 75, 1306)), ((8523, -75, 1300), (8708, 75, 1306))):
+    box(lo, hi, TUNNEL, world=False)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
