@@ -128,7 +128,7 @@ def wall_x(x0, x1, y0=-1024, y1=1152, z0=-768, z1=2900, mat=RUST, side=None, ext
 wall_x(1528, 1560)                       # west end of the pod-lined rise
 wall_x(2840, 2960, mat=RUST, side=TUNNEL, hole=84)   # dark tunnel 49-50 s between rooms
 wall_x(3400, 3432, hole=84)              # cube passage | tower base: crossed during the 54.1-54.9 s cut; opening clears the rings
-wall_x(4364, 4396)                       # tower | turret room (collar in a frontal wall at 65-66 s)
+wall_x(4364, 4396, hole=84)                       # tower | turret room (collar in a frontal wall at 65-66 s)
 wall_x(4980, 5012)                       # the "16" wall behind the inlet sign (72-73 s)
 wall_x(6000, 6032, y1=60)                # far end of the copper-tube room (84-86 s); the gallery turns off to +y before it
 wall_x(6780, 6812, west=TUNNEL)           # gallery | old factory remains: reads as darkness ahead at 95-95.5 s, crossed in the 95.7 s cut
@@ -178,7 +178,7 @@ def rotated_box(center, half_u, half_f, z0, z1, mat):
     return s
 c_band = cam + f * 172; c_band.z = 0
 c_wall = cam + f * 214; c_wall.z = 0
-rotated_box(c_band + u * 90, 240, 4, 1104, 1165, BAND)
+rotated_box(c_band + u * 90, 240, 4, 950, 1011, BAND)   # r10y: grey band at the lowered turret's legs, like the video
 # keep the rotated rust wall clear of the descending shaft at x=4800 (radius ~90)
 rotated_box(c_wall + u * 45, 255, 12, 860, 1700, RUST)   # extends further left (toward the tower wall) than right (the shaft/inlet drum)
 
@@ -320,12 +320,42 @@ for e, (az, d) in zip(hov, spots):
     x, y, z = cam104[0] + hd * math.cos(a), cam104[1] + hd * math.sin(a), cam104[2] - d * math.sin(math.radians(15))
     e['origin'] = f'{x:.1f} {y:.1f} {z:.1f}'; e['angles'] = f'347 {az + 180:.1f} 0'
     box((x - 1, y - 1, z + 14), (x + 1, y + 1, 430), CABLE, world=False)
-oriented_box((7858, -203), 110, 2, 120, 272, 'corehub_intro/wfloor_u', -66)
+LABWALL = unlit('labwall', 'tile/white_floor_tile001a', '1.0 0.95 1.0')   # bright neutral white tiles like the video
+oriented_box((7858, -203), 110, 2, 120, 272, LABWALL, -66)
+# the video's lab has a low light-blue ceiling just above the tube (top third of the frame at 101-104 s)
+box((7400, -700, 340), (7955, 300, 356), 'corehub_intro/labblue_u', world=False)
+# the low ceiling shades the hanging turrets; the video's are bright white -- fill light under the ceiling
+v.create_ent('light', origin='7800 -80 320', _light='236 238 240 420', _lightHDR='-1 -1 -1 1', _constant_attn='0',
+             _linear_attn='0', _quadratic_attn='1', _fifty_percent_distance='0', _zero_percent_distance='0')
 oriented_box((7858, -203), 110, 2, -150, 120, 'corehub_intro/black_u', -66)   # black tiles under it (hides the receptacle until 107 s)
 print('lab turret wall: cable bars removed', gone, 'turrets moved', len(hov))
 # the lead cube in the passage (52.6-53.8 s) is seen tumbling, tipped about 30 degrees, not square-on
 for e in v.entities:
     if e['targetname'] == 'intro_cube_0': e['angles'] = '24 62 28'
+# turret lift (64-67 s): in the video the camera passes under a dark collar platform, looks down at a pale floor
+# ring with three dark rods running into it, and the turret rises out of that ring to stand on the floor (the
+# director lowers the camera to the turret's eye level and raises intro_turret from z 760 to 950).
+LX, LY, LZ = 4575, 58, 950
+v.create_ent('prop_static', model='models/corehub_intro/tower_ring.mdl', origin=f'{LX} {LY} 1355', angles='-90 0 0',
+             solid='0', disableshadows='1')
+for a in (0, 75, 150):   # rods kept on the side away from the camera path (y = 0)
+    rx, ry = LX + 62 * math.cos(math.radians(a)), LY + 62 * math.sin(math.radians(a))
+    box((rx - 4, ry - 4, LZ), (rx + 4, ry + 4, 1345), 'corehub_intro/steel_u', world=False)
+FLOOR = BAND
+for lo, hi in [((4420, -100), (4730, LY - 70)), ((4420, LY + 70), (4730, 220)), ((4420, LY - 70), (LX - 70, LY + 70)), ((LX + 70, LY - 70), (4730, LY + 70))]:
+    box((lo[0], lo[1], LZ - 20), (hi[0], hi[1], LZ), FLOOR, world=False)
+v.create_ent('prop_static', model='models/corehub_intro/transport_ring.mdl', origin=f'{LX} {LY} {LZ - 6}', angles='90 0 0',
+             modelscale='1.3', solid='0', disableshadows='1', skin='2')   # pale ring like the video
+# three dark rods hang from the tower's base collar (seen when the camera looks back at it, 64-64.5 s)
+for a in (30, 150, 270):
+    rx, ry = 3882 + 110 * math.cos(math.radians(a)), 240 + 110 * math.sin(math.radians(a))
+    box((rx - 5, ry - 5, 1000), (rx + 5, ry + 5, 1190), 'corehub_intro/steel_u', world=False)
+print('turret lift: collar, rods, floor and ring at', (LX, LY, LZ))
+# sludge chamber (87-90 s): the video's walkways are solid white blocks rising out of the sludge (a white border
+# round the pit); the rebuild's were thin slabs over a black pit wall
+box((5588, 80, -194), (5762, 800, -60), 'corehub_intro/wfloor_u', world=False)
+box((5588, 800, -194), (6316, 960, -60), 'corehub_intro/wfloor_u', world=False)
+v.create_ent('env_fade', targetname='r10_red_fade', origin='4544 0 1000', rendercolor='255 110 100', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
 # ---------- WIP / unfinished surfaces ----------
 # Room G (cube passage) east partition, lower part: grey measuring panels.
 # (r10s: the pale measuring panels behind the cube were removed -- the video shows only the tube and grey walls there)

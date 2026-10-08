@@ -15,10 +15,10 @@ param(
 $ErrorActionPreference = 'Stop'
 # The 2009 engine stops advancing while its window is in the background, so the run keeps the game in
 # front -- but only while nobody is using the PC (no input for 30 s), so it never fights the user for focus.
-if (-not ('MovieFocus' -as [type])) {
+if (-not ('MovieFocus2' -as [type])) {
 Add-Type @"
 using System; using System.Runtime.InteropServices;
-public static class MovieFocus {
+public static class MovieFocus2 {
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int n);
@@ -28,6 +28,7 @@ public static class MovieFocus {
     public static uint IdleMs() { LASTINPUTINFO l = new LASTINPUTINFO(); l.cbSize = 8; GetLastInputInfo(ref l); return unchecked((uint)Environment.TickCount - l.dwTime); }
     public static bool IsFront(IntPtr h) { return GetForegroundWindow() == h; }
     public static bool Bring(IntPtr h) { keybd_event(0x12, 0, 0, UIntPtr.Zero); keybd_event(0x12, 0, 2, UIntPtr.Zero); ShowWindow(h, 9); return SetForegroundWindow(h); }
+    [DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint f);
 }
 "@
 }
@@ -81,23 +82,33 @@ EntFire("worldspawn","RunScriptCode","MovieTick()",0.3);
 try {
     Set-Content -LiteralPath (Join-Path $mod 'scripts\vscripts\mapspawn.nut') -Value $nut -Encoding Ascii
     Set-Content -LiteralPath (Join-Path $mod 'cfg\autoexec.cfg') -Encoding Ascii -Value "con_enable 1`ncl_forcepreload 1`nmat_queue_mode 0`ncl_mouseenable 0`nsv_cheats 1`nhost_framerate $Fps`njpeg_quality $Quality`nsnd_mute_losefocus 0`nmat_motion_blur_enabled 0`n"
+    # Keep the display and PC awake for the whole run: a monitor that sleeps (or a display change) loses the
+    # 2009 engine's D3D device and the recording stalls.
+    [void][MovieFocus2]::SetThreadExecutionState([uint32]2147483651)   # ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED
+    Add-Type -AssemblyName System.Windows.Forms
+    $scr = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    if ($Width -gt $scr.Width -or $Height -gt ($scr.Height - 40)) {
+        $k = [Math]::Min($scr.Width / $Width, ($scr.Height - 40) / $Height)
+        $Width = [int]([Math]::Floor($Width * $k / 16) * 16); $Height = [int]([Math]::Floor($Height * $k / 10) * 10)
+        "window fitted to the $($scr.Width)x$($scr.Height) screen: $Width x $Height"
+    }
     $idleWait = (Get-Date).AddMinutes(10)
-    while ([MovieFocus]::IdleMs() -lt 60000 -and (Get-Date) -lt $idleWait) { Start-Sleep -Seconds 5 }
-    "launch (pc idle $([int]([MovieFocus]::IdleMs() / 1000)) s)"
+    while ([MovieFocus2]::IdleMs() -lt 60000 -and (Get-Date) -lt $idleWait) { Start-Sleep -Seconds 5 }
+    "launch (pc idle $([int]([MovieFocus2]::IdleMs() / 1000)) s)"
     $env:SteamAppId = '380'; $env:SteamGameId = '380'
-    Start-Process -FilePath (Join-Path $runtime 'hl2.wrap.exe') -WorkingDirectory $runtime -ArgumentList "-game corehub_intro -insecure -windowed -noborder -w $Width -h $Height -novid -condebug -conclearlog -ip 127.0.0.1 -port 27029 +mat_queue_mode 0 +maxplayers 1 +host_framerate $Fps +map corehub_intro"
+    Start-Process -FilePath (Join-Path $runtime 'hl2.wrap.exe') -WorkingDirectory $runtime -ArgumentList "-game corehub_intro -insecure -windowed -noborder -w $Width -h $Height -x 0 -y 0 -novid -condebug -conclearlog -ip 127.0.0.1 -port 27029 +mat_queue_mode 0 +maxplayers 1 +host_framerate $Fps +map corehub_intro"
     $deadline = (Get-Date).AddHours(4)
-    $seen = $false; $lastCount = -1; $stall = 0
+    $seen = $false; $lastCount = -1; $stall = 0; $lastRef = $null
     do {
         Start-Sleep -Seconds 5
         $done = (Test-Path $log) -and (Select-String -Path $log -Pattern "MOVIE_COMPLETE $Prefix" -Quiet)
         $failed = (Test-Path $log) -and (Select-String -Path $log -Pattern 'FAILED to compile and execute script' -Quiet)
         $alive = Get-Process -Name hl2 -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe }
         if ($alive) { $seen = $true }
-        $idle = [MovieFocus]::IdleMs()
+        $idle = [MovieFocus2]::IdleMs()
         $game = $alive | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
-        if ($game -and $idle -gt 30000 -and -not [MovieFocus]::IsFront($game.MainWindowHandle)) {
-            $ok = [MovieFocus]::Bring($game.MainWindowHandle); "refocus after $([int]($idle / 1000)) s idle: $ok"
+        if ($game -and $idle -gt 30000 -and -not [MovieFocus2]::IsFront($game.MainWindowHandle)) {
+            $ok = [MovieFocus2]::Bring($game.MainWindowHandle); if (-not $lastRef -or ((Get-Date) - $lastRef).TotalSeconds -gt 60) { "refocus after $([int]($idle / 1000)) s idle: $ok"; $lastRef = Get-Date }
         }
         $count = [System.IO.Directory]::GetFiles($movieDir, '*.jpg').Length
         if ($count -ne $lastCount -or $idle -lt 30000) { $lastCount = $count; $stall = 0 } else { $stall += 5 }
@@ -114,6 +125,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $normal 'autoexec.cfg') -Destination (Join-Path $mod 'cfg\autoexec.cfg') -Force
     if ($Director -and (Test-Path $directorBackup)) { Copy-Item -LiteralPath $directorBackup -Destination $looseDirector -Force }
     Copy-Item -LiteralPath $log -Destination (Join-Path $movieDir 'console.log') -ErrorAction SilentlyContinue
+    [void][MovieFocus2]::SetThreadExecutionState([uint32]2147483648)   # ES_CONTINUOUS: let the display sleep again
     'normal runtime restored'
 }
 & (Join-Path $r10 'assemble_movie.ps1') -Prefix $Prefix -Fps $Fps
