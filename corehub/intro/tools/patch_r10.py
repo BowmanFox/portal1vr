@@ -543,9 +543,12 @@ for e in v.entities:
             for f in so.sides:
                 if f.mat.lower() == 'corehub_intro/white_u': f.mat = POD_BG; pw += 1
 print('pod shaft wall faces darkened', pw)
+# r10ax: the video's pods are lit grey capsules packed on every side of the rise (39.5-41.75 s)
 for e in v.entities:
-    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl' and e['rendercolor'] == '255 255 255':
-        e['rendercolor'] = '170 170 172'
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl':
+        e['rendercolor'] = '215 215 218'
+for org, ang in (('2118 -256 850', '0 180 0'), ('1762 -256 1170', '0 0 0'), ('1762 -256 530', '0 0 0'), ('2118 -256 530', '0 180 0')):
+    v.create_ent('prop_static', model='models/corehub_intro/pod_wall.mdl', origin=org, angles=ang, solid='0', disableshadows='1', rendercolor='215 215 218', skin='0')
 # skylights over the pod room: dimmer still (the video shows thin light strips in a dark truss at 42 s)
 SKY2 = unlit('skylight_dim', 'lights/white002', '0.40 0.41 0.41')
 # ---------- r10at: tower entrance (55.3-58.6 s) ----------
@@ -656,6 +659,79 @@ for e in list(v.entities):
 for k, z in ((1, 255), (2, 170)):
     v.create_ent('prop_dynamic_override', targetname=f'r10_funnel_lo{k}', model='models/corehub_intro/transport_ring_orange.mdl',
                  origin=f'5952 150 {z}', angles='90 0 0', solid='0', disableshadows='1')
+# ---------- r10aw: gallery (90.5-95.7 s) ----------
+# The video runs through copper rings above a cream truss in a rust-walled hall, through a broken dark tube section
+# (93.5-94.25 s), then past rust walls to a cream collar (95 s).
+from srctools import Angle
+gw = 0
+for e in [v.spawn] + list(v.entities):
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        gallery_wall = (lo.x >= 6330 and hi.x <= 6790 and lo.y >= -410 and hi.y <= 740 and hi.z >= 600)
+        partition = (abs(lo.x - 6780) < 1 and abs(hi.x - 6812) < 1)
+        for f in so.sides:
+            m = f.mat.lower()
+            if (gallery_wall and m == 'corehub_intro/steel_u') or (partition and m == 'corehub_intro/r10/tunnel'):
+                f.mat = RUST; gw += 1
+                f.uaxis.scale = 0.5; f.vaxis.scale = 0.5   # r10ax: the steel faces were stretched; rust streaks at the video's size
+print('gallery walls rusted', gw)
+def truss_run(a0, a1, axis, c, z0, z1, w=56, step=60):
+    """cream lattice along x or y from a0 to a1, centred on the other horizontal coordinate c, between z0 and z1"""
+    n = 0
+    def pr(lo, hi):
+        so = v.make_prism(Vec(*lo), Vec(*hi), TRUSS).solid
+        v.create_ent('func_detail').solids.append(so)
+    def P(a, o, z):   # a along the run, o across it
+        return (a, c + o, z) if axis == 'x' else (c + o, a, z)
+    for o in (-w / 2, w / 2):
+        for z in (z0, z1):
+            lo = P(min(a0, a1), o - 2, z - 2); hi = P(max(a0, a1), o + 2, z + 2)
+            pr(tuple(min(lo[i], hi[i]) for i in range(3)), tuple(max(lo[i], hi[i]) for i in range(3))); n += 1
+    a = min(a0, a1); h = z1 - z0; L = (step ** 2 + h ** 2) ** 0.5; ang = math.degrees(math.atan2(h, step))
+    k = 0
+    while a <= max(a0, a1) - step + 1:
+        for o in (-w / 2, w / 2):
+            lo = P(a - 1.5, o - 1.5, z0); hi = P(a + 1.5, o + 1.5, z1)
+            pr(tuple(min(lo[i], hi[i]) for i in range(3)), tuple(max(lo[i], hi[i]) for i in range(3)))
+            # diagonal in the side plane, alternating
+            so = v.make_prism(Vec(-L / 2, -1.2, -1.2), Vec(L / 2, 1.2, 1.2), TRUSS).solid
+            sign = 1 if k % 2 == 0 else -1
+            if axis == 'x':
+                so.localise(Vec(a + step / 2, c + o, (z0 + z1) / 2), Angle(-sign * ang, 0, 0))
+            else:
+                so.localise(Vec(c + o, a + step / 2, (z0 + z1) / 2), Angle(-sign * ang, 90, 0))
+            v.create_ent('func_detail').solids.append(so); n += 2
+        lo = P(a - 1.5, -w / 2, z1 - 1.5); hi = P(a + 1.5, w / 2, z1 + 1.5)
+        pr(tuple(min(lo[i], hi[i]) for i in range(3)), tuple(max(lo[i], hi[i]) for i in range(3))); n += 1
+        a += step; k += 1
+    return n
+tn = truss_run(140, 470, 'y', 6592, 150, 200)            # under the tube's run to the broken section (92.75-94 s)
+tn += truss_run(6600, 6740, 'x', 0, 140, 190)            # under the tube before the cream collar (94.5-95.3 s)
+print('gallery truss pieces', tn)
+# copper rings on the run, and the broken dark section the camera passes through (93.5-94.25 s)
+cr = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 6592) < 2 and 150 < o.y < 360 and abs(o.z - 256) < 2:
+            e['model'] = 'models/corehub_intro/transport_ring_orange.mdl'; e['skin'] = '0'; cr += 1
+print('run rings coppered', cr)
+v.create_ent('prop_static', model='models/corehub_intro/r10_broken.mdl', origin='6592 185 256', angles='0 90 0', solid='0', disableshadows='1')
+# the cream collar at the end of the gallery (video 95 s): collar ring, its frame in the partition and the next ring
+CREAM = unlit('collar_cream', 'lights/white002', '0.86 0.80 0.72')
+cf = 0
+for e in v.entities:
+    if e['classname'] == 'func_detail':
+        for so in e.solids:
+            lo, hi = so.get_bbox()
+            if lo.x >= 6783 and hi.x <= 6881 and lo.y >= -221 and hi.y <= 221 and lo.z >= 35 and hi.z <= 477:
+                for f in so.sides:
+                    if f.mat.lower() == 'corehub_intro/black_u': f.mat = RUST; cf += 1   # r10ax: the round white rings are the collar; the frame blends into the wall
+    if e['classname'].startswith('prop_') and 'transport_ring' in e['model']:
+        o = Vec.from_str(e['origin'])
+        if (abs(o.x - 6767) < 2 or abs(o.x - 6818.3) < 2) and abs(o.y) < 2 and abs(o.z - 256) < 2:
+            e['model'] = 'models/corehub_intro/transport_ring_white.mdl'; e['skin'] = '0'; cf += 1
+print('cream collar faces/props', cf)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

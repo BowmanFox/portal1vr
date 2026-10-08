@@ -56,6 +56,11 @@ knots.update(edits)
 edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -10.0, 0.0), 46.0: (-17.0, -8.0, 0.0), 46.5: (-15.0, -6.0, 0.0),
           47.0: (-11.0, -26.0, 0.0), 47.25: (-4.0, -42.0, 0.0), 47.5: (-3.0, -55.0, 0.0), 47.75: (-2.0, -60.0, 0.0), 48.0: (-5.0, -45.0, 0.0),
           48.25: (-35.0, -20.0, 0.0), 48.5: (-5.0, 0.0, 0.0), 48.75: (0.0, 0.0, 0.0), 48.85: (0.0, 0.0, 0.0),
+          # r10aw: gallery -- the video looks across the cream truss at the rust wall while the tube runs along it (91-92 s)
+          # and sees the cream collar at the right of the frame at 95 s
+          91.0: (5.0, 10.0, 0.0), 91.5: (8.0, 30.0, 0.0), 91.75: (10.0, 50.0, 0.0), 95.0: (0.0, 30.0, 0.0), 95.25: (0.0, 22.0, 0.0),
+          # r10ax: pod rise -- the video looks straight up the tube (far end at the frame centre)
+          39.5: (-88.0, 0.0, -20.0), 40.5: (-89.0, 0.0, -24.0), 41.5: (-84.0, 0.0, -20.0),
           # tower entrance: two shots joined by quick dissolves (56.5 and 58.6 s). Shot A looks straight at the collar from
           # inside the tube; shot B starts further back, looking up and right at the collar, and tilts up the dark column
           # r10at: collar at (46%, 58%) of the frame in shot A and (45%, 68%) at 57 s in shot B (video)
