@@ -29,7 +29,7 @@ edits = {  # time: (pitch, yaw, roll)
     66.5: (45.0, 45.0, 0.0), 67.0: (0.0, 46.0, 0.0),
     # r10af: the video holds the turret front-on and centred through the lens glare (69.5-71.2 s), the camera rising
     # only slightly; it leaves for the "16" inlet in the last 0.8 s (see pos_x/pos_z)
-    70.5: (-9.0, 63.0, 0.0), 71.0: (-8.0, 62.0, 0.0), 71.25: (-7.0, 50.0, 0.0), 71.5: (-8.0, 25.0, 0.0),
+    70.5: (-9.0, 63.0, 0.0), 71.0: (-8.0, 62.0, 0.0), 71.25: (-7.0, 40.0, 0.0), 71.5: (-8.0, 12.0, 0.0),
     43.0: (-10.0, 60.0, 0.0), 43.5: (-18.0, -5.0, 0.0),   # pod rise: glance at the near wall, then down the tube
     # tower entrance: the video keeps the pale collar centred and looks slightly up, then tilts up the tower
     56.0: (-3.0, 2.0, 0.0), 56.5: (-4.0, 0.0, 0.0), 57.0: (-6.0, -2.0, 0.0), 57.5: (-12.0, 0.0, 0.0), 58.0: (-30.0, 22.0, 0.0),
@@ -73,13 +73,13 @@ funnel = {86.0: (5770.0, 0.0, 280.0), 86.25: (5880.0, 80.0, 505.0), 86.5: (5950.
           87.0: (5952.0, 150.0, 320.0), 87.25: (5952.0, 180.0, 275.0), 87.5: (5952.0, 210.0, 256.0)}
 copper_x = [(84.2, 5240.0), (84.55, 5260.0), (85.0, 5330.0), (85.5, 5450.0), (85.75, 5600.0), (86.0, 5770.0)]   # r10am: the room west of the towers is dark; start at them
 pod_z = [(39.5, 640.0), (39.75, 660.0), (40.0, 680.0), (40.25, 700.0), (40.5, 720.0), (40.75, 745.0), (41.0, 770.0), (41.25, 810.0), (41.5, 880.0), (41.75, 1000.0)]
-shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 660.0), (80.0, 585.0), (80.5, 508.0), (81.0, 513.0)]
+shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 660.0), (80.0, 590.0), (80.5, 545.0), (81.0, 540.0), (81.5, 540.0), (82.0, 540.0), (82.25, 520.0), (82.5, 400.0)]   # r10ao: hover over the iris until 82.2 s, then drop through it
 # r10ah: sludge chamber (87-90 s) -- the video is lower and closer over the walkways than the tube (z 256)
 sludge_z = {86.5: 246.0, 86.75: 226.0, 87.0: 206.0, 87.25: 192.0, 87.5: 186.0, 87.75: 186.0, 88.0: 186.0, 88.25: 186.0,
             88.5: 186.0, 88.75: 186.0, 89.0: 186.0, 89.25: 186.0, 89.5: 188.0, 89.75: 196.0, 90.0: 210.0, 90.25: 232.0, 90.5: 250.0}
 descent = {63.25: (4180, 20, 1450), 63.5: (4330, 40, 1520), 63.75: (4390, 45, 1535), 64.0: (4420, 50, 1540), 64.25: (4480, 52, 1500), 64.5: (4510, 52, 1430),
-           64.75: (4530, 40, 1380), 65.0: (4540, 30, 1320), 65.25: (4542, 20, 1280), 65.5: (4544, 10, 1240), 65.75: (4544, 5, 1195),
-           66.0: (4544, 0, 1150), 66.25: (4544, 0, 1105), 66.5: (4544, 0, 1060), 66.75: (4544, 0, 1035), 67.0: (4544, 0, 1010),
+           64.75: (4530, 40, 1380), 65.0: (4540, 30, 1290), 65.25: (4542, 20, 1220), 65.5: (4544, 10, 1150), 65.75: (4544, 5, 1110),
+           66.0: (4544, 0, 1080), 66.25: (4544, 0, 1060), 66.5: (4544, 0, 1045), 66.75: (4544, 0, 1025), 67.0: (4544, 0, 1010),   # r10aq: lower, the floor ring big below (65.5 s)
            67.25: (4544, 0, 1005), 67.5: (4544, 0, 1000), 67.75: (4544, 0, 1000)}
 ps = txt.index('positions <- ['); pe = txt.index('];', ps)
 def repl(m):
@@ -98,7 +98,7 @@ def repl(m):
         return '{t=%s,p=Vector(%.8f,%s,%s)}' % (m.group(1), lerp(copper_x, t), m.group(3), m.group(4))
     if 39.6 < t <= 41.75:   # r10aj: pod rise -- the video stays low in a long tube (small far opening) until ~41.3 s
         return '{t=%s,p=Vector(%s,%s,%.8f)}' % (m.group(1), m.group(2), m.group(3), lerp(pod_z, t))
-    if 77.0 < t <= 81.0:
+    if 77.0 < t <= 82.5:
         return '{t=%s,p=Vector(%s,%s,%.8f)}' % (m.group(1), m.group(2), m.group(3), lerp(shaft_z, t))
     for tab in ():   # r10ai: the sludge dip (r10ah) framed the walkways too close; the video's scale matches z 256
         for k, nz in tab.items():
@@ -122,7 +122,7 @@ cube_new = 'for(local i=0;i<4;i++)MoveProp("intro_cube_"+i,(t<55.5&&t>=51.5)?Vec
 assert txt.count(cube_old) == 1
 txt = txt.replace(cube_old, cube_new)
 txt = txt.replace('cutTab <- [', 'r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];' + chr(10) + 'cutTab <- [', 1)
-txt = txt.replace('cutTab <- [', 'r10TurretZ <- [[66.15,820],[66.9,1010]];r10GlowOn <- null;r10GlowPath <- [[114.0,Vector(8425,61,900)],[114.5,Vector(8454,28,740)],[115.1,Vector(8448,0,600)],[116.4,Vector(8436,-24,640)]];' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10TurretZ <- [[66.15,820],[66.9,1010]];r10GlowPath <- [[114.0,Vector(8425,61,900)],[114.5,Vector(8454,28,740)],[115.1,Vector(8448,0,600)],[116.4,Vector(8436,-24,640)]];' + chr(10) + 'cutTab <- [', 1)
 # turret laser in the lens (69.3-71.3 s): the video washes the frame pink; a second env_fade tints the screen red
 txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,80],[70.2,104],[70.9,104],[71.3,0]];r10RedAlpha <- 0;' + chr(10) +
     'function SetRedHaze(t){local a=(t>=69.2&&t<71.3)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;' +
@@ -130,9 +130,9 @@ txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,80],[70.2,104],[70.9
     'EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
-txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);if(g!=r10GlowOn){r10GlowOn=g;EntFire("r10_core_glow",g?"ShowSprite":"HideSprite","",0);}' + 'if(g){local p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;}' + 'local ge=Entities.FindByName(null,"r10_core_glow");if(ge!=null)ge.SetOrigin(p);}}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
+txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
 exp_old = 'local exposure=P41_Lerp1([[0,0.58],[22.6,0.58],[23.1,1.0],[33,1.0]],t);'
-exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.3,0.40],[11.6,0.40],[12.4,0.75],[21.2,0.75],[21.9,0.30],[22.6,0.30],[23.1,0.93],[33,0.93]],t);'
+exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.3,0.40],[11.6,0.40],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10ar: bright again as the camera looks up at the iris (22.3 s)
 assert txt.count(exp_old) == 1
 txt = txt.replace(exp_old, exp_new)
 tint_old = '"SetMaterialVar","["+exposure+" "+exposure+" "+exposure+"]"'

@@ -370,7 +370,7 @@ v.create_ent('prop_static', model='models/corehub_intro/tower_ring.mdl', origin=
              solid='0', disableshadows='1')
 for a in (40, 100, 150):   # r10an: on the collar's inner edge, clear of the drop (64.5-67 s) and the climb to the "16" inlet (71-72 s)
     rx, ry = LX + 100 * math.cos(math.radians(a)), LY + 100 * math.sin(math.radians(a))
-    box((rx - 6, ry - 6, LZ), (rx + 6, ry + 6, 1345), 'metal/metalpipe007a', world=False)   # pipe-textured, like the video's tubes (64.4-65.6 s)
+    box((rx - 6, ry - 6, LZ), (rx + 6, ry + 6, 1345), 'metal/black_wall_metal_001a', world=False)   # r10ap: dark, like the black bars round the turret (67-71 s)
 FLOOR = RUST_DARK   # r10ag: the video never shows a pale floor round the turret (66-71 s); it reads as the dark wall
 for lo, hi in [((4420, -100), (4730, LY - 70)), ((4420, LY + 70), (4730, 220)), ((4420, LY - 70), (LX - 70, LY + 70)), ((LX + 70, LY - 70), (4730, LY + 70))]:
     box((lo[0], lo[1], LZ - 20), (hi[0], hi[1], LZ), FLOOR, world=False)
@@ -403,13 +403,16 @@ for e in list(v.entities):
     if not e.solids: v.remove_ent(e)
 if raised: box((4520, -700, 1480), (4536, 700, 2868), 'corehub_intro/steel_u', world=False)
 print('turret slab raised', raised)
+# r10aq: copper room (84.6-86 s) -- above the gallery opening the x=6000 partition stopped at y=60, so the top of the view
+# ran out to the far gallery wall (dark); the video sees the rust wall there
+box((6000, 60, 700), (6032, 1152, 2900), RUST, world=False)
 # r10al: sludge funnel (86.2-87.2 s) -- the camera leaves the copper tube through a gap (the 5783 ring is dropped)
 # and comes down a short vertical copper funnel into the tube over the chamber
 for e in list(v.entities):
     if e['classname'].startswith('prop_') and 'transport_ring' in e['model']:
         o = Vec.from_str(e['origin'])
         if abs(o.x - 5783.27) < 2 and abs(o.y) < 2 and abs(o.z - 256) < 2: v.remove_ent(e); print('removed copper ring 5783')
-for z, sc in ((340, '1'), (425, '1.4')):
+for z, sc in ((88, '1'), (172, '1'), (340, '1'), (425, '1.4')):   # r10an: a longer copper tube below, seen end-on from the top (86.5-87 s)
     v.create_ent('prop_static', model='models/corehub_intro/transport_ring_orange.mdl', origin=f'5952 150 {z}', angles='90 0 0',
                  modelscale=sc, solid='0', disableshadows='1')
 # r10aj: pod rise (40-42 s) -- through the top of the tube the video sees grey ceiling structure round the skylights;
@@ -430,8 +433,8 @@ for e in list(v.entities):
         o = Vec.from_str(e['origin'])
         if abs(o.x - 4538.5) < 2 and abs(o.y) < 2 and abs(o.z - 1152) < 2: v.remove_ent(e); print('removed turret-room tube ring')
 # r10ai: incinerator (114-116.3 s) -- the video shows a glowing yellow ball dropping with the discarded parts
-v.create_ent('env_sprite', targetname='r10_core_glow', model='sprites/light_glow03.vmt', origin='8448 0 900',
-             rendermode='5', rendercolor='255 214 96', renderamt='255', scale='0.6', framerate='10', spawnflags='0')   # r10am: moved by the director on its own path (a child of the spinning part never drew)
+v.create_ent('prop_dynamic_override', targetname='r10_core_glow', model='models/corehub_intro/r10_ball.mdl', origin='8448 0 900', modelscale='1.45',
+             solid='0', disableshadows='1', DefaultAnim='idle')   # r10ap: an unlit no-fog yellow ball (sprites never drew through the incinerator haze)
 print('turret lift: collar, rods, floor and ring at', (LX, LY, LZ))
 # sludge chamber (87-90 s): the video's walkways are solid white blocks rising out of the sludge (a white border
 # round the pit); the rebuild's were thin slabs over a black pit wall
