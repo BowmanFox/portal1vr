@@ -129,7 +129,7 @@ def wall_x(x0, x1, y0=-1024, y1=1152, z0=-768, z1=2900, mat=RUST, side=None, ext
 wall_x(1528, 1560)                       # west end of the pod-lined rise
 wall_x(2840, 2960, mat=RUST, side=TUNNEL, hole=84)   # dark tunnel 49-50 s between rooms
 wall_x(3400, 3432, hole=84)              # cube passage | tower base: crossed during the 54.1-54.9 s cut; opening clears the rings
-wall_x(4364, 4396, hole=84)                       # tower | turret room (collar in a frontal wall at 65-66 s)
+wall_x(4364, 4396, hole=84, extra_holes=((-20, 110, 1430, 1620),))   # tower | turret room; r10ah: the camera crosses high (64 s) to come over the turret-lift collar
 wall_x(4980, 5012)                       # the "16" wall behind the inlet sign (72-73 s)
 wall_x(6000, 6032, y1=60)                # far end of the copper-tube room (84-86 s); the gallery turns off to +y before it
 wall_x(6780, 6812, west=TUNNEL)           # gallery | old factory remains: reads as darkness ahead at 95-95.5 s, crossed in the 95.7 s cut
@@ -152,6 +152,15 @@ for e in v.entities:
         if 4840 < o.x < 8400 and 150 < o.z < 400:
             e['model'] = 'models/corehub_intro/transport_ring_bend_orange.mdl'; swapped += 1
 print('copper collars', swapped)
+# scanner shaft (74-80 s): the video's stacked rings read light grey, not dark; transport_ring_white is the same ring
+# compiled with the brighter tube_w materials ($renamematerial, transport-models/transport_ring_white.qc)
+white = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 4800) < 5 and abs(o.y) < 5 and 560 < o.z < 1000:
+            e['model'] = 'models/corehub_intro/transport_ring_white.mdl'; e['skin'] = '0'; white += 1
+print('white shaft rings', white)
 # pod-room skylights read as dim frosted panels in the video (41-43 s), not glowing white
 SKY = unlit('skylight_dim', 'lights/white002', '0.58 0.60 0.60')
 dim = 0
@@ -282,10 +291,31 @@ pods = 0
 for e in v.entities:
     if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl':
         e['rendercolor'] = '98 98 99'; pods += 1
-for pz in (850, 1170):
+for pz in (850,):   # r10ag: the upper one (1170) stood across the tube's turn at 42.5-43.2 s (grey pods filled the frame)
     v.create_ent('prop_static', model='models/corehub_intro/pod_wall.mdl', origin=f'1856 3 {pz}', angles='0 270 0',
                  solid='0', disableshadows='1', rendercolor='255 255 255', skin='0')
 print('pod walls darkened', pods, '+ 2 lit north pod walls')
+# pod rise turn (42.5-43.5 s): the video swings past a dark rust wall close on the north side of the tube
+box((1700, 70, 1010), (2200, 86, 1400), RUST_DARK, world=False)
+# rust room (32.6-33.3 s): the video looks down the tube at a lit rust panel in a dark room -- the ring at its centre,
+# a post under the ring, a black C-bend to its right. The far wall (x=896) is cut down to that panel with black,
+# the decorative tube (y=-5740) is dark, and a post stands under the bend.
+box((878, -5125, 2400), (884, -4600, 3000), 'corehub_intro/black_u', world=False)
+box((878, -6500, 2400), (884, -6039, 3000), 'corehub_intro/black_u', world=False)
+box((878, -6039, 2844), (884, -5125, 3000), 'corehub_intro/black_u', world=False)
+box((878, -6039, 2400), (884, -5125, 2578), 'corehub_intro/black_u', world=False)
+box((756, -5512, 2440), (780, -5488, 2622), 'corehub_intro/steel_u', world=False)
+dk = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/p9_entry_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.y + 5740) < 2 and o.z > 2400: e['rendercolor'] = '34 34 34'; dk += 1
+print('rust room: dark C-bend rings', dk)
+# second look at the panel (36.6-37.3 s, camera at z 512 heading +x): the video's panel is wide and low
+# (about y -6189..-5422, z 210..641); v50's was narrow and tall
+box((2272, -6189, 210), (2280, -5422, 641), 'corehub_intro/steel_u', world=False)
+box((2272, -6100, -100), (2280, -5380, 210), 'corehub_intro/black_u', world=False)
+box((2272, -6100, 641), (2280, -5380, 1100), 'corehub_intro/black_u', world=False)
 # turret (67-70.5 s): the video's turret is bright white; the rebuild's read almost black. Front fill light from the
 # camera side (the camera holds at 4544,0,1152 looking at the turret at 4575,58,1159).
 v.create_ent('light', origin='4520 -10 1185', _light='236 238 240 650', _lightHDR='-1 -1 -1 1', _constant_attn='0',
@@ -340,8 +370,8 @@ v.create_ent('prop_static', model='models/corehub_intro/tower_ring.mdl', origin=
              solid='0', disableshadows='1')
 for a in (0, 75, 150):   # rods kept on the side away from the camera path (y = 0)
     rx, ry = LX + 62 * math.cos(math.radians(a)), LY + 62 * math.sin(math.radians(a))
-    box((rx - 4, ry - 4, LZ), (rx + 4, ry + 4, 1345), 'corehub_intro/steel_u', world=False)
-FLOOR = BAND
+    box((rx - 9, ry - 9, LZ), (rx + 9, ry + 9, 1345), BAND, world=False)   # r10ah: thick pale tubes like the video's (64.4-65.6 s)
+FLOOR = RUST_DARK   # r10ag: the video never shows a pale floor round the turret (66-71 s); it reads as the dark wall
 for lo, hi in [((4420, -100), (4730, LY - 70)), ((4420, LY + 70), (4730, 220)), ((4420, LY - 70), (LX - 70, LY + 70)), ((LX + 70, LY - 70), (4730, LY + 70))]:
     box((lo[0], lo[1], LZ - 20), (hi[0], hi[1], LZ), FLOOR, world=False)
 v.create_ent('prop_static', model='models/corehub_intro/transport_ring.mdl', origin=f'{LX} {LY} {LZ - 6}', angles='90 0 0',
@@ -349,7 +379,18 @@ v.create_ent('prop_static', model='models/corehub_intro/transport_ring.mdl', ori
 # three dark rods hang from the tower's base collar (seen when the camera looks back at it, 64-64.5 s)
 for a in (30, 150, 270):
     rx, ry = 3882 + 110 * math.cos(math.radians(a)), 240 + 110 * math.sin(math.radians(a))
-    box((rx - 5, ry - 5, 1000), (rx + 5, ry + 5, 1190), 'corehub_intro/steel_u', world=False)
+    box((rx - 5, ry - 5, 1000), (rx + 5, ry + 5, 1242), 'corehub_intro/steel_u', world=False)
+# tower collars (58-64 s): the video sees dark grey rings with open centres from above and below; the v50 collars
+# were black and 32 thick, so beside the camera's height they read as solid slabs. tower_ring_thin is half as
+# thick with a wider hole and grey shading (towerg_* materials); the stack moves up 50 so the camera, which rises
+# to 1640 and comes back down, spends less time level with a collar.
+tw = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/tower_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 3882) < 2 and abs(o.y - 240) < 2:
+            e['model'] = 'models/corehub_intro/tower_ring_thin.mdl'; e['origin'] = f'{o.x:g} {o.y:g} {o.z + 50:g}'; tw += 1
+print('tower collars thinned', tw)
 print('turret lift: collar, rods, floor and ring at', (LX, LY, LZ))
 # sludge chamber (87-90 s): the video's walkways are solid white blocks rising out of the sludge (a white border
 # round the pit); the rebuild's were thin slabs over a black pit wall
@@ -366,7 +407,7 @@ for e in v.entities:   # walkway tops in bright neutral white too
 PANEL = unlit('panel_brown', 'lights/white002', '0.62 0.52 0.40')
 box((6070, 650, -186), (6210, 790, -176), PANEL, world=False)
 box((6066, 646, -192), (6214, 794, -186), 'corehub_intro/black_u', world=False)
-v.create_ent('env_fade', targetname='r10_red_fade', origin='4544 0 1000', rendercolor='255 214 210', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
+v.create_ent('env_fade', targetname='r10_red_fade', origin='4544 0 1000', rendercolor='172 170 170', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
 # lab test chamber seen from above (107.5-109.5 s): the video looks straight down onto a bright white floor with a
 # purple-blue light strip, a copper-rimmed receptacle and a grey checker patch; v50 had black blocks under the tube there
 gone = 0
@@ -381,17 +422,34 @@ for e in list(v.entities):
         keep.append(so)
     e.solids[:] = keep
 LABFLOOR = unlit('labfloor', 'tile/white_floor_tile001a', '1.3 1.24 1.3')   # the video's chamber floor is near-white
-box((8000, -300, -80), (8336, 140, -60), LABFLOOR, world=False)
-# white walls round that floor (the video's chamber is white-walled; v50 showed the rust floor beyond)
-box((7996, -300, -80), (8000, 140, 120), LABWALL, world=False)
-box((7996, -304, -80), (8336, -300, 120), LABWALL, world=False)
-box((7996, 140, -80), (8336, 144, 120), LABWALL, world=False)
+# r10af: laid out from the video's 107.5 s view (camera 8134,0,256 looking straight down, frame turned 25 degrees):
+# receptacle top-left under a short copper tube, grey checker patch centre-left, an orange button below it, the purple
+# light strip running down the right with black tiles beyond it, and a pale pink wall along the left
+box((8000, -94, -80), (8336, 260, -60), LABFLOOR, world=False)
+box((8000, -300, -80), (8336, -134, -60), LABDARK, world=False)
+box((7996, -300, -80), (8000, 260, 120), LABWALL, world=False)
+box((7996, -304, -80), (8336, -300, 120), LABDARK, world=False)
+box((7996, 260, -80), (8336, 264, 120), LABWALL, world=False)
+box((8336, -72, -80), (8338, 264, 120), LABWALL, world=False)
 STRIP = unlit('lab_strip', 'lights/white002', '0.46 0.42 0.95')
-box((8100, -292, -60), (8336, -252, -57), STRIP, world=False)
-box((8150, -80, -60), (8240, 10, -59), WIP_GRID, world=False)
-box((8215, -205, -60), (8285, -135, -58), 'corehub_intro/black_u', world=False)
-v.create_ent('prop_static', model='models/corehub_intro/transport_ring_orange.mdl', origin='8250 -170 -46', angles='90 0 0',
+box((8000, -134, -80), (8336, -94, -57), STRIP, world=False)
+CHECK = unlit('lab_check', 'lights/white002', '0.50 0.50 0.50')
+for i in range(6):
+    for j in range(6):
+        if (i + j) % 2: box((8160 + 10 * i, 50 + 10 * j, -60), (8170 + 10 * i, 60 + 10 * j, -59), CHECK, world=False)
+BUTTON = unlit('lab_button', 'lights/white002', '0.85 0.45 0.20')
+box((8099, 68, -60), (8115, 84, -52), BUTTON, world=False)
+box((8235, -35, -60), (8305, 35, -58), 'corehub_intro/black_u', world=False)
+v.create_ent('prop_static', model='models/corehub_intro/transport_ring_orange.mdl', origin='8270 0 -46', angles='90 0 0',
              modelscale='1.35', solid='0', disableshadows='1')
+for z in (30, 114):   # the short copper tube the video drops down onto the receptacle (108.5-109.7 s)
+    v.create_ent('prop_static', model='models/corehub_intro/transport_ring_orange.mdl', origin=f'8270 0 {z}', angles='90 0 0',
+                 solid='0', disableshadows='1')
+# the last ring of the lab tube (8278,0,256) sat where the camera now turns down; the tube ends at the 8194 ring
+for e in list(v.entities):
+    if e['classname'].startswith('prop_') and 'transport_ring' in e['model']:
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 8278) < 2 and abs(o.y) < 2 and abs(o.z - 256) < 2: v.remove_ent(e); print('removed lab tube end ring')
 print('lab chamber floor view: removed black blocks', gone)
 # ---------- WIP / unfinished surfaces ----------
 # Room G (cube passage) east partition, lower part: grey measuring panels.
