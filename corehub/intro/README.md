@@ -38,7 +38,7 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10ay` + `director_r10ay` (outputs/Corehub-Intro). Test run: `videos/r10m_ay_side.mp4`.
+Published build: `corehub_r10bb` + `director_r10bb` (outputs/Corehub-Intro). Test run: `videos/r10m_bb_side.mp4`.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|
@@ -50,10 +50,10 @@ Published build: `corehub_r10ay` + `director_r10ay` (outputs/Corehub-Intro). Tes
 | 6 | Processing tower | 55.3–65 | 4.5 | 8 | entrance now two shots with the video's dissolves (56.5, 58.6 s): rails only, pale collar, dark column with flange, rust back wall; collar framed a little large |
 | 7 | Turret and "16" inlet | 65–74 | 5 | 8 | turret rises in the ring and holds front-on through the glare; dark bars round it; sign framed top-centre at 72.5–73 s; 71.5 s dissolve missing |
 | 8 | Transfer and scanners | 74–83 | 5 | 8 | light-grey shaft rings; cones/iris re-timed; 81.5 s iris framed closer than the video |
-| 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8 | sludge chamber rebuilt to the video's proportions (r10au/av: floor at z 0, far wall at y 608) with the white wall foot, rod and claw, raised plate, round door, signs and laser; gallery (91–95 s) still differs: the video climbs out over a white truss to a broken pipe opening |
-| 10 | Factory passage | 96.6–99.8 | 6 | 7.5 | warmer, brighter factory materials; one-frame black arm silhouette at 98 s |
+| 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8 | sludge chamber matches (r10au/av); gallery (90.5–94 s) about 7: the camera leaves the dark room ~0.6 s late through a long ring tunnel, and at 91.5–93 s the video looks at the rust wall with ring B centre-left and the broken pipe on the right |
+| 10 | Factory passage | 96.6–99.8 | 6 | 8 | factory materials toned to the video's levels; the 98 s collar slab is gone (r10bb); walkway slabs still read flat and pale |
 | 11 | Lab and test chamber | 100–109.5 | 4 | 8.5 | chamber view matches (receptacle, checker, button, strip, black tiles); copper drop onto the receptacle |
-| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 8 | yellow glowing ball drops with the discarded parts; the video's ball passes closer (115 s); 116.75 s view |
+| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 8.5 | r10bb: rust floor round the top collar and a dark plate round the iris hide the orange annulus (110–111.3 s); chamber orange toned down; the video's ball passes closer (115 s) |
 | 13 | Capsule and ending | 118.4–134 | 6 | 8 | capsule frost/cracks, 123.4 s flat grey patch |
 
 ## Objective check

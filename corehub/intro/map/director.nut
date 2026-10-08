@@ -1704,17 +1704,17 @@ positions <- [
 {t=79.00000000,p=Vector(4800.00000000,0.00000000,720.00000000)},
 {t=79.25000000,p=Vector(4800.00000000,0.00000000,690.00000000)},
 {t=79.50000000,p=Vector(4800.00000000,0.00000000,660.00000000)},
-{t=79.75000000,p=Vector(4800.00000000,0.00000000,625.00000000)},
-{t=80.00000000,p=Vector(4800.00000000,0.00000000,590.00000000)},
-{t=80.25000000,p=Vector(4800.00000000,0.00000000,567.50000000)},
-{t=80.50000000,p=Vector(4800.00000000,0.00000000,545.00000000)},
-{t=80.75000000,p=Vector(4800.00000000,0.00000000,542.50000000)},
-{t=81.00000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
-{t=81.25000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
-{t=81.50000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
-{t=81.75000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
-{t=82.00000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
-{t=82.25000000,p=Vector(4800.00000000,0.00000000,520.00000000)},
+{t=79.75000000,p=Vector(4800.00000000,0.00000000,635.00000000)},
+{t=80.00000000,p=Vector(4800.00000000,0.00000000,610.00000000)},
+{t=80.25000000,p=Vector(4800.00000000,0.00000000,600.00000000)},
+{t=80.50000000,p=Vector(4800.00000000,0.00000000,590.00000000)},
+{t=80.75000000,p=Vector(4800.00000000,0.00000000,585.00000000)},
+{t=81.00000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
+{t=81.25000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
+{t=81.50000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
+{t=81.75000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
+{t=82.00000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
+{t=82.25000000,p=Vector(4800.00000000,0.00000000,540.00000000)},
 {t=82.50000000,p=Vector(4800.00000000,0.00000000,400.00000000)},
 {t=82.75000000,p=Vector(4809.24761294,0.00000000,336.30185171)},
 {t=83.00000000,p=Vector(4843.71492289,0.00000000,287.71384896)},
@@ -5423,7 +5423,7 @@ function SetSceneTime(t) {
       fadeAlpha=Lerp1([[99.599301,0],[99.6660342,96],[99.7327674,184],[99.7995006,255]],t);
     foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}
     SetScreenBlack(fadeAlpha);
-    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));}
+    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_fac_collar",(t>=97.94&&t<98.12)?Vector(0,0,-3000):Vector(-5420,-6000,0));MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}
     // The storage cube would sit in the 22 s look-up; it is never seen again.
     MoveProp("intro_cube_pile_0",(t>21.8 && t<22.4)?Vector(-90,-40,-400):Vector(-90,-40,101));
     SetEarlyShaftCube(t);

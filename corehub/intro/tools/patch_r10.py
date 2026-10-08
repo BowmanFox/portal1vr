@@ -767,6 +767,43 @@ print('lab hanging turrets named', ht)
 for lo, hi in (((8188, -260, 1300), (8708, -75, 1306)), ((8188, 75, 1300), (8708, 260, 1306)),
                ((8188, -75, 1300), (8373, 75, 1306)), ((8523, -75, 1300), (8708, 75, 1306))):
     box(lo, hi, TUNNEL, world=False)
+# ---------- r10bb: shaft lids and the factory collar ----------
+# the video looks down on a flat rust floor round the top collar and dark rings round the iris; the chamber's lower
+# orange wall showed as a bright annulus from 110 s. Two thin plates (holes inside the collars) close the shaft
+# round each collar; the camera and the falling parts pass through the holes.
+v.create_ent('prop_dynamic_override', targetname='r10_inc_lid_a', model='models/corehub_intro/r10_lid_rust.mdl', origin='8448 0 1830',
+             angles='0 0 0', solid='0', disableshadows='1')
+v.create_ent('prop_dynamic_override', targetname='r10_inc_lid_b', model='models/corehub_intro/r10_lid_dark.mdl', origin='8448 0 1640',
+             angles='0 0 0', solid='0', disableshadows='1')
+fc = 0
+for e in v.entities:
+    if e['classname'] == 'prop_dynamic_override' and e['model'] == 'models/corehub_intro/p9_factory_collar_v4.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x + 5420) < 1 and abs(o.y + 6000) < 1:
+            e['targetname'] = 'r10_fac_collar'; fc += 1
+print('factory collar named', fc)
+# ---------- r10bc: gallery wall and tunnel rings ----------
+# the video's gallery wall is dark grey metal with horizontal rust bands (metalwall_bts_006a, measured mean 71-92 / 64-81 /
+# 60-73 against the texture's 73 / 64 / 60), panel rows about 100 units tall; the warm 001b read olive and riveted
+RUST_GAL = unlit('rust_gal', 'metal/metalwall_bts_006a', '1.10 1.10 1.10')
+rg = 0
+for e in [v.spawn] + list(v.entities):
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if not (lo.x >= 6330 and hi.x <= 6815 and lo.y >= -1030 and hi.y <= 1160): continue
+        for f in so.sides:
+            if f.mat.lower() == RUST_WARM.lower():
+                f.mat = RUST_GAL; f.uaxis.scale = 0.75; f.vaxis.scale = 0.75; rg += 1
+print('gallery wall faces -> 006a', rg)
+# the video passes one ring at the dark room's wall (ring A, 91 s) and one in the gallery (ring B, 92 s); the long
+# tunnel of rings inside the dark room is not there
+rr = 0
+for e in list(v.entities):
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring_orange.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.y - 512) < 1 and abs(o.z - 256) < 1 and any(abs(o.x - xx) < 1 for xx in (6118.4, 6195.2, 6348.8)):
+            e.remove(); rr += 1
+print('gallery tunnel rings removed', rr)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

@@ -58,7 +58,13 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           48.25: (-35.0, -20.0, 0.0), 48.5: (-5.0, 0.0, 0.0), 48.75: (0.0, 0.0, 0.0), 48.85: (0.0, 0.0, 0.0),
           # r10aw: gallery -- the video looks across the cream truss at the rust wall while the tube runs along it (91-92 s)
           # and sees the cream collar at the right of the frame at 95 s
-          91.0: (5.0, 10.0, 0.0), 91.5: (8.0, 30.0, 0.0), 91.75: (10.0, 50.0, 0.0), 95.0: (0.0, 30.0, 0.0), 95.25: (0.0, 22.0, 0.0),
+          # r10bc: the video looks down at the dark room's end wall with ring A at the top (90.5-90.9 s), goes through it
+          # and looks at the rust wall over ring B (91-92 s), then keeps facing the wall while the tube runs right to the
+          # broken flange, which holds at ~78% of the frame width (92.25-93.75 s)
+          90.25: (15.0, 50.0, 0.0), 90.5: (25.0, 12.0, 0.0), 90.75: (28.0, 2.0, 0.0), 91.0: (25.0, -6.0, 0.0), 91.25: (16.0, -6.0, 0.0),
+          91.5: (12.0, -12.0, 0.0), 91.75: (8.0, -17.0, 0.0), 92.0: (6.0, -18.0, 0.0), 92.25: (4.0, -20.0, 0.0), 92.5: (6.0, -29.0, 0.0),
+          92.75: (8.0, -48.0, 0.0), 93.0: (5.0, -53.0, 0.0), 93.25: (7.0, -58.0, 0.0), 93.5: (5.0, -56.0, 0.0), 93.75: (8.0, -56.0, 0.0),
+          95.0: (0.0, 30.0, 0.0), 95.25: (0.0, 22.0, 0.0),
           # r10ax: pod rise -- the video looks straight up the tube (far end at the frame centre)
           39.5: (-88.0, 0.0, -20.0), 40.5: (-89.0, 0.0, -24.0), 41.5: (-84.0, 0.0, -20.0),
           # tower entrance: two shots joined by quick dissolves (56.5 and 58.6 s). Shot A looks straight at the collar from
@@ -129,7 +135,13 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            56.0: (3486.0, 0.0, 1152.0), 56.25: (3500.0, 0.0, 1152.0), 56.5: (3510.0, 0.0, 1152.0), 56.51: (3511.0, 0.0, 1152.0),
            56.52: (3455.0, 0.0, 1152.0), 56.75: (3467.0, 0.0, 1152.0), 57.0: (3480.0, 0.0, 1152.0), 57.25: (3495.0, 0.0, 1152.0),
            57.5: (3510.0, 0.0, 1152.0), 57.75: (3532.0, 0.0, 1152.0), 58.0: (3555.0, 0.0, 1152.0), 58.25: (3575.0, 0.0, 1152.0),
-           58.5: (3590.0, 0.0, 1152.0), 58.57: (3595.0, 0.0, 1152.0), 58.58: (3754.0, 0.0, 1306.0)}
+           58.5: (3590.0, 0.0, 1152.0), 58.57: (3595.0, 0.0, 1152.0), 58.58: (3754.0, 0.0, 1306.0),
+           # r10bc: gallery -- ring A (x 6272) at 91.0 s and ring B (6426) at 92.0 s like the video; the run to the broken
+           # flange (y 185) reaches it at ~94 s
+           90.25: (6035.0, 500.0, 256.0), 90.5: (6105.0, 511.0, 256.0), 90.75: (6190.0, 512.0, 256.0), 91.0: (6268.0, 512.0, 256.0),
+           91.25: (6318.0, 512.0, 256.0), 91.5: (6360.0, 512.0, 256.0), 91.75: (6395.0, 512.0, 256.0), 92.0: (6426.0, 512.0, 256.0),
+           92.25: (6452.0, 512.0, 256.0), 92.5: (6478.0, 511.0, 256.0), 92.75: (6575.0, 455.0, 256.0), 93.0: (6592.0, 380.0, 256.0),
+           93.25: (6592.0, 335.0, 256.0), 93.5: (6592.0, 295.0, 256.0), 93.75: (6592.0, 255.0, 256.0), 94.0: (6592.0, 195.0, 256.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
 kd = dict(kn)
 for k, q in pos_set.items():
@@ -192,10 +204,11 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
             'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
-            'MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));'
+            '{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));'
             '{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}')
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
+txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)
