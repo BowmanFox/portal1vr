@@ -38,23 +38,23 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10z` + `director_r10z` (outputs/Corehub-Intro). Test run: `videos/r10m_z_side.mp4`.
+Published build: `corehub_r10ag` + `director_r10ag` (outputs/Corehub-Intro). Test run: `videos/r10m_ag_side.mp4`. In test: r10ah/r10ai.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|
-| 1 | Opening room | 0–22 | 7.5 | 8 | tiles read greener/lighter than the video's neutral grey; rubble shapes |
-| 2 | Iris and ascent | 22–32.5 | 7.5 | 8.5 | iris petal edge shading |
-| 3 | Rust room | 32.5–39 | 4 | 7 | far-wall pipe layout, 36–38 s framing |
-| 4 | Pod rise | 39.5–47.5 | 4 | 7 | video stays inside a glass tube (40–42 s) with lit panel walls; rebuild shows bright pods and the rust floor |
-| 5 | Cube passage | 48–55 | 4.5 | 8 | cube jumps close under a short dip (the video's dissolve), lit and tumbling; 49–50 s surroundings too bright |
-| 6 | Processing tower | 55.5–65 | 4.5 | 6.5 | 64–66 s look-up at the tower base |
-| 7 | Turret and "16" inlet | 65–74 | 5 | 7.5 | turret lift built: floor ring + rods, turret rises (66.2–66.9 s), camera dips to its eye level; 64–65.5 s tower-base view still weak; red lens haze in test (r10aa) |
-| 8 | Transfer and scanners | 74–83 | 5 | 7.5 | boards now bright white (unlit custom materials); video's rings are lighter grey |
-| 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 7 | video drops down a vertical copper tube into the sludge chamber (86.2–87 s) and climbs another (90.6 s); rebuild crosses it horizontally; chamber walls should be white below black tiles |
-| 10 | Factory passage | 96.6–99.8 | 6 | 7 | floor/conveyor details, lighting |
-| 11 | Lab and test chamber | 100–109.5 | 4 | 7.5 | white wall with three hanging turrets now framed like the video (103–105 s); low light-blue ceiling (r10w); 107–109 s chamber floor view |
-| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 7 | centre glow at 110–111 s, falling debris |
-| 13 | Capsule and ending | 118.4–134 | 6 | 7.5 | capsule frost/cracks, hatch lamp colour |
+| 1 | Opening room | 0–22 | 7.5 | 8.5 | ceiling now bright and neutral looking up (5–9.5 s) and dark at grazing angles like the video; rubble shapes |
+| 2 | Iris and ascent | 22–32.5 | 7.5 | 8.5 | tiles now neutral; iris petal edge shading |
+| 3 | Rust room | 32.5–39 | 4 | 7.5 | far wall cut to the lit panel, dark C-bend, post under the ring (33 s); 34–36 s framings still off |
+| 4 | Pod rise | 39.5–47.5 | 4 | 7.5 | upper pod wall no longer fills the turn (42.5–43 s), dark rust wall there instead; pods read brighter than the video |
+| 5 | Cube passage | 48–55 | 4.5 | 8 | cube hidden until 51.5 s like the video (r10ai test) |
+| 6 | Processing tower | 55.5–65 | 4.5 | 7.5 | collars are grey rings with open centres now; camera comes over the turret-lift collar and drops through it (r10ah/ai test) |
+| 7 | Turret and "16" inlet | 65–74 | 5 | 8 | turret held front-on through the glare; laser shines into the lens; neutral grey haze; 71.5 s dissolve missing |
+| 8 | Transfer and scanners | 74–83 | 5 | 8 | shaft rings light grey (transport_ring_white); descent re-timed so the cones/iris arrive at 80.5–81.5 s |
+| 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 7 | video drops down a vertical copper tube into the chamber (86.2–87 s); towers both sides at 85 s |
+| 10 | Factory passage | 96.6–99.8 | 6 | 7.5 | one-frame black arm silhouette at 98 s; warmer colour in the video |
+| 11 | Lab and test chamber | 100–109.5 | 4 | 8.5 | chamber view now matches (receptacle top-left, checker, button, strip right, black tiles); copper drop onto the receptacle |
+| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 7.5 | yellow glowing ball with the falling parts (r10ai test); 116.75 s view |
+| 13 | Capsule and ending | 118.4–134 | 6 | 8 | capsule frost/cracks, 123.4 s flat grey patch |
 
 ## Objective check
 
@@ -64,15 +64,14 @@ low because its fine detail never lines up. r10m_q 0.453 -> r10m_z 0.471 mean.
 
 ## Not at 9 yet (next work, in order)
 
-1. **Turret lift (64–67 s).** Built in r10y/z. Still to do: a closer, bigger tower-base platform with thick pistons at 64–64.5 s.
-2. **Sludge chamber (86–90.5 s).** The video drops down a vertical copper tube into the chamber (86.2–87 s) and climbs another
-   (90.6 s); beyond the north walkway there is a black-tiled raised floor with a floor button and signs, not a wall. Camera pitch
-   45 is in test (r10x); geometry still to do.
-3. **Rust room (32.5–39 s).** Camera is inside a tube ring at 32.75 s where the video is in open space; post under the tube,
-   C-bend at the right; 34.25 s and 36.5 s framings.
-4. **Pod rise (42–43.5 s).** Video sees frosted skylights then a dark rust wall up close at 43 s.
-5. **Tower (58–63 s).** Collars read as black slabs (edge-on tower_ring props); the video sees them as rings from below.
-6. **Lab (106–109.5 s).** Looking down at the test chamber: white floor, purple light strip, copper receptacle, checker patch.
-7. **Opening.** Tile tint is greener/lighter than the video's neutral grey.
-8. **"16" inlet (72.9–73.6 s).** Video sees the vertical tube running down below the sign from outside; rebuild is in the bend.
-9. **82.5 s, 94.5 s, 106.5 s** single-view mismatches (see the r10m_q overview sheets).
+1. **Sludge chamber (86–90.5 s).** The video drops down a vertical copper tube into the chamber (86.2–87 s) and climbs
+   another (90.6 s); the lattice towers stand on both sides at 85 s. A lower camera (r10ah) framed the walkways too close.
+2. **Tower and turret lift (62.8–66 s).** In test (r10ah/ai): the camera crosses over the turret-lift collar, looks down on
+   it with the tubes hanging under it, drops through it to the floor ring and watches the turret rise. Still to match: the
+   dark collar overhead at 62.8 s, the tower interior with lasers and the "16" sign at 63.4–64 s.
+3. **Rust room (33.5–36.5 s).** 33.5 s turn along the wall, 35–36 s ring/bend views.
+4. **Pod rise (39.5–42 s).** The video's pod walls are dim vertical panels; the rebuild's read as bright round pods.
+5. **Incinerator (114–116.75 s).** Glowing ball in test (r10ai); 116.75 s view.
+6. **Lab (106–106.6 s).** The chamber floor shows at the bottom of the tube view; the video is dark there.
+7. **Factory (98 s).** One-frame black silhouette of an upside-down arm.
+8. **Turret (71.5 s).** The video dissolves through a top view of a ring with the turret before the "16" wall.
