@@ -58,9 +58,10 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           48.25: (-35.0, -20.0, 0.0), 48.5: (-5.0, 0.0, 0.0), 48.75: (0.0, 0.0, 0.0), 48.85: (0.0, 0.0, 0.0),
           # tower entrance: two shots joined by quick dissolves (56.5 and 58.6 s). Shot A looks straight at the collar from
           # inside the tube; shot B starts further back, looking up and right at the collar, and tilts up the dark column
-          55.25: (-4.0, -9.0, 0.0), 55.5: (-4.0, -8.0, 0.0), 56.0: (-3.0, -7.0, 0.0), 56.25: (-2.0, -6.0, 0.0), 56.5: (-2.0, -6.0, 0.0), 56.51: (-2.0, -6.0, 0.0),
-          56.52: (-10.0, -16.0, 0.0), 57.0: (-13.0, -17.0, 0.0), 57.5: (-18.0, -19.0, 0.0), 58.0: (-28.0, -13.0, 0.0), 58.25: (-34.0, -13.0, 0.0),
-          58.5: (-37.0, -12.0, 0.0), 58.57: (-38.0, -12.0, 0.0), 58.58: (-16.0, 58.0, 0.0)}
+          # r10at: collar at (46%, 58%) of the frame in shot A and (45%, 68%) at 57 s in shot B (video)
+          55.25: (-7.0, -5.0, 0.0), 55.5: (-7.0, -5.0, 0.0), 56.0: (-6.0, -5.0, 0.0), 56.25: (-5.0, -5.0, 0.0), 56.5: (-5.0, -5.0, 0.0), 56.51: (-5.0, -5.0, 0.0),
+          56.52: (-10.0, -10.0, 0.0), 57.0: (-13.0, -10.0, 0.0), 57.5: (-22.0, -10.0, 0.0), 58.0: (-34.0, -9.0, 0.0), 58.25: (-40.0, -9.0, 0.0),
+          58.5: (-44.0, -8.0, 0.0), 58.57: (-45.0, -8.0, 0.0), 58.58: (-16.0, 58.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
 knots.update(edits2)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
@@ -183,9 +184,11 @@ txt = txt.replace(lk_old, lk_new)
 drop_old = 'MoveProp("intro_drop",(t>=44.0 && t<47.4)?Vector(Lerp1(dropTab,t),0,1150):Vector(0,0,-3000));'
 drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0])'
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
-            'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));}')
+            'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
+            'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
+            'MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));}')
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
-txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,0,1150)],[45.0,Vector(2470,0,1150)],[46.0,Vector(2625,0,1150)],[46.5,Vector(2695,0,1150)],[47.0,Vector(2752,0,1150)],[47.2,Vector(2760,-40,1150)],[47.6,Vector(2760,-260,1150)]];' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)

@@ -522,7 +522,7 @@ for e in list(v.entities):
     if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
         o = Vec.from_str(e['origin'])
         if abs(o.x - 2760) < 2 and abs(o.z - 1010) < 2 and abs(o.y) <= 401:
-            if abs(o.y) < 2: v.remove_ent(e); continue
+            if o.y > -2: v.remove_ent(e); continue   # r10au: right-hand half only (y < 0), like the video
             e['origin'] = f'{o.x:g} {o.y:g} 1152'; e['model'] = 'models/corehub_intro/transport_ring_pale.mdl'; e['skin'] = '0'; side += 1
 print('pale crossing tube rings', side)
 # the pale wall closing the tube beyond the crossing: the white far end at 44-47 s and the white frame at 48.3-48.85 s;
@@ -531,7 +531,7 @@ v.create_ent('prop_dynamic_override', targetname='r10_tube_end', model='models/c
              angles='0 0 0', solid='0', disableshadows='1')
 # the chrome drop reads as a white ball a few rings ahead in the video
 for e in v.entities:
-    if e['targetname'] == 'intro_drop': e['modelscale'] = '2.8'; print('drop scaled')
+    if e['targetname'] == 'intro_drop': e['modelscale'] = '1.8'; print('drop scaled')
 # the walls round the vertical rise were white tiles; the video sees dark walls between the pods
 POD_BG = unlit('pod_bg', 'metal/black_wall_metal_001a', '0.34 0.34 0.34')
 pw = 0
@@ -548,6 +548,114 @@ for e in v.entities:
         e['rendercolor'] = '170 170 172'
 # skylights over the pod room: dimmer still (the video shows thin light strips in a dark truss at 42 s)
 SKY2 = unlit('skylight_dim', 'lights/white002', '0.40 0.41 0.41')
+# ---------- r10at: tower entrance (55.3-58.6 s) ----------
+# the video's camera rides only the tube's rails toward the collar (no ring flanges round the frame): the three rings
+# between the cube-passage wall and the collar become rails-only props
+rails = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if 3420 < o.x < 3600 and abs(o.y) < 2 and abs(o.z - 1152) < 2:
+            e['model'] = 'models/corehub_intro/transport_rails.mdl'; e['skin'] = '0'; rails += 1
+    if e['classname'] == 'prop_dynamic_override' and e['model'] == 'models/corehub_intro/transport_ring.mdl' and e['origin'] == '3700 0 1152':
+        e['model'] = 'models/corehub_intro/transport_ring_white.mdl'; e['skin'] = '0'; e['modelscale'] = '1.1'; print('pale tower collar')
+print('tower entrance rings -> rails', rails)
+# the dark column rising from the collar, with its flange plate (hidden by the director at the 58.6 s dissolve)
+v.create_ent('prop_dynamic_override', targetname='r10_tw_column', model='models/corehub_intro/r10_column.mdl', origin='3754 0 1272',
+             angles='0 0 0', solid='0', disableshadows='1')
+# rusty back wall behind the collar (the video shows rust panels there, not the lit tower interior); a func_brush the
+# director moves away at the 58.6 s dissolve, before the camera climbs through
+bw = v.make_prism(Vec(3830, -150, 900), Vec(3846, 420, 2400), RUST_DARK).solid
+for f in bw.sides: f.lightmap = 32
+v.create_ent('func_brush', targetname='r10_tw_backwall', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(bw)
+# ---------- r10au: sludge test chamber (87-90 s) rebuilt to the video's proportions ----------
+# Solved from the video frames (88.5 s: far wall foot at mid-frame spanning ~82% of the width; 89.75 s: at ~66%) with the
+# camera's own path (x 5952, y 342 -> 455, z 256, looking 44 deg down): sludge at z 0, far wall at y 608, width 728.
+# The old deep chamber (floor -194, walkways, far wall at 960) is removed.
+def in_box(lo, hi, a, b):
+    return a[0] <= lo.x and hi.x <= b[0] and a[1] <= lo.y and hi.y <= b[1] and a[2] <= lo.z and hi.z <= b[2]
+gone = 0
+for e in list(v.entities):
+    if e['classname'] not in ('func_detail', 'func_brush'): continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if in_box(lo, hi, (5570, 60, -230), (6334, 978, 172)): gone += 1; continue
+        keep.append(so)
+    if len(keep) != len(e.solids):
+        e.solids[:] = keep
+        if not keep: v.remove_ent(e)
+for so in list(v.spawn.solids):
+    lo, hi = so.get_bbox()
+    if in_box(lo, hi, (5580, 70, -215), (6320, 970, -190)) and any('toxicslime' in f.mat.lower() for f in so.sides):
+        v.remove_brush(so); gone += 1
+print('old sludge chamber solids removed', gone)
+SLUDGE = 'nature/toxicslime002a'
+sl = v.make_prism(Vec(5588, 80, -14), Vec(6316, 608, 0), NODRAW).solid
+for f in sl.sides:
+    if f.normal().z < -0.5: f.mat = SLUDGE
+v.add_brush(sl)
+box((5572, 64, -30), (6332, 624, -14), LABDARK, world=False)          # floor slab under the sludge
+box((5572, 64, -14), (5588, 624, 520), LABDARK, world=False)          # west wall
+box((6316, 64, -14), (6332, 442, 520), LABDARK, world=False)          # east wall, round the exit tube (y 512, z 256)
+box((6316, 582, -14), (6332, 624, 520), LABDARK, world=False)
+box((6316, 442, -14), (6332, 582, 186), LABDARK, world=False)
+box((6316, 442, 326), (6332, 582, 520), LABDARK, world=False)
+box((5588, 608, -14), (6316, 624, 520), LABDARK, world=False)         # far wall
+box((5588, 64, -14), (6316, 80, 170), LABDARK, world=False)           # near wall (low: the camera comes in over it)
+# white tiled foot of the walls (the video's white band)
+box((5588, 600, 0), (6316, 608, 90), LABWALL, world=False)
+box((5588, 80, 0), (5596, 600, 90), LABWALL, world=False)
+box((6308, 80, 0), (6316, 600, 90), LABWALL, world=False)
+# r10av: top/side materials set per face (box()'s side_mat also caught the tops)
+def box_top(lo, hi, top, side):
+    so = box(lo, hi, side, world=False)
+    for f in so.sides:
+        if f.normal().z < -0.5: f.mat = top      # normals point into the solid: the top face's normal is -z
+    return so
+# far-left: a small dark landing with a white pedestal on the far wall (video top-left)
+box_top((5690, 548, 0), (5830, 600, 66), 'corehub_intro/black_u', LABWALL)
+box((5742, 570, 66), (5762, 590, 96), LABWALL, world=False)
+# far-right: black ledge under the round door, with a floor button; the door and its signs on the far wall
+box((5990, 556, 120), (6150, 600, 128), 'corehub_intro/black_u', world=False)
+SIGNW = unlit('sign_white', 'lights/white002', '0.80 0.80 0.78')
+SIGNB = unlit('sign_blue', 'lights/white002', '0.10 0.45 0.62')
+box((6030, 602, 214), (6070, 606, 230), SIGNW, world=False)
+box((6084, 602, 192), (6098, 606, 206), SIGNB, world=False)
+moved = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] in ('models/props/portaldoor_circle.mdl', 'models/corehub_intro/white_disc.mdl'):
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 6182) < 2 and abs(o.y - 951) < 2: e['origin'] = '6050 604 180'; e['modelscale'] = '0.4'; moved += 1
+        if abs(o.x - 6132) < 2 and abs(o.y - 955) < 2: e['origin'] = '6066 586 130'; e['angles'] = '-90 0 0'; e['modelscale'] = '1.3'; moved += 1
+print('door/button moved', moved)
+# the large plate at the right (grey-beige top, copper rim)
+PLATE = unlit('sludge_plate', 'concrete/concrete_modular_floor001a', '0.70 0.66 0.58')
+COPPER = unlit('sludge_copper', 'lights/white002', '0.55 0.30 0.17')
+box((6028, 494, 74), (6266, 600, 82), COPPER, world=False)          # r10av: raised against the far wall (video 37-60% of the frame)
+box_top((6034, 500, 82), (6260, 600, 90), PLATE, COPPER)
+box((6060, 510, 0), (6070, 520, 74), 'corehub_intro/black_u', world=False)
+box((6224, 510, 0), (6234, 520, 74), 'corehub_intro/black_u', world=False)
+# the laser across the chamber with its emitters on the side walls
+for yy in (540, 550):
+    lb = v.make_prism(Vec(5596, yy, 40), Vec(6308, yy + 2, 42), 'corehub_intro/bridge_light').solid
+    v.create_ent('func_brush', Solidity='1', origin='0 0 0').solids.append(lb)
+EMIT = unlit('sludge_emitter', 'lights/white002', '0.75 0.75 0.74')
+box((5596, 531, 28), (5622, 561, 54), EMIT, world=False)
+box((6282, 531, 28), (6308, 561, 54), EMIT, world=False)
+# the copper rod reaching from the near side up to its claw on the far wall
+v.create_ent('prop_static', model='models/corehub_intro/r10_rod.mdl', origin='5946 110 26', angles='-14 90 0', solid='0', disableshadows='1')
+# the funnel ends above the chamber now (its two lowest rings would stand in the sludge)
+for e in list(v.entities):
+    if e['classname'].startswith('prop_') and 'transport_ring_orange' in e['model']:
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 5952) < 2 and abs(o.y - 150) < 2 and o.z < 200: v.remove_ent(e); print('funnel ring removed', o.z)
+# r10av: the video looks down a long copper funnel (86.5-86.75 s): two lower rings the director removes as the camera
+# comes out of the funnel (86.95 s)
+for k, z in ((1, 255), (2, 170)):
+    v.create_ent('prop_dynamic_override', targetname=f'r10_funnel_lo{k}', model='models/corehub_intro/transport_ring_orange.mdl',
+                 origin=f'5952 150 {z}', angles='90 0 0', solid='0', disableshadows='1')
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
