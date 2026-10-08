@@ -19,14 +19,16 @@ edits = {  # time: (pitch, yaw, roll)
     # then level with the turret (the camera dips to its eye height, see pos_z below)
     64.5: (-15.0, 95.0, 0.0), 65.0: (15.0, 10.0, 0.0), 65.5: (34.0, 11.0, 0.0), 66.0: (38.0, 12.0, 0.0),
     66.5: (40.0, 28.0, 0.0), 67.0: (0.0, 46.0, 0.0),
+    70.5: (25.0, 90.0, 0.0), 71.0: (10.0, 70.0, 0.0),   # stay on the turret (close, below eye level) through the lens glare
+    43.0: (-10.0, 60.0, 0.0), 43.5: (-18.0, -5.0, 0.0),   # pod rise: glance at the near wall, then down the tube
     # tower entrance: the video keeps the pale collar centred and looks slightly up, then tilts up the tower
     56.0: (-3.0, 2.0, 0.0), 56.5: (-4.0, 0.0, 0.0), 57.0: (-6.0, -2.0, 0.0), 57.5: (-12.0, 0.0, 0.0), 58.0: (-30.0, 22.0, 0.0),
     # lab: the video turns right toward the white test chamber and its hanging turrets
     102.5: (-4.0, -6.0, 0.0), 103.0: (2.0, -30.0, 0.0), 103.5: (6.0, -42.0, 0.0),
     104.0: (12.0, -55.0, 0.0), 104.5: (18.0, -75.0, 0.0), 105.0: (22.0, -100.0, 0.0),   # onto the turret wall, not past it
     # 107-109.5 s: the video looks steeply down into the white test chamber before the incinerator cut
-    107.0: (30.0, -65.0, 10.0), 107.5: (55.0, -85.0, 15.0), 108.0: (65.0, -100.0, 20.0),
-    108.5: (75.0, -100.0, 20.0), 109.0: (80.0, -100.0, 20.0), 109.3: (82.0, -100.0, 20.0), 109.70928: (85.0, -100.0, 20.0),
+    107.0: (40.0, -75.0, 10.0), 107.5: (78.0, -90.0, 25.0), 108.0: (84.0, -90.0, 30.0),
+    108.5: (85.0, -90.0, 30.0), 109.0: (86.0, -90.0, 30.0), 109.3: (86.0, -90.0, 30.0), 109.70928: (86.0, -90.0, 30.0),   # r10ac: straight down onto the chamber floor
 }
 txt = src.read_text()
 start = txt.index('knots <- [')
@@ -70,7 +72,7 @@ txt = txt.replace(cube_old, cube_new)
 txt = txt.replace('cutTab <- [', 'r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10TurretZ <- [[66.15,820],[66.9,1010]];' + chr(10) + 'cutTab <- [', 1)
 # turret laser in the lens (69.3-71.3 s): the video washes the frame pink; a second env_fade tints the screen red
-txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,60],[70.2,110],[70.9,110],[71.3,0]];r10RedAlpha <- -1;' + chr(10) +
+txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,90],[70.2,150],[70.9,150],[71.3,0]];r10RedAlpha <- 0;' + chr(10) +
     'function SetRedHaze(t){local a=(t>=69.2&&t<71.3)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;' +
     'local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);' +
     'EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}' + chr(10) + 'cutTab <- [', 1)

@@ -10,6 +10,7 @@ brushes = []
 for e in [v.spawn] + list(v.entities):
     if e['classname'] in ('func_detail', 'worldspawn', 'func_brush', 'func_wall', 'func_door', 'func_movelinear'):
         for so in e.solids:
+            if any(k in s2.mat.lower() for s2 in so.sides for k in ('glass', 'trigger', 'clip', 'skybox')): continue
             planes = []
             for s in so.sides:
                 n = s.normal(); p0 = s.planes[0]

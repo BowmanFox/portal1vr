@@ -38,6 +38,7 @@ WIP_STRIPE = 'dev/dev_hazzardstripe01a'
 NODRAW = 'tools/toolsnodraw'
 
 added = []
+LABWALL = unlit('labwall', 'tile/white_floor_tile001a', '1.0 0.95 1.0')   # bright neutral white tiles like the video
 def box(lo, hi, mat, world=True, side_mat=None, x_mat=None):
     lo, hi = Vec(*lo), Vec(*hi)
     s = v.make_prism(lo, hi, mat).solid
@@ -320,7 +321,6 @@ for e, (az, d) in zip(hov, spots):
     x, y, z = cam104[0] + hd * math.cos(a), cam104[1] + hd * math.sin(a), cam104[2] - d * math.sin(math.radians(15))
     e['origin'] = f'{x:.1f} {y:.1f} {z:.1f}'; e['angles'] = f'347 {az + 180:.1f} 0'
     box((x - 1, y - 1, z + 14), (x + 1, y + 1, 430), CABLE, world=False)
-LABWALL = unlit('labwall', 'tile/white_floor_tile001a', '1.0 0.95 1.0')   # bright neutral white tiles like the video
 oriented_box((7858, -203), 110, 2, 120, 272, LABWALL, -66)
 # the video's lab has a low light-blue ceiling just above the tube (top third of the frame at 101-104 s)
 box((7400, -700, 340), (7955, 300, 356), 'corehub_intro/labblue_u', world=False)
@@ -353,9 +353,46 @@ for a in (30, 150, 270):
 print('turret lift: collar, rods, floor and ring at', (LX, LY, LZ))
 # sludge chamber (87-90 s): the video's walkways are solid white blocks rising out of the sludge (a white border
 # round the pit); the rebuild's were thin slabs over a black pit wall
-box((5588, 80, -194), (5762, 800, -60), 'corehub_intro/wfloor_u', world=False)
-box((5588, 800, -194), (6316, 960, -60), 'corehub_intro/wfloor_u', world=False)
-v.create_ent('env_fade', targetname='r10_red_fade', origin='4544 0 1000', rendercolor='255 110 100', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
+box((5588, 80, -194), (5762, 800, -60), LABWALL, world=False)
+box((5588, 800, -194), (6316, 960, -60), LABWALL, world=False)
+for e in v.entities:   # walkway tops in bright neutral white too
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if lo.x >= 5580 and hi.x <= 6320 and lo.y >= 70 and hi.y <= 970 and lo.z >= -70 and hi.z <= 45:
+            for f in so.sides:
+                if f.mat.lower() == 'corehub_intro/wfloor_u': f.mat = LABWALL
+# the light-brown square panel resting in the sludge by the far walkway (right of the laser)
+PANEL = unlit('panel_brown', 'lights/white002', '0.62 0.52 0.40')
+box((6070, 650, -186), (6210, 790, -176), PANEL, world=False)
+box((6066, 646, -192), (6214, 794, -186), 'corehub_intro/black_u', world=False)
+v.create_ent('env_fade', targetname='r10_red_fade', origin='4544 0 1000', rendercolor='255 214 210', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
+# lab test chamber seen from above (107.5-109.5 s): the video looks straight down onto a bright white floor with a
+# purple-blue light strip, a copper-rimmed receptacle and a grey checker patch; v50 had black blocks under the tube there
+gone = 0
+for e in list(v.entities):
+    if e['classname'] != 'func_detail': continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if lo.x >= 7890 and hi.x <= 8140 and lo.y >= -145 and hi.y <= 82 and lo.z >= -162 and hi.z <= 354 and \
+                all(f.mat.lower() in ('corehub_intro/black_u', 'tools/toolsnodraw') for f in so.sides):
+            gone += 1; continue
+        keep.append(so)
+    e.solids[:] = keep
+LABFLOOR = unlit('labfloor', 'tile/white_floor_tile001a', '1.3 1.24 1.3')   # the video's chamber floor is near-white
+box((8000, -300, -80), (8336, 140, -60), LABFLOOR, world=False)
+# white walls round that floor (the video's chamber is white-walled; v50 showed the rust floor beyond)
+box((7996, -300, -80), (8000, 140, 120), LABWALL, world=False)
+box((7996, -304, -80), (8336, -300, 120), LABWALL, world=False)
+box((7996, 140, -80), (8336, 144, 120), LABWALL, world=False)
+STRIP = unlit('lab_strip', 'lights/white002', '0.46 0.42 0.95')
+box((8100, -292, -60), (8336, -252, -57), STRIP, world=False)
+box((8150, -80, -60), (8240, 10, -59), WIP_GRID, world=False)
+box((8215, -205, -60), (8285, -135, -58), 'corehub_intro/black_u', world=False)
+v.create_ent('prop_static', model='models/corehub_intro/transport_ring_orange.mdl', origin='8250 -170 -46', angles='90 0 0',
+             modelscale='1.35', solid='0', disableshadows='1')
+print('lab chamber floor view: removed black blocks', gone)
 # ---------- WIP / unfinished surfaces ----------
 # Room G (cube passage) east partition, lower part: grey measuring panels.
 # (r10s: the pale measuring panels behind the cube were removed -- the video shows only the tube and grey walls there)
