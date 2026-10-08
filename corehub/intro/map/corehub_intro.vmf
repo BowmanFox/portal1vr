@@ -470632,6 +470632,7 @@ entity
 	"classname" "prop_dynamic_override"
 	"disableshadows" "1"
 	"model" "models/corehub_intro/r10_ball.mdl"
+	"modelscale" "1.45"
 	"origin" "8448 0 900"
 	"solid" "0"
 	"targetname" "r10_core_glow"

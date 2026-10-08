@@ -506,6 +506,48 @@ box((7992, 300, -760), (7996, 980, 500), WIP_GRID, world=False)   # east side of
 # Missing-panel framing on the "16" wall's far side (upper corner, never finished).
 box((5012, 600, 1600), (5016, 1100, 2400), WIP_GRID, world=False)
 
+# ---------- r10as: pod rise (39.5-49 s) ----------
+# the video's pod-rise tube is dark grey; skin 2 read pale teal. The vertical rise and the run to the crossing use skin 1.
+dk2 = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if (abs(o.x - 1856) < 2 and abs(o.y + 256) < 2 and 600 < o.z < 1000) or (2000 < o.x < 2740 and abs(o.y) < 2 and abs(o.z - 1152) < 2):
+            e['skin'] = '1'; dk2 += 1
+print('pod rise rings darkened', dk2)
+# the run ends at a pale tube crossing at tube height (video 46.5-48 s): the side tube at x 2760 (z 1010) is raised to the
+# tube and made pale; its ring on the camera's path is dropped
+side = 0
+for e in list(v.entities):
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 2760) < 2 and abs(o.z - 1010) < 2 and abs(o.y) <= 401:
+            if abs(o.y) < 2: v.remove_ent(e); continue
+            e['origin'] = f'{o.x:g} {o.y:g} 1152'; e['model'] = 'models/corehub_intro/transport_ring_pale.mdl'; e['skin'] = '0'; side += 1
+print('pale crossing tube rings', side)
+# the pale wall closing the tube beyond the crossing: the white far end at 44-47 s and the white frame at 48.3-48.85 s;
+# the director moves it away before the camera reaches it
+v.create_ent('prop_dynamic_override', targetname='r10_tube_end', model='models/corehub_intro/r10_tube_end.mdl', origin='2812 0 1152',
+             angles='0 0 0', solid='0', disableshadows='1')
+# the chrome drop reads as a white ball a few rings ahead in the video
+for e in v.entities:
+    if e['targetname'] == 'intro_drop': e['modelscale'] = '2.8'; print('drop scaled')
+# the walls round the vertical rise were white tiles; the video sees dark walls between the pods
+POD_BG = unlit('pod_bg', 'metal/black_wall_metal_001a', '0.34 0.34 0.34')
+pw = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if hi.x > 1680 and lo.x < 2140 and hi.y > -420 and lo.y < 30 and lo.z >= 630 and hi.z <= 1345:
+            for f in so.sides:
+                if f.mat.lower() == 'corehub_intro/white_u': f.mat = POD_BG; pw += 1
+print('pod shaft wall faces darkened', pw)
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl' and e['rendercolor'] == '255 255 255':
+        e['rendercolor'] = '170 170 172'
+# skylights over the pod room: dimmer still (the video shows thin light strips in a dark truss at 42 s)
+SKY2 = unlit('skylight_dim', 'lights/white002', '0.40 0.41 0.41')
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

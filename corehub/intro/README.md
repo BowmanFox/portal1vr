@@ -38,12 +38,12 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10aq` + `director_r10aq` (outputs/Corehub-Intro). Test run: `videos/r10m_aq_side.mp4`. In test: r10ar.
+Published build: `corehub_r10ar` + `director_r10ar` (outputs/Corehub-Intro). Test run: `videos/r10m_ar_side.mp4`.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|
-| 1 | Opening room | 0–22 | 7.5 | 8.5 | ceiling bright/neutral looking up and dark at grazing angles; far wall and chamber glass toned to the video (r10ar test); rubble shapes |
-| 2 | Iris and ascent | 22–32.5 | 7.5 | 8.5 | ceiling bright again as the camera looks up at the iris (r10ar test); iris petal edge shading |
+| 1 | Opening room | 0–22 | 7.5 | 8.5 | ceiling bright/neutral looking up and dark at grazing angles; far wall and chamber glass toned to the video; rubble shapes |
+| 2 | Iris and ascent | 22–32.5 | 7.5 | 8.5 | ceiling bright again as the camera looks up at the iris (22.5 s); iris petal edge shading |
 | 3 | Rust room | 32.5–39 | 4 | 7.5 | far wall cut to the lit panel, dark C-bend, post under the ring (33 s); 34–36 s framings still off |
 | 4 | Pod rise | 39.5–47.5 | 4 | 7.5 | longer climb in the tube with grey structure above (40–41.5 s); the turn no longer runs into the pods; pods read as round blobs |
 | 5 | Cube passage | 48–55 | 4.5 | 8.5 | cube hidden until 51.5 s like the video; 48.5 s pale tube interior |
@@ -53,7 +53,7 @@ Published build: `corehub_r10aq` + `director_r10aq` (outputs/Corehub-Intro). Tes
 | 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 7.5 | lattice towers both sides (84.6–85.5 s); rises out of the tube and drops down a copper funnel into the chamber (86.2–87.2 s) |
 | 10 | Factory passage | 96.6–99.8 | 6 | 7.5 | warmer, brighter factory materials; one-frame black arm silhouette at 98 s |
 | 11 | Lab and test chamber | 100–109.5 | 4 | 8.5 | chamber view matches (receptacle, checker, button, strip, black tiles); copper drop onto the receptacle |
-| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 8 | yellow glowing ball drops with the discarded parts (larger in r10ar test); 116.75 s view |
+| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 8 | yellow glowing ball drops with the discarded parts; the video's ball passes closer (115 s); 116.75 s view |
 | 13 | Capsule and ending | 118.4–134 | 6 | 8 | capsule frost/cracks, 123.4 s flat grey patch |
 
 ## Objective check

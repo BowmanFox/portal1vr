@@ -50,6 +50,18 @@ body = txt[start:end]
 rows = re.findall(r'\{t=([0-9.]+),a=Vector\(([-0-9.]+),([-0-9.]+),([-0-9.]+)\)\}', body)
 knots = {float(t): (float(a), float(b), float(c)) for t, a, b, c in rows}
 knots.update(edits)
+# r10as: pod-rise run (44-47 s) -- the video looks a little up and right down the tube (far end at ~43%, 70% of the frame),
+# then swings right at the pale crossing tube (47-48 s), looks up through the crossing (48.25 s) and faces the pale
+# wall that closes the tube (48.5-48.85 s) before the dark tube of the cube passage (49 s)
+edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -10.0, 0.0), 46.0: (-17.0, -8.0, 0.0), 46.5: (-15.0, -6.0, 0.0),
+          47.0: (-11.0, -26.0, 0.0), 47.25: (-4.0, -42.0, 0.0), 47.5: (-3.0, -55.0, 0.0), 47.75: (-2.0, -60.0, 0.0), 48.0: (-5.0, -45.0, 0.0),
+          48.25: (-35.0, -20.0, 0.0), 48.5: (-5.0, 0.0, 0.0), 48.75: (0.0, 0.0, 0.0), 48.85: (0.0, 0.0, 0.0),
+          # tower entrance: two shots joined by quick dissolves (56.5 and 58.6 s). Shot A looks straight at the collar from
+          # inside the tube; shot B starts further back, looking up and right at the collar, and tilts up the dark column
+          55.25: (-4.0, -9.0, 0.0), 55.5: (-4.0, -8.0, 0.0), 56.0: (-3.0, -7.0, 0.0), 56.25: (-2.0, -6.0, 0.0), 56.5: (-2.0, -6.0, 0.0), 56.51: (-2.0, -6.0, 0.0),
+          56.52: (-10.0, -16.0, 0.0), 57.0: (-13.0, -17.0, 0.0), 57.5: (-18.0, -19.0, 0.0), 58.0: (-28.0, -13.0, 0.0), 58.25: (-34.0, -13.0, 0.0),
+          58.5: (-37.0, -12.0, 0.0), 58.57: (-38.0, -12.0, 0.0), 58.58: (-16.0, 58.0, 0.0)}
+knots.update(edits2)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -105,10 +117,24 @@ def repl(m):
             if abs(t - k) < 1e-4: return '{t=%s,p=Vector(%s,%s,%.8f)}' % (m.group(1), m.group(2), m.group(3), nz)
     return m.group(0)
 newpos = re.sub(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', repl, txt[ps:pe])
+# r10as: tower entrance -- shot A (55.25-56.5 s) approaches slowly inside the tube, shot B (56.52-58.57 s) starts ~245 units
+# from the collar and closes to ~150, then the 58.6 s dissolve goes to the climb inside the tower
+pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (3458.0, 0.0, 1152.0), 55.75: (3472.0, 0.0, 1152.0),
+           56.0: (3486.0, 0.0, 1152.0), 56.25: (3500.0, 0.0, 1152.0), 56.5: (3510.0, 0.0, 1152.0), 56.51: (3511.0, 0.0, 1152.0),
+           56.52: (3455.0, 0.0, 1152.0), 56.75: (3467.0, 0.0, 1152.0), 57.0: (3480.0, 0.0, 1152.0), 57.25: (3495.0, 0.0, 1152.0),
+           57.5: (3510.0, 0.0, 1152.0), 57.75: (3532.0, 0.0, 1152.0), 58.0: (3555.0, 0.0, 1152.0), 58.25: (3575.0, 0.0, 1152.0),
+           58.5: (3590.0, 0.0, 1152.0), 58.57: (3595.0, 0.0, 1152.0), 58.58: (3754.0, 0.0, 1306.0)}
+kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
+kd = dict(kn)
+for k, q in pos_set.items():
+    for t0 in list(kd):
+        if abs(t0 - k) < 1e-4: del kd[t0]
+    kd[k] = q
+newpos = 'positions <- [\n' + ',\n'.join('{t=%.8f,p=Vector(%.8f,%.8f,%.8f)}' % ((t,) + kd[t]) for t in sorted(kd)) + '\n'
 txt = txt[:ps] + newpos + txt[pe:]
 fades = [[62.9,63.05,0,235],[63.05,63.3,235,0],[52.45,52.55,0,110],[52.55,52.68,110,0],[38.70,38.9388,0,255],[39.2725,39.60,255,0],[53.83,54.1206,0,255],[54.8547,55.27,240,240],
          [55.27,55.47,240,0],[82.55,83.1829,40,255],[84.5510,84.97,255,0],[95.33,95.7288,0,255],
-         [104.97,105.305,0,255],[109.40,109.7094,0,255],[109.8428,110.6,255,0]]
+         [104.97,105.305,0,255],[56.37,56.52,0,75],[56.52,56.70,75,0],[58.42,58.58,0,100],[58.58,58.72,100,0],[109.40,109.7094,0,255],[109.8428,110.6,255,0]]
 anchor = '    SetScreenBlack(fadeAlpha);'
 assert txt.count(anchor) == 1
 txt = txt.replace(anchor, '    foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}\n' + anchor)
@@ -118,7 +144,7 @@ txt = txt.replace('cutTab <- [', 'r10LabCube <- [[99.8,7565],[100,7575],[100.5,7
 # cube passage (52-53.8 s): the video dissolves from the far cube to a close one at ~52.55 s; the cube jumps
 # closer under a short dip instead of drifting slowly toward the camera
 cube_old = 'for(local i=0;i<4;i++)MoveProp("intro_cube_"+i,t<55.5?Vector(3480+i*62-(cubeTime-52)*25,0,1152):Vector(0,0,-3000));'
-cube_new = 'for(local i=0;i<4;i++)MoveProp("intro_cube_"+i,(t<55.5&&t>=51.5)?Vector(Lerp1(r10CubeX,t)+i*62,0,1152):Vector(0,0,-3000));'   # r10ai: the video shows no cube before 51.6 s
+cube_new = 'for(local i=0;i<4;i++)MoveProp("intro_cube_"+i,(t<54.9&&t>=51.5)?Vector(Lerp1(r10CubeX,t)+i*62,0,1152):Vector(0,0,-3000));'   # r10as: gone before the 55.3 s fade-in; r10ai: the video shows no cube before 51.6 s
 assert txt.count(cube_old) == 1
 txt = txt.replace(cube_old, cube_new)
 txt = txt.replace('cutTab <- [', 'r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];' + chr(10) + 'cutTab <- [', 1)
@@ -153,5 +179,13 @@ lk_new = """ {t=69.3,p=Vector(4549,9,1142)},
  {t=71.35,p=Vector(4549,9,1142)}"""
 assert txt.count(lk_old) == 1
 txt = txt.replace(lk_old, lk_new)
+# r10as: chrome drop ahead of the camera in the pod-rise run, turning off into the pale crossing tube at 47.1 s
+drop_old = 'MoveProp("intro_drop",(t>=44.0 && t<47.4)?Vector(Lerp1(dropTab,t),0,1150):Vector(0,0,-3000));'
+drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0])'
+            '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
+            'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));}')
+assert txt.count(drop_old) == 1
+txt = txt.replace(drop_old, drop_new)
+txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,0,1150)],[45.0,Vector(2470,0,1150)],[46.0,Vector(2625,0,1150)],[46.5,Vector(2695,0,1150)],[47.0,Vector(2752,0,1150)],[47.2,Vector(2760,-40,1150)],[47.6,Vector(2760,-260,1150)]];' + chr(10) + 'cutTab <- [', 1)
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)

@@ -5359,7 +5359,7 @@ P41_lastExposure <- -1;
 function P41_Update(t){
  if(t>=32.51)return;
  P41_SetIntroIris(t);P41_SetEarlyShaftCube(t);P41_SetOpeningDebris(t);
- local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.3,0.40],[11.6,0.40],[12.4,0.75],[21.2,0.75],[21.9,0.30],[22.6,0.30],[23.1,0.93],[33,0.93]],t);
+ local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.3,0.40],[11.6,0.40],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);
  if(exposure!=P41_lastExposure){P41_lastExposure=exposure;
   EntFire("p41_preview_ceiling_control","SetMaterialVar","["+exposure+" "+(exposure*0.976)+" "+(exposure*1.01)+"]",0);
  }
