@@ -1235,11 +1235,11 @@ def _veil_c(az):
     return 0.2
 pv = []
 for k in range(16):
-    yaw = k * 22.5; rr = 60.0   # r10cp: outside the rails (the video's rails read black, unveiled)
+    yaw = k * 22.5; rr = 41.0
     c = round(_veil_c(yaw), 3)
     POD_VEIL = unlit(f'pod_veil_{k:02d}', 'lights/white002', f'{c} {c} {round(c * 1.02, 3)}', '"$translucent" "1"\n"$alpha" "0.36"\n"$nocull" "1"\n')
     cx, cy = 1856 + rr * _m.cos(_m.radians(yaw)), -256 + rr * _m.sin(_m.radians(yaw))
-    sol = v.make_prism(Vec(-1, -12.5, 560), Vec(1, 12.5, 1120), POD_VEIL).solid
+    sol = v.make_prism(Vec(-1, -8.6, 560), Vec(1, 8.6, 1120), POD_VEIL).solid
     sol.localise(Vec(cx, cy, 0), _st.Angle(0, yaw, 0))
     rx, ry = _m.cos(_m.radians(yaw)), _m.sin(_m.radians(yaw))
     for f in sol.sides:   # side normals point into the solid: the face nearest the axis has its normal along +radial
@@ -1278,9 +1278,9 @@ for k, x in enumerate((3431, 3509, 3587, 3665)):
 CP_VEIL = unlit('cp_veil', 'lights/white002', '0.46 0.46 0.47', '"$translucent" "1"\n"$alpha" "0.42"\n"$nocull" "1"\n')
 cpv = []
 for k in range(16):
-    ang = k * 22.5; rr = 60.0   # r10cp: outside the rails
+    ang = k * 22.5; rr = 41.0
     cy, cz = rr * _m.cos(_m.radians(ang)), 1152 + rr * _m.sin(_m.radians(ang))
-    sol = v.make_prism(Vec(2950, -12.5, -1), Vec(3720, 12.5, 1), CP_VEIL).solid
+    sol = v.make_prism(Vec(2950, -8.6, -1), Vec(3720, 8.6, 1), CP_VEIL).solid
     sol.localise(Vec(0, cy, cz), _st.Angle(0, 0, ang - 90))
     ry, rz = _m.cos(_m.radians(ang)), _m.sin(_m.radians(ang))
     for f in sol.sides:
