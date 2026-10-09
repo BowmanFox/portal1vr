@@ -705,7 +705,23 @@ def truss_run(a0, a1, axis, c, z0, z1, w=56, step=60):
         pr(tuple(min(lo[i], hi[i]) for i in range(3)), tuple(max(lo[i], hi[i]) for i in range(3))); n += 1
         a += step; k += 1
     return n
-tn = truss_run(140, 470, 'y', 6592, 150, 200)            # under the tube's run to the broken section (92.75-94 s)
+# r10bd: the video's truss runs across the view under ring B and the flange (91-93 s); the old run along x north of the
+# dark room showed as a diagonal lattice at the left of the frame. Drop it and carry the cross truss on to y 700.
+ot = 0
+for e in list(v.entities):
+    if e['classname'] != 'func_detail': continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if (lo.y >= 618 and hi.y <= 706 and lo.x >= 6000 and hi.x <= 6700 and lo.z >= 140 and hi.z <= 215
+                and all(f.mat.lower() == TRUSS.lower() for f in so.sides)):
+            ot += 1; continue
+        keep.append(so)
+    if len(keep) != len(e.solids):
+        e.solids[:] = keep
+        if not keep: e.remove()
+print('old gallery truss pieces removed', ot)
+tn = truss_run(140, 700, 'y', 6592, 100, 150)            # under ring B and the run to the broken section (91-94 s)
 tn += truss_run(6600, 6740, 'x', 0, 140, 190)            # under the tube before the cream collar (94.5-95.3 s)
 print('gallery truss pieces', tn)
 # copper rings on the run, and the broken dark section the camera passes through (93.5-94.25 s)
@@ -804,6 +820,46 @@ for e in list(v.entities):
         if abs(o.y - 512) < 1 and abs(o.z - 256) < 1 and any(abs(o.x - xx) < 1 for xx in (6118.4, 6195.2, 6348.8)):
             e.remove(); rr += 1
 print('gallery tunnel rings removed', rr)
+# ---------- r10bd: gallery rings ----------
+# the video shows two pale copper rings (A at the dark room's wall, B in the gallery) and then only the broken flange;
+# no ring at the bend and none on the run before the flange
+gb = 0
+for e in list(v.entities):
+    if not e['classname'].startswith('prop_'): continue
+    o = Vec.from_str(e['origin']) if e['origin'] else None
+    if o is None: continue
+    if e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and abs(o.y - 512) < 1 and abs(o.z - 256) < 1 and (abs(o.x - 6272) < 1 or abs(o.x - 6425.6) < 1):
+        e['model'] = 'models/corehub_intro/transport_ring_pink.mdl'; gb += 1
+    elif e['model'] == 'models/corehub_intro/transport_ring_bend_orange.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 512) < 1:
+        e.remove(); gb += 1
+    elif e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 341.3) < 1:
+        e.remove(); gb += 1
+print('gallery rings A/B pink, bend and run ring removed', gb)
+# ---------- r10be: broken flange and the last gallery ring ----------
+# the video's broken section shows a jagged black hole in rust, ahead and to the right, that slides to the left as the
+# camera passes (94-94.4 s): the hole faces the rust wall (east) and a black plate closes it from behind; the flange
+# ring reads smaller/further in the video (93-93.75 s); a pale copper ring stands before the cream collar (94.75 s)
+be = 0
+for e in v.entities:
+    if not e['classname'].startswith('prop_'): continue
+    o = Vec.from_str(e['origin'])
+    if e['model'] == 'models/corehub_intro/r10_broken.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 185) < 1:
+        e['model'] = 'models/corehub_intro/r10_wallhole.mdl'; e['origin'] = '6679 150 255'; e['angles'] = '0 0 0'; be += 1   # r10bf
+    elif e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 256) < 1:
+        e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '0.75'; e['solid'] = '0'; be += 1
+# r10bf: the video passes a jagged black hole in a rust panel close to the right of the rails (94-94.4 s), not a closed
+# broken tube: a rust panel parallel to the run carries the hole (wall-hole model with two cream boxes)
+pan = box((6680, 60, 150), (6690, 320, 380), RUST_GAL, world=False)
+for f in pan.sides: f.uaxis.scale = 0.75; f.vaxis.scale = 0.75
+v.create_ent('prop_dynamic_override', model='models/corehub_intro/transport_ring_pink.mdl', origin='6700 0 256', angles='0 0 0',
+             solid='0', disableshadows='1')
+print('broken flange / hole / last ring', be)
+# ---------- r10bf: capsule approach rings ----------
+# the video is still inside the ring tube with the capsule framed by concentric rings until ~120.9 s; two more grey rings
+# past the mouth (the director shows them only 119-121 s, before the camera turns round in the vault)
+for i, x in enumerate((11312, 11360)):
+    v.create_ent('prop_dynamic_override', targetname=f'r10_cap_ring_{i}', model='models/corehub_intro/transport_ring.mdl',
+                 origin=f'{x} 0 128', angles='0 0 0', modelscale='0.9', solid='0', disableshadows='1')
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
