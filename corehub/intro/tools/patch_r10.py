@@ -1249,6 +1249,17 @@ for k in range(16):
 v.create_ent('func_brush', targetname='r10_pod_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(pv)
 print('pod sleeve', len(pv), sum(1 for so in pv for f in so.sides if 'pod_veil' in f.mat))
+# ---------- r10cl: factory walkway (96.6-99.8 s) ----------
+# the video's walkway under the tube reads lighter and warmer than ours (97-97.25 s: 75/74/72 vs 60/58/54; 99.25-99.5 s:
+# 83-113/65-83/52-59 vs 68-72/66-68/60-61)
+(MOD / 'materials/corehub_intro/p9_factory_v4_floor.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "metal/black_wall_metal_002a"\n"$color" "[0.66 0.59 0.49]"\n"$model" "1"\n}\n')
+(MOD / 'materials/corehub_intro/p9_factory_v7_plate.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "lights/white002"\n"$color" "[0.48 0.48 0.46]"\n"$surfaceprop" "metal"\n}\n')
+# ---------- r10cm: the lift's hanging tubes ----------
+# the video's tubes under the lift collar read dark grey, ours near black (65.6-66.3 s our frames 35-46 vs the video's 50-64)
+(MOD / 'materials/models/corehub_intro/r10_tu_tube.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "lights/white002"\n"$color" "[0.16 0.16 0.165]"\n"$model" "1"\n}\n')
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
