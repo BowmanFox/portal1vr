@@ -721,7 +721,7 @@ for e in list(v.entities):
         e.solids[:] = keep
         if not keep: e.remove()
 print('old gallery truss pieces removed', ot)
-tn = truss_run(140, 700, 'y', 6592, 100, 150)            # under ring B and the run to the broken section (91-94 s)
+tn = truss_run(140, 700, 'y', 6592, 120, 195, w=72, step=70)   # r10bz: taller and closer under the tube -- the video's lattice fills the lower third (91.25-93.75 s)
 tn += truss_run(6600, 6740, 'x', 0, 140, 190)            # under the tube before the cream collar (94.5-95.3 s)
 print('gallery truss pieces', tn)
 # copper rings on the run, and the broken dark section the camera passes through (93.5-94.25 s)
@@ -993,8 +993,8 @@ if posts_tu:
                  rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(posts_tu)
 print('turret cage posts -> func_brush', len(posts_tu))
 # the scanner shaft's rings and boards showed at the right of the turret shot; the video has the rust wall and band there
-scr_wall = v.make_prism(Vec(4716, -70, 850), Vec(4724, 420, 1500), RUST_TU).solid
-scr_band = v.make_prism(Vec(4712, -70, 950), Vec(4716, 420, 1011), BAND).solid
+scr_wall = v.make_prism(Vec(4716, -260, 850), Vec(4724, 420, 1500), RUST_TU).solid   # r10bz: wider -- the lift descent (64-66 s) looks past it too
+scr_band = v.make_prism(Vec(4712, -260, 950), Vec(4716, 420, 1011), BAND).solid
 v.create_ent('func_brush', targetname='r10_tu_screen', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend([scr_wall, scr_band])
 # glare (69.4-71.3 s): the video's red is a soft wedge from the eye down to the bottom of the frame (legs R-G ~50, corners
@@ -1100,6 +1100,17 @@ for lo, hi in (((2790, -96, 1056), (3400, -90, 1248)), ((2790, 90, 1056), (3400,
     sl.append(v.make_prism(Vec(*lo), Vec(*hi), TUNNEL).solid)
 v.create_ent('func_brush', targetname='r10_cube_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sl)
+# ---------- r10by: turret lift seen from below the collar (63.87-67 s) ----------
+# the video comes in beside the dark collar, drops under it and looks down past the tubes that hang from it into the
+# floor ring the turret rises from; the tubes (and a pale skirt under the collar) leave once the turret is level
+v.create_ent('prop_dynamic_override', targetname='r10_tu_tubes', model='models/corehub_intro/r10_tu_tubes.mdl', origin='4575 58 1340',
+             angles='0 0 0', solid='0', disableshadows='1')
+# ---------- r10bz: scanner iris view (81-82.4 s) ----------
+# the exit collar showed at the top of the iris view; the video has the arm's dark beam there
+for e in v.entities:
+    if (e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and e['targetname'] == 'r10_wall_collar'
+            and abs(Vec.from_str(e['origin']).x - 4967) < 2):
+        e['targetname'] = 'r10_exit_collar'; print('exit collar renamed', e['origin'])
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

@@ -82,9 +82,11 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           67.5: (-1.7, 61.2, 0.0), 67.75: (1.6, 65.9, 0.0), 68.0: (1.6, 69.6, 0.0), 68.25: (1.6, 71.9, 0.0), 68.5: (1.1, 75.5, 0.0),
           68.75: (1.6, 78.1, 0.0), 69.0: (2.5, 77.2, 0.0), 69.25: (4.4, 76.8, 0.0), 69.5: (5.3, 74.15, 0.0), 69.75: (6.2, 71.5, 0.0),
           70.0: (2.0, 70.6, 0.0), 70.25: (-4.1, 70.1, 0.0), 70.5: (-8.4, 70.6, 0.0), 70.75: (-7.9, 69.2, 0.0), 71.0: (-5.1, 67.3, 0.0),
-          71.2: (-5.1, 66.4, 0.0), 71.33: (-5.1, 66.4, 0.0),   # r10bw: 56 units from the turret near its eye height (r10bv's 45 framed it 1.26x too large) 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
+          71.2: (-5.1, 66.4, 0.0), 71.33: (-5.1, 66.4, 0.0),
+          # r10by: under the turret-lift collar (63.87-67 s)
+          63.87: (22.0, 82, 0.0), 64.0: (25.0, 81, 0.0), 64.25: (8.0, 79, 0.0), 64.5: (12.0, 77, 0.0), 64.75: (17.0, 75, 0.0), 65.0: (23.0, 73, 0.0), 65.25: (31.0, 71, 0.0), 65.5: (39.0, 69, 0.0), 65.75: (47.0, 67, 0.0), 66.0: (55.0, 65, 0.0), 66.25: (42.0, 63.5, 0.0), 66.5: (12.0, 62.5, 0.0), 67.0: (0.0, 55.0, 0.0),   # r10bw: 56 units from the turret near its eye height (r10bv's 45 framed it 1.26x too large) 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
           71.8: (66.0, -2.0, 8.0), 71.9: (42.0, -4.0, 4.0), 72.0: (22.0, -5.0, 2.0), 72.1: (10.0, -6.0, 0.0), 72.25: (-1.0, -6.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
-for _t in [k for k in knots if 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
+for _t in [k for k in knots if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
 knots.update(edits2)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
@@ -109,7 +111,7 @@ funnel = {86.0: (5770.0, 0.0, 280.0), 86.25: (5880.0, 80.0, 505.0), 86.5: (5950.
           87.0: (5952.0, 150.0, 320.0), 87.25: (5952.0, 180.0, 275.0), 87.5: (5952.0, 210.0, 256.0)}
 copper_x = [(84.2, 5240.0), (84.55, 5260.0), (85.0, 5330.0), (85.5, 5450.0), (85.75, 5600.0), (86.0, 5770.0)]   # r10am: the room west of the towers is dark; start at them
 pod_z = [(39.5, 640.0), (39.75, 660.0), (40.0, 680.0), (40.25, 700.0), (40.5, 720.0), (40.75, 745.0), (41.0, 770.0), (41.25, 810.0), (41.5, 880.0), (41.75, 1000.0)]
-shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 685.0), (80.0, 655.0), (80.25, 650.0), (80.5, 645.0), (80.75, 618.0), (81.0, 580.0), (81.5, 580.0), (82.0, 580.0), (82.25, 540.0), (82.5, 400.0)]   # r10az: hover higher over the iris (video 81-82 s: the iris ~45% of the frame width)   # r10ao: hover over the iris until 82.2 s, then drop through it
+shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 685.0), (80.0, 655.0), (80.25, 650.0), (80.5, 645.0), (80.75, 618.0), (81.0, 570.0), (81.25, 552.0), (81.5, 545.0), (82.0, 545.0), (82.25, 520.0), (82.5, 400.0)]   # r10az: hover higher over the iris (video 81-82 s: the iris ~45% of the frame width)   # r10ao: hover over the iris until 82.2 s, then drop through it
 # r10ah: sludge chamber (87-90 s) -- the video is lower and closer over the walkways than the tube (z 256)
 sludge_z = {86.5: 246.0, 86.75: 226.0, 87.0: 206.0, 87.25: 192.0, 87.5: 186.0, 87.75: 186.0, 88.0: 186.0, 88.25: 186.0,
             88.5: 186.0, 88.75: 186.0, 89.0: 186.0, 89.25: 186.0, 89.5: 188.0, 89.75: 196.0, 90.0: 210.0, 90.25: 232.0, 90.5: 250.0}
@@ -166,12 +168,17 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            67.5: (4547.0, 6.0, 1004.0), 67.75: (4548.6, 8.7, 1008.0), 68.0: (4548.6, 8.7, 1008.0), 69.0: (4548.6, 8.7, 1008.0),
            70.0: (4548.6, 8.7, 1008.0), 71.0: (4548.6, 8.7, 1008.0),
            71.33: (4548.6, 8.7, 1008.0), 71.34: (4789.0, 55.0, 1105.0),
-           48.5: (2786.0, 0.0, 1152.0), 48.75: (2796.0, 0.0, 1152.0),   # r10bx: the tube end fills the frame (48.5 s) 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
+           48.5: (2786.0, 0.0, 1152.0), 48.75: (2796.0, 0.0, 1152.0),
+           # r10bz: the video frames the sludge room ~1.3x wider than our z 256 pass: 40 higher and 40 further back
+           87.25: (5952.0, 170.0, 290.0), 87.5: (5952.0, 170.0, 296.0), 87.75: (5952.0, 210.0, 296.0), 88.0: (5952.0, 260.0, 296.0),
+           88.25: (5952.0, 281.0, 296.0), 88.5: (5952.0, 302.0, 296.0), 88.75: (5952.0, 323.0, 296.0), 89.0: (5952.0, 344.0, 296.0),
+           89.25: (5954.0, 369.0, 296.0), 89.5: (5962.0, 394.0, 296.0), 89.75: (5974.0, 415.0, 290.0), 90.0: (5988.0, 440.0, 275.0),
+           63.87: (4508.2, -417.3, 1470.0), 64.0: (4504.6, -386.5, 1430.0), 64.25: (4498.7, -334.7, 1300.0), 64.5: (4494.0, -292.8, 1245.0), 64.75: (4492.2, -251.1, 1195.0), 65.0: (4493.1, -209.8, 1160.0), 65.25: (4500.1, -159.5, 1130.0), 65.5: (4510.5, -110.0, 1105.0), 65.75: (4522.3, -66.3, 1088.0), 66.0: (4532.7, -32.6, 1075.0), 66.25: (4541.5, -9.1, 1060.0), 66.5: (4546.4, 3.0, 1045.0), 67.0: (4547.3, 5.9, 1015.0),   # r10by   # r10bx: the tube end fills the frame (48.5 s) 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
            71.7: (4785.0, 45.0, 1104.0), 71.8: (4772.0, 30.0, 1112.0), 71.9: (4748.0, 15.0, 1124.0), 72.0: (4722.0, 5.0, 1136.0),
            72.1: (4700.0, 0.0, 1145.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
 kd = dict(kn)
-for _t in [k for k in kd if 67.4 < k < 72.25]: del kd[_t]   # r10bu/bv: turret framing and the inlet iris shot
+for _t in [k for k in kd if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del kd[_t]   # r10bu/bv: turret framing and the inlet iris shot
 for k, q in pos_set.items():
     for t0 in list(kd):
         if abs(t0 - k) < 1e-4: del kd[t0]
@@ -203,9 +210,9 @@ txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[71.28,0],[71.33,150],[71.
     'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10GlowOn)return;EntFire("r10_glare_ov",g?"StartOverlays":"StopOverlays","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
-txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
+txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0"])MoveProp(nm,Vector(0,0,-3000));}' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
 exp_old = 'local exposure=P41_Lerp1([[0,0.58],[22.6,0.58],[23.1,1.0],[33,1.0]],t);'
-exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.3,0.40],[11.6,0.40],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10ar: bright again as the camera looks up at the iris (22.3 s)
+exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.85],[10.3,0.60],[10.6,0.22],[11.6,0.25],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10bz: the video's ceiling stays lit to 10.3 s and is dark (39-45) at 10.75-11.25 s   # r10ar: bright again as the camera looks up at the iris (22.3 s)
 assert txt.count(exp_old) == 1
 txt = txt.replace(exp_old, exp_new)
 tint_old = '"SetMaterialVar","["+exposure+" "+exposure+" "+exposure+"]"'
@@ -236,7 +243,9 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
             '{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};'
             'MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));'
-            '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=66.25&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'
+            'MoveProp("r10_tu_tubes",(t<67.4)?Vector(4575,58,1340):Vector(0,0,-3000));'
+            'MoveProp("r10_exit_collar",(t>=81.0&&t<82.4)?Vector(0,0,-3000):Vector(4967,0,256));'
+            '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=63.87&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
             '{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};'
