@@ -1155,7 +1155,7 @@ sp = []
 for lo, hi, m in (
         ((4635, 125, 278), (4950, 250, 284), SCAN_FLOOR), ((4635, -175, 278), (4950, -125, 284), SCAN_FLOOR),
         ((4635, -125, 278), (4650, 125, 284), SCAN_FLOOR), ((4920, -125, 278), (4950, 125, 284), SCAN_FLOOR),
-        ((4650, -125, 114), (4920, 125, 120), SCAN_FLOOR),   # r10cd: rust floor seen through the opened iris (82.3-82.6 s)
+        ((4650, -125, 114), (4920, 125, 120), RUST_DARK),    # r10cd/cf: dark rust seen through the opened iris (82.3-82.6 s)
         ((4560, 250, 278), (4980, 440, 286), 'corehub_intro/black_u'), ((4560, -194, 278), (4980, -175, 286), 'corehub_intro/black_u'),
         ((4560, -440, 278), (4980, -194, 284), SCAN_PANEL),
         ((4950, -175, 278), (4980, 250, 290), 'corehub_intro/black_u'), ((4560, -175, 278), (4635, 250, 286), 'corehub_intro/black_u'),
@@ -1193,6 +1193,27 @@ for i, (nm, d) in enumerate(fl, 1):
     kv[f'OverlayName{i}'] = nm; kv[f'OverlayTime{i}'] = str(d)
 v.create_ent('env_screenoverlay', **kv)
 print('flicker overlays', len(fl))
+# ---------- r10cf: opening chamber glass, capsule glass ----------
+# the opening's chamber glass is a 2-unit brush drawn from both sides (nocull), so its upper panel reads as a flat grey band
+# (98) where the video's is darker (69-73 at 11-11.5 s)
+(MOD / 'materials/corehub_intro/p9_exterior_v2/chamber_glass.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "lights/white002"\n"$color" "[0.47 0.47 0.47]"\n"$alpha" "0.34"\n"$surfaceprop" "glass"\n"$translucent" "1"\n"$nocull" "1"\n}\n')
+# the capsule's frosted glass read teal (G/B +10-12 over R) where the video's is neutral grey (121-122.5 s: 123/125/126)
+(MOD / 'materials/models/corehub_intro/p9_end_capsule_frost.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "lights/white002"\n"$model" "1"\n"$translucent" "1"\n"$nocull" "1"\n"$alpha" "0.35"\n"$color" "[0.53 0.54 0.55]"\n}\n')
+# ---------- r10cg: capsule approach frames (119.4-120.8 s) ----------
+# the video sees salmon-red strips round the tube on the way to the capsule (120.1-120.4 s: 4.7-7.3 % of the frame at
+# 166-174/123-128/109-113); they are the vertical sides of the square frames every 128 units, ours dark rust
+CAP_FRAME = unlit('cap_frame', 'lights/white002', '0.66 0.48 0.42')
+cf = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if 10290 <= lo.x and hi.x <= 11210 and hi.x - lo.x < 10 and (abs(lo.y + 180) < 1 or abs(lo.y - 164) < 1) and hi.y - lo.y < 20 and lo.z < -40 and hi.z > 300:
+            for f in so.sides:
+                if f.mat.lower() == 'metal/metalwall_bts_006b': f.mat = CAP_FRAME; cf += 1
+print('capsule frame sides salmon', cf)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

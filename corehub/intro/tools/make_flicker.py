@@ -21,8 +21,10 @@ def edges(lo, hi, a, soft=0.03):    # dark below lo and above hi
     x = (np.arange(W) + 0.5) / W
     return a * np.maximum(1 - smooth(lo - soft, lo + soft, x), smooth(hi - soft, hi + soft, x))
 # (duration, alpha per column)
-SEQ = [(0.17, band(0.39, 0.75, 0.35)), (0.20, edges(0.23, 0.89, 0.15)), (0.45, band(0.36, 0.78, 0.34)),
-       (0.13, edges(0.23, 0.89, 0.15)), (0.10, edges(0.06, 1.2, 0.10))]
+# r10cf: in game an overlay darkens about half as much as its texture alpha says (r10ce measured 0.155 for 0.34), so the
+# alphas are twice the wanted darkening; the darkenings come from the video's global means against the lit frame (8 s)
+SEQ = [(0.12, band(0.39, 0.75, 0.76)), (0.20, edges(0.23, 0.89, 0.56)), (0.45, band(0.36, 0.78, 0.82)),
+       (0.08, edges(0.23, 0.89, 0.72)), (0.07, edges(0.23, 0.89, 0.40)), (0.08, edges(0.06, 1.2, 0.20))]
 def main():
     out = []
     for k, (d, al) in enumerate(SEQ):

@@ -273,7 +273,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
             '{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};'
-            '{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));'
+            'MoveProp("r10_fac_collar",(t>=97.95&&t<98.08)?Vector(0,0,-3000):Vector(-5420,-6000,0));{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));'
             '{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}')
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
@@ -293,8 +293,8 @@ txt = txt.replace(cake_old, 'MoveProp("intro_cake",(t<74.5&&!(t>=71.3&&t<72.35))
 # now holds 92 until 6.8 s and the overlay does the rest
 fl_old = 'if(t<6.8)fadeAlpha=92;else if(t<7.05)fadeAlpha=92*(7.05-t)/0.25;'
 assert txt.count(fl_old) == 1
-txt = txt.replace(fl_old, 'if(t<6.8)fadeAlpha=92;')
-txt = txt.replace('cutTab <- [', 'r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.8&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace(fl_old, 'if(t<6.85)fadeAlpha=92;')   # r10cf: the video stays dark to 6.85 s
+txt = txt.replace('cutTab <- [', 'r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.85&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}' + chr(10) + 'cutTab <- [', 1)
 sf_old = '    SetLensGlow(t);' + chr(10)
 assert txt.count(sf_old) == 1
 txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))
