@@ -44,15 +44,15 @@ Published build: `corehub_r10bh` + `director_r10bh` (outputs/Corehub-Intro). Tes
 |---|---|---|---|---|---|
 | 1 | Opening room | 0–22 | 7.5 | 8.5 | ceiling bright/neutral looking up and dark at grazing angles; far wall and chamber glass toned to the video; rubble shapes |
 | 2 | Iris and ascent | 22–32.5 | 7.5 | 9 | matches shot for shot; iris petal edge shading, small falling debris at 26 s |
-| 3 | Rust room | 32.5–39 | 4 | 7.5 | far wall cut to the lit panel, dark C-bend, post under the ring (33 s); 34–36 s framings still off |
+| 3 | Rust room | 32.5–39 | 4 | 8 | r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
 | 4 | Pod rise | 39.5–49 | 4 | 8 | dark walls and rings; white chrome drop ahead; the run ends at a pale crossing tube and a pale wall (46.5–48.9 s) like the video; pods still read as round blobs |
 | 5 | Cube passage | 48–55 | 4.5 | 8.5 | cube hidden until 51.5 s like the video; 48.5 s pale tube interior |
-| 6 | Processing tower | 55.3–65 | 4.5 | 8 | entrance now two shots with the video's dissolves (56.5, 58.6 s): rails only, pale collar, dark column with flange, rust back wall; collar framed a little large |
+| 6 | Processing tower | 55.3–65 | 4.5 | 8.5 | r10bn: the climb tube rings are dark and clear (no grey glass haze), like the video; the view stays on the scanning column (red laser, cube) until ~63.85 s before the turret-lift collar; collar framed a little large at 55.5 s |
 | 7 | Turret and "16" inlet | 65–74 | 5 | 8 | turret rises in the ring and holds front-on through the glare; dark bars round it; sign framed top-centre at 72.5–73 s; 71.5 s dissolve missing |
 | 8 | Transfer and scanners | 74–83 | 5 | 8 | light-grey shaft rings; cones/iris re-timed; 81.5 s iris framed closer than the video |
 | 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8.5 | gallery restaged (r10bc–bh): ring A at the dark room wall (91 s), pale copper ring B (92 s), rust wall (metalwall_bts_006a) across the view with the truss under it, the run to the broken flange on the right, a jagged black hole with cream boxes passing on the left (94–94.4 s), white collar tunnel narrowing to black (95 s) |
-| 10 | Factory passage | 96.6–99.8 | 6 | 8 | factory materials toned to the video's levels; the 98 s collar slab is gone (r10bb); walkway slabs still read flat and pale |
-| 11 | Lab and test chamber | 100–109.5 | 4 | 8.5 | chamber view matches (receptacle, checker, button, strip, black tiles); copper drop onto the receptacle |
+| 10 | Factory passage | 96.6–99.8 | 6 | 8.5 | r10bj/bm: floor and benches beyond the walkway darkened to the video's near-black (the walkway stays mid grey); 98 s collar darkened for its frame |
+| 11 | Lab and test chamber | 100–109.5 | 4 | 9 | r10bl: from the tube the video sees black tiles with a grey pipe and a small white sign on the right (a screen hides the test chamber until the 102.8 s turn); chamber view matches |
 | 12 | Incinerator and final probes | 110–118.4 | 5.5 | 8.5 | r10bb: rust floor round the top collar and a dark plate round the iris hide the orange annulus (110–111.3 s); chamber orange toned down; the video's ball passes closer (115 s) |
 | 13 | Capsule and ending | 118.4–134 | 6 | 8.5 | r10bg: rings frame the capsule until ~120.9 s; the turn holds on the close concrete wall (123.35–123.65 s) before the dip to the vault doorway; tube walls still grey where the video shows red-orange strips |
 

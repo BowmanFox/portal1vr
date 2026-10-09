@@ -65,6 +65,7 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           91.5: (12.0, -12.0, 0.0), 91.75: (8.0, -17.0, 0.0), 92.0: (6.0, -18.0, 0.0), 92.25: (4.0, -20.0, 0.0), 92.5: (6.0, -29.0, 0.0),
           92.75: (8.0, -48.0, 0.0), 93.0: (5.0, -53.0, 0.0), 93.25: (7.0, -58.0, 0.0), 93.5: (5.0, -56.0, 0.0), 93.75: (8.0, -56.0, 0.0),
           94.0: (2.0, -35.0, 0.0), 94.25: (2.0, -33.0, 0.0), 94.5: (0.0, 20.0, 0.0),
+          63.25: (-16.0, 118.0, 0.0), 63.5: (-16.0, 118.0, 0.0), 63.75: (-15.0, 118.0, 0.0), 63.86: (-15.0, 118.0, 0.0), 63.87: (43.0, 4.0, 0.0),
           123.2: (-2.0, 40.0, 0.0), 123.35: (0.0, 88.0, 0.0), 123.4: (0.0, 89.0, 0.0), 123.5: (0.0, 90.0, 0.0), 123.6: (0.0, 92.0, 0.0), 123.65: (0.0, 94.0, 0.0),
           95.0: (0.0, 46.0, 0.0), 95.25: (0.0, 40.0, 0.0),   # r10bi: the cream collar sits at ~85% of the frame width (video)
           # r10ax: pod rise -- the video looks straight up the tube (far end at the frame centre)
@@ -148,7 +149,11 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            # r10bf: capsule -- the video turns from the cracked pane to a close concrete wall and holds it (123.35-123.65 s)
            # before the dissolve to the vault doorway; the wall segment is x 11376-11492 at y 140
            123.2: (11410.0, 40.0, 148.0), 123.35: (11434.0, 92.0, 145.0), 123.4: (11433.0, 93.0, 145.0), 123.5: (11431.0, 94.0, 145.0),
-           123.6: (11428.0, 95.0, 145.0), 123.65: (11424.0, 95.0, 145.0)}
+           123.6: (11428.0, 95.0, 145.0), 123.65: (11424.0, 95.0, 145.0),
+           # r10bn: the video stays in the tower on the scanning column (red laser, cube) until ~63.85 s, then goes to the
+           # turret-lift collar from above; the descent now starts at its 63.75 s pose
+           63.25: (4010.0, 0.0, 1320.0), 63.5: (4010.0, 0.0, 1295.0), 63.75: (4010.0, 0.0, 1270.0), 63.86: (4010.0, 0.0, 1262.0),
+           63.87: (4390.0, 45.0, 1535.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
 kd = dict(kn)
 for k, q in pos_set.items():
@@ -159,7 +164,7 @@ newpos = 'positions <- [\n' + ',\n'.join('{t=%.8f,p=Vector(%.8f,%.8f,%.8f)}' % (
 txt = txt[:ps] + newpos + txt[pe:]
 fades = [[62.9,63.05,0,235],[63.05,63.3,235,0],[52.45,52.55,0,110],[52.55,52.68,110,0],[38.70,38.9388,0,255],[39.2725,39.60,255,0],[53.83,54.1206,0,255],[54.8547,55.27,240,240],
          [55.27,55.47,240,0],[82.55,83.1829,40,255],[84.5510,84.97,255,0],[95.33,95.7288,0,255],
-         [104.97,105.305,0,255],[56.37,56.52,0,75],[56.52,56.70,75,0],[58.42,58.58,0,100],[58.58,58.72,100,0],[109.40,109.7094,0,255],[109.8428,110.6,255,0],[123.60,123.70,0,150],[123.70,123.82,150,0]]
+         [104.97,105.305,0,255],[56.37,56.52,0,75],[56.52,56.70,75,0],[58.42,58.58,0,100],[58.58,58.72,100,0],[109.40,109.7094,0,255],[109.8428,110.6,255,0],[123.60,123.70,0,150],[123.70,123.82,150,0],[102.72,102.80,0,110],[102.80,102.90,110,0],[63.78,63.865,0,150],[63.865,63.97,150,0]]
 anchor = '    SetScreenBlack(fadeAlpha);'
 assert txt.count(anchor) == 1
 txt = txt.replace(anchor, '    foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}\n' + anchor)
@@ -211,6 +216,8 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
             'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
+            '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
+            '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
             '{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};'
             '{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));'

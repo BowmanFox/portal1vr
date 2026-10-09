@@ -915,6 +915,46 @@ if ff:
     box((-6600, -6744, 140), (-3500, -6090, 156), FAC_FLOOR_DARK, world=False)
     box((-6600, -6090, 140), (-3500, -5904, 156), 'corehub_intro/p9_factory_v4_floor', world=False)
 print('factory floor split', ff)
+# the grey benches beyond the walkway read as pale slabs; the video shows dark machinery there
+FAC_BENCH_DARK = unlit('fac_bench_dark', 'lights/white002', '0.20 0.17 0.14')
+fb = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if hi.y <= -6090 and lo.x >= -6600 and hi.x <= -3500 and lo.z >= 140 and hi.z <= 260:
+            for f in so.sides:
+                if f.mat.lower() == 'corehub_intro/p9_factory_v4_grey': f.mat = FAC_BENCH_DARK; fb += 1
+print('factory benches darkened', fb)
+# ---------- r10bl: lab tube view (100-102.8 s) ----------
+# from the lab tube the video sees black tiles on the right with a grey pipe and a small white sign; our white test
+# chamber and its turret cables showed there. A black-tiled screen (func_brush) and the pipe stand between the tube and
+# the chamber until the camera turns at 102.8 s, when the director moves them away.
+ls_wall = v.make_prism(Vec(7480, -156, 60), Vec(7990, -148, 480), LABDARK).solid
+ls_sign = v.make_prism(Vec(7600, -148, 196), Vec(7636, -146, 232), SIGNW).solid
+v.create_ent('func_brush', targetname='r10_lab_screen', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend([ls_wall, ls_sign])
+for i, x in enumerate((7480, 7730)):
+    v.create_ent('prop_dynamic_override', targetname=f'r10_lab_pipe_{i}', model='models/corehub_intro/r10_post.mdl',
+                 origin=f'{x} -134 272', angles='0 0 0', solid='0', disableshadows='1')
+# ---------- r10bn: tower climb tube ----------
+# the video's tube rings in the tower are dark and clear; the light skin and the glass haze greyed the whole climb
+tt = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] in ('models/corehub_intro/transport_ring.mdl', 'models/corehub_intro/transport_ring_bend.mdl'):
+        o = Vec.from_str(e['origin'])
+        if 3650 < o.x < 4100 and abs(o.y) < 150 and 1250 < o.z < 1750:
+            e['model'] = e['model'].replace('.mdl', '_ng.mdl'); e['skin'] = '0'
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = f'r10_tw_tube_{tt}'; e['solid'] = '0'; tt += 1   # r10bp: hidden during the climb
+print('tower tube rings dark/clear', tt)
+# ---------- r10bo: pod walls ----------
+# the video's pod walls are shelves of small oval pods in rows with thin cables hanging in front (40-42 s); the old
+# panels carried a few large round blobs
+pw = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl':
+        e['model'] = 'models/corehub_intro/pod_wall2.mdl'; pw += 1
+print('pod walls -> shelves', pw)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
