@@ -568,7 +568,7 @@ v.create_ent('prop_dynamic_override', targetname='r10_tw_column', model='models/
              angles='0 0 0', solid='0', disableshadows='1')
 # rusty back wall behind the collar (the video shows rust panels there, not the lit tower interior); a func_brush the
 # director moves away at the 58.6 s dissolve, before the camera climbs through
-bw = v.make_prism(Vec(3830, -150, 900), Vec(3846, 420, 2400), RUST_DARK).solid
+bw = v.make_prism(Vec(3830, -420, 900), Vec(3846, 420, 2400), unlit('rust_tw', 'metal/metalwall_bts_006a', '0.85 0.85 0.88')).solid   # r10cn: wider and lit like the video's rust behind the junction (55.5-58.25 s)
 for f in bw.sides: f.lightmap = 32
 v.create_ent('func_brush', targetname='r10_tw_backwall', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(bw)
@@ -1235,11 +1235,11 @@ def _veil_c(az):
     return 0.2
 pv = []
 for k in range(16):
-    yaw = k * 22.5; rr = 41.0
+    yaw = k * 22.5; rr = 60.0   # r10cp: outside the rails (the video's rails read black, unveiled)
     c = round(_veil_c(yaw), 3)
     POD_VEIL = unlit(f'pod_veil_{k:02d}', 'lights/white002', f'{c} {c} {round(c * 1.02, 3)}', '"$translucent" "1"\n"$alpha" "0.36"\n"$nocull" "1"\n')
     cx, cy = 1856 + rr * _m.cos(_m.radians(yaw)), -256 + rr * _m.sin(_m.radians(yaw))
-    sol = v.make_prism(Vec(-1, -8.6, 560), Vec(1, 8.6, 1120), POD_VEIL).solid
+    sol = v.make_prism(Vec(-1, -12.5, 560), Vec(1, 12.5, 1120), POD_VEIL).solid
     sol.localise(Vec(cx, cy, 0), _st.Angle(0, yaw, 0))
     rx, ry = _m.cos(_m.radians(yaw)), _m.sin(_m.radians(yaw))
     for f in sol.sides:   # side normals point into the solid: the face nearest the axis has its normal along +radial
@@ -1260,6 +1260,36 @@ print('pod sleeve', len(pv), sum(1 for so in pv for f in so.sides if 'pod_veil' 
 # the video's tubes under the lift collar read dark grey, ours near black (65.6-66.3 s our frames 35-46 vs the video's 50-64)
 (MOD / 'materials/models/corehub_intro/r10_tu_tube.vmt').write_text(
     '"UnlitGeneric"\n{\n"$basetexture" "lights/white002"\n"$color" "[0.16 0.16 0.165]"\n"$model" "1"\n}\n')
+# ---------- r10cn: tower entrance junction (55.5-58.55 s) ----------
+# the bend at the junction read as a big glossy dome in front of the collar; the video sees the collar ring with the tube's
+# far end small inside it and rust behind. The bend becomes dynamic so the director can take it out for the approach.
+for e in v.entities:
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/transport_ring_bend.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 3754) < 1 and abs(o.y) < 1 and abs(o.z - 1152) < 1:
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = 'r10_tw_bend'; print('tower bend named')
+# ---------- r10co: cube passage tube end (52.5-53.9 s) ----------
+# the video is still deep in the tube when it fades (53.0-53.8 s: rings nested far ahead, the cube among them); ours
+# reached the wall collar and looked out at the lit tower room. Rings stand in beyond the collar until the fade.
+for k, x in enumerate((3431, 3509, 3587, 3665)):
+    v.create_ent('prop_dynamic_override', targetname=f'r10_cp_ring_{k}', model='models/corehub_intro/transport_ring.mdl',
+                 origin=f'{x} 0 1152', angles='0 0 0', skin='2', solid='0', disableshadows='1')
+# and the tube walls read as frosted grey there (53.0-53.8 s), not clear: a translucent sleeve along the tube (x axis)
+CP_VEIL = unlit('cp_veil', 'lights/white002', '0.46 0.46 0.47', '"$translucent" "1"\n"$alpha" "0.42"\n"$nocull" "1"\n')
+cpv = []
+for k in range(16):
+    ang = k * 22.5; rr = 60.0   # r10cp: outside the rails
+    cy, cz = rr * _m.cos(_m.radians(ang)), 1152 + rr * _m.sin(_m.radians(ang))
+    sol = v.make_prism(Vec(2950, -12.5, -1), Vec(3720, 12.5, 1), CP_VEIL).solid
+    sol.localise(Vec(0, cy, cz), _st.Angle(0, 0, ang - 90))
+    ry, rz = _m.cos(_m.radians(ang)), _m.sin(_m.radians(ang))
+    for f in sol.sides:
+        n = f.normal()
+        if n.y * ry + n.z * rz < 0.9: f.mat = NODRAW
+    cpv.append(sol)
+v.create_ent('func_brush', targetname='r10_cp_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(cpv)
+print('cube passage sleeve', len(cpv), sum(1 for so in cpv for f in so.sides if f.mat == CP_VEIL))
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

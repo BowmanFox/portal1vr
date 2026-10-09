@@ -1,1 +1,1 @@
-Newest test build: corehub_r10cm + director_r10cm. Published build (map\): corehub_r10ck + director_r10cl.
+Newest test build: corehub_r10cp + director_r10cp. Published build (map\): corehub_r10cm + director_r10cm.
