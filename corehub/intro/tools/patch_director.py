@@ -180,11 +180,11 @@ txt = txt.replace(cube_old, cube_new)
 txt = txt.replace('cutTab <- [', 'r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10TurretZ <- [[65.9,820],[66.45,1010]];r10GlowPath <- [[114.0,Vector(8425,61,900)],[114.5,Vector(8454,28,740)],[115.1,Vector(8448,0,600)],[116.4,Vector(8436,-24,640)]];' + chr(10) + 'cutTab <- [', 1)
 # turret laser in the lens (69.3-71.3 s): the video washes the frame pink; a second env_fade tints the screen red
-txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,80],[70.2,104],[70.9,104],[71.3,0]];r10RedAlpha <- 0;' + chr(10) +
+txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,70],[70.2,88],[70.9,88],[71.3,0]];r10RedAlpha <- 0;' + chr(10) +
     'function SetRedHaze(t){local a=(t>=69.2&&t<71.3)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;' +
     'local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);' +
     'EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}' + chr(10) +
-    'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.3);if(g==r10GlowOn)return;EntFire("laser_turret_glow",g?"TurnOn":"TurnOff","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
+    'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.3);if(g){local a=ReferenceAngles(t);local q=PositionAt(t);local pr=(a.x+33.0)*0.0174533;local yr=a.y*0.0174533;MoveProp("r10_glow_b",q+Vector(cos(pr)*cos(yr),cos(pr)*sin(yr),-sin(pr))*26.0);};if(g==r10GlowOn)return;EntFire("laser_turret_glow",g?"TurnOn":"TurnOff","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
 txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
@@ -216,8 +216,9 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
             'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
-            '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};'
+            '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);MoveProp("r10_close_arm_a",p);MoveProp("r10_close_arm_b",p);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
+            '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=66.25&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
             '{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};'
@@ -226,7 +227,13 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
 txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;' + chr(10) + 'cutTab <- [', 1)
-txt = txt.replace('cutTab <- [', 'r10CloseCones <- [[79.75,Vector(4800,0,-260)],[80.0,Vector(4840,40,-170)],[80.25,Vector(4800,0,-120)],[80.5,Vector(4800,0,-110)],[80.75,Vector(4815,0,-150)],[81.05,Vector(4845,0,-200)]];' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10CloseCones <- [[79.75,Vector(4827,0,-260)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
+tl_old = '    local turretOn=(t>=67.2 && t<71.35)?1:0;'
+assert txt.count(tl_old) == 1
+txt = txt.replace(tl_old, '    local turretOn=(t>=67.2 && t<69.4)?1:0;')   # r10bs: the video shows only the glare from 69.5 s
+sh_old = '    local shaftOn=t<79.9?1:0;'
+assert txt.count(sh_old) == 1
+txt = txt.replace(sh_old, '    local shaftOn=(t>=71.2 && t<79.9)?1:0;')   # r10bs: no scanner lasers in the turret room shot
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)

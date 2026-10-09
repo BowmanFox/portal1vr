@@ -961,6 +961,107 @@ print('pod walls -> shelves', pw)
 for nm, mdl in (('r10_close_cones', 'transfer_scan_cones'), ('r10_close_head', 'transfer_scan_head')):
     v.create_ent('prop_dynamic_override', targetname=nm, model=f'models/corehub_intro/{mdl}.mdl', origin='4800 0 700',
                  angles='90 0 0', solid='0', disableshadows='1')
+# ---------- r10bs: turret room backdrop and glare, scanner close-up arm, rust room panel ----------
+# the video's wall behind the turret is the rust-patched tile (68-69.25 s: mean 80/76/76, textured); the grey-seamed
+# tile read as a dark grooved wall (50/49/50)
+RUST_TU = unlit('rust_tu', 'metal/metalwall_bts_006a', '1.22 1.30 1.36')
+tu = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if lo.x >= 4350 and hi.x <= 4840 and lo.y >= 90 and hi.y <= 340 and lo.z >= 850 and hi.z <= 1710:
+            for f in so.sides:
+                if f.mat.lower() == RUST.lower(): f.mat = RUST_TU; tu += 1
+print('turret backdrop faces -> 006a', tu)
+# the three thin cage posts stay in front of the grey band in our shot; the video's bars leave the frame by 67.5 s
+posts_tu = []
+for e in list(v.entities):
+    if e['classname'] != 'func_detail': continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if (4470 <= lo.x and hi.x <= 4670 and 95 <= lo.y and hi.y <= 170 and abs(lo.z - 950) < 1 and abs(hi.z - 1345) < 1
+                and hi.x - lo.x < 20):
+            posts_tu.append(so); continue
+        keep.append(so)
+    if len(keep) != len(e.solids):
+        e.solids[:] = keep
+        if not e.solids: v.remove_ent(e)
+if posts_tu:
+    v.create_ent('func_brush', targetname='r10_tu_posts', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+                 rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(posts_tu)
+print('turret cage posts -> func_brush', len(posts_tu))
+# the scanner shaft's rings and boards showed at the right of the turret shot; the video has the rust wall and band there
+scr_wall = v.make_prism(Vec(4716, -70, 850), Vec(4724, 420, 1500), RUST_TU).solid
+scr_band = v.make_prism(Vec(4712, -70, 950), Vec(4716, 420, 1011), BAND).solid
+v.create_ent('func_brush', targetname='r10_tu_screen', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend([scr_wall, scr_band])
+# glare (69.4-71.3 s): the video's red is a soft wedge from the eye down to the bottom of the frame (legs R-G ~50, corners
+# ~30); the wide beam ended at the lens and washed the whole lower half pink. Its own end point now sits just inside the
+# bottom of the frame (moved by the director) and the thin laser is off during the glare.
+v.create_ent('info_target', targetname='r10_glow_b', origin='4555 20 987', spawnflags='1')
+for e in v.entities:
+    if e['targetname'] == 'laser_turret_glow':
+        e['LightningEnd'] = 'r10_glow_b'; e['BoltWidth'] = '34'; e['renderamt'] = '12'; e['rendercolor'] = '255 50 60'
+# the shaft scanners' lasers read as a bright starburst; the video's are thin and dim
+sb = 0
+for e in v.entities:
+    if e['classname'] == 'env_beam' and e['targetname'].startswith('shaft_') and e['targetname'].endswith('_beam'):
+        e['renderamt'] = '38'; sb += 1
+print('shaft beams dimmed', sb)
+# scanner close-up (79.75-81 s): the head rides on a long white arm crossing the frame (top-left to bottom-right)
+for nm, yaw in (('r10_close_arm_a', 195), ('r10_close_arm_b', 15)):
+    v.create_ent('prop_dynamic_override', targetname=nm, model='models/corehub_intro/transfer_scan_link.mdl', origin='4800 0 700',
+                 angles=f'0 {yaw} 0', solid='0', disableshadows='1')
+# rust room: junction A carries only the left side pipe in the video (33-33.25 s)
+for e in list(v.entities):
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/r10_post.mdl' and e['origin'] == '416 -5560 2688':
+        v.remove_ent(e); print('junction A right pipe removed')
+# rust room: the video's panel behind junction A is taller and wider (33.0-33.2 s: top at 25 -> 10 %, left edge 26 -> 15 %);
+# open the black frame to y -6320..-4977, z 2510..ceiling and carry the rust wall up to the ceiling
+RUST_RR = unlit('rust_rr', 'metal/metalwall_bts_006a', '1.00 1.00 1.02')
+win = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if abs(lo.x - 878) < 1 and abs(hi.x - 884) < 1 and lo.z >= 2399 and hi.z <= 3001 and lo.y >= -6501 and hi.y <= -4599:
+            win += 1; continue
+        keep.append(so)
+    if len(keep) != len(e.solids): e.solids[:] = keep
+if win:
+    box((878, -6500, 2400), (884, -6320, 3000), 'corehub_intro/black_u', world=False)
+    box((878, -6320, 2400), (884, -4977, 2510), 'corehub_intro/black_u', world=False)
+    box((878, -4977, 2400), (884, -4600, 3000), 'corehub_intro/black_u', world=False)
+    box((896, -6320, 2848), (912, -4800, 2976), RUST_RR, world=False)
+print('rust room window frame pieces replaced', win)
+# rust room walls read 25 % darker and redder than the video (33-37 s: 47-55 vs 59-71)
+rr = 0
+for e in [v.spawn] + list(v.entities):
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if lo.x >= -2340 and hi.x <= 3270 and lo.y >= -6700 and hi.y <= -3460 and lo.z >= -560 and hi.z <= 3010:
+            for f in so.sides:
+                if f.mat.lower() == 'corehub_intro/steel_u': f.mat = RUST_RR; rr += 1
+print('rust room faces -> rust_rr', rr)
+# ---------- r10bt: glare as a world-space veil with the red glow in front of it ----------
+# the video's glare frame is nearly flat grey (sd 3-5 over the wall, mean 107) with the red glow on top of it (legs
+# R +46, corners +30). The screen fade dimmed the red along with everything else, so the veil is now a translucent grey
+# plane 25 units in front of the lens and the glow beam runs between 9 and 20 units, in front of the veil. Both are
+# kept at their offset from the lens by the director.
+HAZE = unlit('haze', 'lights/white002', '0.45 0.45 0.45')
+hz = v.make_prism(Vec(-1, -75, 955), Vec(1, 75, 1055), HAZE).solid
+hz.localise(Vec(4544 + 25 * math.cos(math.radians(61)), 25 * math.sin(math.radians(61)), 0), __import__('srctools').Angle(0, 61, 0))
+v.create_ent('func_brush', targetname='r10_haze_plane', Solidity='1', spawnflags='2', rendermode='2', renderamt='0',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(hz)
+v.create_ent('info_target', targetname='r10_glow_a', origin='4554 16 1006', spawnflags='1')
+for e in v.entities:
+    if e['targetname'] == 'laser_turret_glow':
+        e['LightningStart'] = 'r10_glow_a'; e['BoltWidth'] = '10'; e['renderamt'] = '10'; e['rendercolor'] = '255 40 50'
+for e in v.entities:
+    if e['targetname'] == 'r10_red_fade': e['renderamt'] = '0'
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
