@@ -1298,9 +1298,9 @@ print('cube passage sleeve', len(cpv), sum(1 for so in cpv for f in so.sides if 
 # centre r 20, black ring and cross), rust floor below. The tube's rings (with their glass) leave the shaft meanwhile.
 SC_GREY = unlit('sc_grey', 'lights/white002', '0.49 0.49 0.49')
 SC_STEP = unlit('sc_step', 'lights/white002', '0.30 0.30 0.30')
-SC_DARK = unlit('sc_dark', 'lights/white002', '0.13 0.13 0.13')
-SC_RUST = unlit('sc_rust', 'metal/metalwall_bts_006a', '0.62 0.62 0.66')
-SC_WHITE = unlit('sc_white', 'lights/white002', '0.80 0.80 0.80')
+SC_DARK = unlit('sc_dark', 'lights/white002', '0.22 0.22 0.22')   # r10cr: the video's gaps read 52-58, ours 27-34
+SC_RUST = unlit('sc_rust', 'metal/metalwall_bts_006a', '0.85 0.84 0.88')
+SC_WHITE = unlit('sc_white', 'lights/white002', '0.70 0.70 0.70')
 SC_BLACK = unlit('sc_black', 'lights/white002', '0.05 0.05 0.05')
 def ring12(a, b, z0, z1, top, inner=None, cx=4800.0, cy=0.0, n=12, rot=15.0):
     out = []
@@ -1319,17 +1319,21 @@ def ring12(a, b, z0, z1, top, inner=None, cx=4800.0, cy=0.0, n=12, rot=15.0):
             f.lightmap = 32
         out.append(so)
     return out
+# r10cr: re-measured with the video's 16:10 render stretch undone (its circles are 1.11x wider than tall): ring B top 605
+# (grey 95-175, dark rust 175-247, grey 247-300), ring A 640-649.4 (dark chamfer 123-134, grey 134-159), ring C 551-563
+# (grey 51-85), target 515.5 (r 32, white centre r 18)
 scs = []
-scs += ring12(86.0, 101.6, 695, 710, SC_GREY)                 # ring A: grey trim round the hole
-scs += ring12(101.6, 230.0, 700, 709.5, SC_RUST, NODRAW)     # ring A: dark rust beyond
-scs += ring12(95.0, 230.0, 593, 605, SC_GREY)                 # ring B
-scs += ring12(52.0, 66.0, 552, 564, SC_GREY)                  # ring C, inner step
-scs += ring12(66.0, 80.5, 552, 576, SC_GREY, SC_STEP)         # ring C, outer step
-scs += ring12(0.0, 33.8, 494, 506, SC_GREY)                   # target disc
-scs += ring12(0.0, 20.0, 506, 507, SC_WHITE)                  # its white centre
-scs += ring12(20.0, 23.0, 506, 507.2, SC_BLACK)               # black ring
+scs += ring12(134.0, 152.0, 640.4, 649.4, SC_GREY)            # ring A grey top (r10cs: outer edge 0.96x)
+scs += ring12(123.4, 134.0, 640.4, 646.7, SC_DARK, SC_DARK)   # ring A dark chamfer round its hole
+scs += ring12(95.0, 174.8, 593, 605, SC_GREY)                 # ring B
+scs += ring12(174.8, 226.0, 593, 605, SC_RUST, NODRAW)        # ring B dark rust band
+scs += ring12(226.0, 300.0, 593, 605, SC_GREY, NODRAW)        # ring B outer grey (r10cs: from 226, the video's outer edge 0.91x)
+scs += ring12(51.1, 81.0, 551.2, 563.2, SC_GREY)              # ring C (r10cs: outer edge 0.95x)
+scs += ring12(0.0, 31.8, 503.5, 515.5, SC_GREY)               # target disc
+scs += ring12(0.0, 18.0, 515.5, 516.5, SC_WHITE)              # its white centre
+scs += ring12(18.0, 21.0, 515.5, 516.7, SC_BLACK)             # black ring
 for k in range(2):                                            # black cross
-    so = v.make_prism(Vec(-19, -0.8, 507), Vec(19, 0.8, 507.6), SC_BLACK).solid
+    so = v.make_prism(Vec(-17, -0.8, 516.5), Vec(17, 0.8, 517.1), SC_BLACK).solid
     so.localise(Vec(4800, 0, 0), Angle(0, 15 + 90 * k, 0)); scs.append(so)
 for k in range(4):                                            # the tube's four rails, as wide as the video's spokes
     so = v.make_prism(Vec(45, -2.5, 330), Vec(49, 2.5, 930), SC_BLACK).solid
@@ -1337,10 +1341,15 @@ for k in range(4):                                            # the tube's four 
     for f in so.sides:
         if abs(f.normal().z) > 0.9: f.mat = NODRAW
     scs.append(so)
+wp = v.make_prism(Vec(4975, -300, 330), Vec(4979, 300, 900), SC_DARK).solid   # r10cs: the "16" wall read olive at the frame's edge; the video is dark there
+for f in wp.sides:
+    if f.normal().x < 0.9: f.mat = NODRAW   # keep the face toward the shaft (normal into the solid points +x)
+scs.append(wp)
 fl = v.make_prism(Vec(4540, -260, 322), Vec(5060, 260, 330), SC_RUST).solid   # rust floor under the stack
 for f in fl.sides:
     if f.normal().z > -0.9: f.mat = NODRAW
 scs.append(fl)
+v.create_ent('env_fade', targetname='r10_veil_fade', origin='4800 0 700', rendercolor='95 95 95', renderamt='0', duration='0.001', holdtime='0', spawnflags='8')
 v.create_ent('func_brush', targetname='r10_sc_rings', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(scs)
 shr = 0
@@ -1350,6 +1359,24 @@ for e in v.entities:
         if abs(o.x - 4800) < 5 and abs(o.y) < 5 and 560 < o.z < 940:
             e['classname'] = 'prop_dynamic_override'; e['targetname'] = f'r10_sh_ring_{int(round(o.z))}'; e['solid'] = '0'; shr += 1
 print('scanner shaft rings', len(scs), 'solids; tube rings made dynamic', shr)
+# r10cs: the video's scanner boards sit between the rails at the rings' inner edges: two long ones at ring A's level
+# (image 0.51-0.87 at 77 s) and two short ones over ring B (0.30-0.47), not six long boards reaching the axis
+for e in list(v.entities):
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/scanner_board.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.z - 620) < 1 or abs(o.z - 760) < 1: v.remove_ent(e)
+    if e['targetname'] in ('shaft_620_2_a', 'shaft_620_2_b', 'shaft_620_2_beam', 'shaft_760_2_a', 'shaft_760_2_b', 'shaft_760_2_beam'): v.remove_ent(e)
+def _polar(rad, az, z):
+    return f'{4800 + rad * math.cos(math.radians(az)):.1f} {rad * math.sin(math.radians(az)):.1f} {z}'
+for grp, (z, rad, sc, azs) in {'760': (680, 150, '0.8', (10, 190)), '620': (612, 130, '0.55', (100, 280))}.items():
+    for i, az in enumerate(azs):
+        v.create_ent('prop_dynamic_override', model='models/corehub_intro/scanner_board.mdl', origin=_polar(rad, az, z),
+                     angles=f'0 {az} 0', modelscale=sc, solid='0', disableshadows='1')
+        for e in v.entities:
+            if e['targetname'] in (f'shaft_{grp}_{i}_a', f'shaft_{grp}_{i}_beam'): e['origin'] = _polar(rad - (66 if grp == '760' else 44), az, z - 5)
+            if e['targetname'] == f'shaft_{grp}_{i}_b': e['origin'] = _polar(6, az + 180, 520)
+for e in v.entities:   # r10cr: the shaft lasers read as bright pink lines over the rings; the video's are faint
+    if e['classname'] == 'env_beam' and e['targetname'].startswith('shaft_') and e['targetname'].endswith('_beam'): e['renderamt'] = '20'
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

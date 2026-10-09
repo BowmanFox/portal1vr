@@ -201,10 +201,11 @@ for _t in [k for k in kd if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del kd[_t]  
 # r10cq: scanner shaft (75.75-80.25 s). The video's ring edges, tracked every 0.1 s, give its descent: still 75.9-76.4 s,
 # a quick step at 76.45 s and 77.65 s, otherwise steady; scaled to the rebuilt ring stack (ring B top z 605 = 95 units)
 for _t in [k for k in kd if 75.6 < k < 80.3]: del kd[_t]
-pos_set.update({75.75: (4800.0, 0.0, 875.0), 75.9: (4800.0, 0.0, 863.4), 76.4: (4800.0, 0.0, 863.4), 76.5: (4800.0, 0.0, 847.0),
-                77.0: (4800.0, 0.0, 825.6), 77.4: (4800.0, 0.0, 810.2), 77.6: (4800.0, 0.0, 805.0), 77.7: (4800.0, 0.0, 789.5),
-                78.0: (4800.0, 0.0, 772.6), 78.5: (4800.0, 0.0, 743.7), 79.0: (4800.0, 0.0, 714.1), 79.5: (4800.0, 0.0, 690.5),
-                80.0: (4800.0, 0.0, 663.0), 80.25: (4800.0, 0.0, 650.0)})
+pos_set.update({75.75: (4800.0, 0.0, 898.0), 76.0: (4800.0, 0.0, 894.8), 76.25: (4800.0, 0.0, 881.7), 76.5: (4800.0, 0.0, 867.4),
+                76.75: (4800.0, 0.0, 848.2), 77.0: (4800.0, 0.0, 841.4), 77.25: (4800.0, 0.0, 826.7), 77.5: (4800.0, 0.0, 812.1),
+                77.75: (4800.0, 0.0, 798.3), 78.0: (4800.0, 0.0, 779.5), 78.25: (4800.0, 0.0, 763.9), 78.5: (4800.0, 0.0, 749.9),
+                78.75: (4800.0, 0.0, 733.9), 79.0: (4800.0, 0.0, 721.8), 79.25: (4800.0, 0.0, 707.9), 79.5: (4800.0, 0.0, 693.5),
+                79.75: (4800.0, 0.0, 677.1), 80.0: (4800.0, 0.0, 662.2), 80.25: (4800.0, 0.0, 650.0)})   # r10cr: re-measured with the video's 16:10 stretch undone
 for k, q in pos_set.items():
     for t0 in list(kd):
         if abs(t0 - k) < 1e-4: del kd[t0]
@@ -318,9 +319,13 @@ fl_old = 'if(t<6.8)fadeAlpha=92;else if(t<7.05)fadeAlpha=92*(7.05-t)/0.25;'
 assert txt.count(fl_old) == 1
 txt = txt.replace(fl_old, 'if(t<6.85)fadeAlpha=92;')   # r10cf: the video stays dark to 6.85 s
 txt = txt.replace('cutTab <- [', 'r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.85&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10Veil <- [[77.3,0],[77.42,110],[77.5,186],[77.75,186],[77.8,125],[78.5,125],[78.6,150],[78.7,181],[79.3,181],[79.4,115],[79.7,115],[79.8,0]];r10VeilA <- 0;' + chr(10) +
+    'function SetVeil(t){local a=(t>=77.3&&t<79.8)?Lerp1(r10Veil,t).tointeger():0;if(a==r10VeilA)return;' +
+    'local f=Entities.FindByName(null,"r10_veil_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);' +
+    'EntFire("r10_veil_fade","Fade","",0);r10VeilA=a;}' + chr(10) + 'cutTab <- [', 1)
 sq_old = '    SetRedHaze(t);' + chr(10)
 assert txt.count(sq_old) == 1
-txt = txt.replace(sq_old, sq_old + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
+txt = txt.replace(sq_old, sq_old + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
 sf_old = '    SetLensGlow(t);' + chr(10)
 assert txt.count(sf_old) == 1
 txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))
