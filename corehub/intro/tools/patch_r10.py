@@ -1451,6 +1451,7 @@ for lo, hi, keep in (((5850, 50, 330), (5852, 250, 640), 'px'), ((6052, 50, 330)
         inner = {'px': n.x < -0.9, 'nx': n.x > 0.9, 'py': n.y < -0.9, 'ny': n.y > 0.9}[keep]
         if not inner: f.mat = NODRAW
     sw.append(so)
+sw += ring12(70.0, 142.0, 324, 328, RUST, NODRAW, cx=5952.0, cy=150.0)   # r10dc: a rust ceiling round the funnel (the room's white walls showed through)
 v.create_ent('func_brush', targetname='r10_sl_shaft', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sw)
 dst = R10 / 'build' / (NAME + '.vmf')
