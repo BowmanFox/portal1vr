@@ -125,12 +125,16 @@ knots.update({112.0: (83.0, 0.0, 22.0), 112.25: (90.0, 0.0, 26.0), 112.5: (90.0,
               114.5: (90.0, 0.0, 8.1)})
 assert txt.count('{name="intro_discard_cube",poses=[[110.7500,Vector(8389.8750,-37.7813,1590.0000)],[111.2500,Vector(8401.3333,47.2500,1460.0000)],[112.0000,Vector(8493.8118,-31.5612,1409.7186)],[112.5000,Vector(8486.4625,-14.5516,1380.0000)],[113.0000,Vector(8506.2973,-1.7792,1325.0000)],') == 1
 txt = txt.replace('{name="intro_discard_cube",poses=[[110.7500,Vector(8389.8750,-37.7813,1590.0000)],[111.2500,Vector(8401.3333,47.2500,1460.0000)],[112.0000,Vector(8493.8118,-31.5612,1409.7186)],[112.5000,Vector(8486.4625,-14.5516,1380.0000)],[113.0000,Vector(8506.2973,-1.7792,1325.0000)],', '{name="intro_discard_cube",poses=[[111.9000,Vector(8382.0,-26.0,1587.0)],[112.2500,Vector(8401.7,-17.4,1547.0)],[112.5000,Vector(8404.6,-23.2,1519.0)],[112.7500,Vector(8401.2,-27.0,1486.0)],[113.0000,Vector(8385.0,-40.0,1477.0)],')
-for _a, _b in [("local capsuleOffset=(capsuleEye+Vector(34.75,33.0,-10)-capsuleRest)*capsuleBlend;",
-                "local r10sl=(t-125.95)/0.9;if(r10sl<0)r10sl=0;if(r10sl>1)r10sl=1;r10sl=r10sl*r10sl*(3-2*r10sl);local r10slv=Vector(0,-3.0+48.0*r10sl,0)*capsuleBlend;" + chr(10) + "    local capsuleOffset=(capsuleEye+Vector(34.75,33.0,-10)-capsuleRest)*capsuleBlend+r10slv;"),
-               ("local follow=eye+Vector(34.75,33.0,-10);", "local follow=eye+Vector(34.75,33.0,-10)+r10slv;"),
-               ('MoveProp("intro_pod",pod+capsuleOffset);', 'MoveProp("intro_pod",pod+capsuleOffset);{local dk=(t>=125.3&&t<128.0);if(dk!=r10PodDark){EntFire("intro_pod","Color",dk?"62 62 66":"255 255 255",0);r10PodDark=dk;}}')]:
-    assert txt.count(_a) == 1, _a
-    txt = txt.replace(_a, _b)
+# r10di: the capsule shell strip beside the lens (125.3-127 s) reads dark in the video and slides off the right edge by
+# 126.8 s (its curved left edge at 0.66/0.75/0.83/0.95 of the width at 126.0/126.25/126.5/126.75 s); ours stayed put
+_a = 'MoveProp("intro_pod_shell",(t>=125.3)?Vector(0,0,16)+eye-Vector(XHW+160,0,134):Vector(0,0,-3000));'
+_b = 'MoveProp("intro_pod_shell",(t>=125.3)?Vector(0,Lerp1(r10ShellSlide,t),16)+eye-Vector(XHW+160,0,134):Vector(0,0,-3000));'
+assert txt.count(_a) == 1, _a
+txt = txt.replace(_a, _b)
+txt = txt.replace('cutTab <- [', 'r10ShellSlide <- [[126.0,0.0],[126.25,3.6],[126.5,6.7],[126.75,11.3],[127.0,16.0]];' + chr(10) + 'cutTab <- [', 1)
+# r10dh: gallery breach (93.6-94.15 s) -- the video keeps the copper ring at the right with the hole inside its opening,
+# right of centre (0.75-0.8 of the width at 93.75-94 s); ours turned right early and showed the hole at the middle
+knots.update({93.625: (6.5, -50.0, 0.0), 93.75: (8.0, -40.0, 0.0), 93.875: (5.0, -32.0, 0.0), 94.0: (2.0, -30.0, 0.0), 94.125: (2.0, -30.0, 0.0)})
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -279,7 +283,6 @@ assert txt.count(anchor) == 1
 txt = txt.replace(anchor, '    foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}\n' + anchor)
 txt = txt.replace('cutTab <- [', 'r10Fades <- ' + str(fades).replace(' ', '') + ';\ncutTab <- [', 1)
 # the cube rides ahead in the lab tube (100-101.5 s) instead of sitting where the camera passes through it
-txt = txt.replace('cutTab <- [', 'r10PodDark <- false;' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10LabCube <- [[99.8,7565],[100,7575],[100.5,7600],[101,7625],[101.5,7640],[101.9,7900]];' + chr(10) + 'cutTab <- [', 1)
 # cube passage (52-53.8 s): the video dissolves from the far cube to a close one at ~52.55 s; the cube jumps
 # closer under a short dip instead of drifting slowly toward the camera
@@ -327,12 +330,12 @@ txt = txt.replace(lk_old, lk_new)
 drop_old = 'MoveProp("intro_drop",(t>=44.0 && t<47.4)?Vector(Lerp1(dropTab,t),0,1150):Vector(0,0,-3000));'
 drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0])'
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
-            'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
+            'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t>=48.2&&t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
             '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
             '{local ins=(t>=71.3&&t<72.35);local pet=(t>=71.3&&t<74.7);local pl=ins||(t>=73.4&&t<74.7);MoveProp("r10_inlet_plate",pl?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));local hid=Vector(0,0,-3000);local P1=[Vector(4761.8,38.2,950),Vector(4761.8,-38.2,950),Vector(4838.2,-38.2,950),Vector(4838.2,38.2,950)];local P2=[Vector(4838.2,38.2,950),Vector(4838.2,-38.2,950),Vector(4761.8,-38.2,950),Vector(4761.8,38.2,950)];if(pet){MoveProp("r10_inlet_frame_orig",hid);MoveProp("r10_inlet_frame2",Vector(4800,0,938));foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,q);foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,hid);}else{MoveProp("r10_inlet_frame2",hid);foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,hid);if(t>=74.7&&t<74.85){MoveProp("r10_inlet_frame_orig",Vector(4800,0,950));foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,q);};};};'
-            'MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));'
+            'MoveProp("r10_cube_sleeve",(t>=46.5&&t<48.2)||(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));'
             'MoveProp("r10_tu_tubes",(t<67.4)?Vector(4575,58,1340):Vector(0,0,-3000));'
             'MoveProp("r10_exit_collar",(t>=81.0&&t<82.4)?Vector(0,0,-3000):Vector(4967,0,256));'
             '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=63.87&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'

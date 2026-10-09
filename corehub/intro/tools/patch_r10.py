@@ -848,13 +848,13 @@ for e in v.entities:
     if not e['classname'].startswith('prop_'): continue
     o = Vec.from_str(e['origin'])
     if e['model'] == 'models/corehub_intro/r10_broken.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 185) < 1:
-        e['model'] = 'models/corehub_intro/r10_wallhole.mdl'; e['origin'] = '6679 150 255'; e['angles'] = '0 0 0'; be += 1   # r10bf
-        e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '1.6'; e['solid'] = '0'   # r10bg: the video's hole is ~0.35 of the frame
+        e['model'] = 'models/corehub_intro/r10_wallhole.mdl'; e['origin'] = '6655 160 255'; e['angles'] = '0 0 0'; be += 1   # r10bf; r10dh: 24 nearer the run and 10 north so it sits right of centre at 93.75-94.1 s and sweeps left past the lens at 94.25-94.4 s like the video's
+        e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '1.4'; e['solid'] = '0'   # r10bg: the video's hole is ~0.35 of the frame (r10dh: 1.4 nearer)
     elif e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 256) < 1:
         e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '0.75'; e['solid'] = '0'; be += 1
 # r10bf: the video passes a jagged black hole in a rust panel close to the right of the rails (94-94.4 s), not a closed
 # broken tube: a rust panel parallel to the run carries the hole (wall-hole model with two cream boxes)
-pan = box((6680, 60, 150), (6690, 320, 380), RUST_GAL, world=False)
+pan = box((6656, 60, 150), (6666, 300, 380), RUST_GAL, world=False)   # r10dh: moved with the hole
 for f in pan.sides: f.uaxis.scale = 0.75; f.vaxis.scale = 0.75
 v.create_ent('prop_dynamic_override', model='models/corehub_intro/transport_ring_pink.mdl', origin='6700 0 256', angles='0 0 0',
              solid='0', disableshadows='1')
@@ -1523,6 +1523,18 @@ for nm, sl in (('r10_inc_tubes', itb), ('r10_inc_cones', ipk), ('r10_inc_haze', 
     v.create_ent('func_brush', targetname=nm, Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
                  rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sl)
 print('r10dd incinerator: probes removed', _rm, 'collar moved', _mv, 'tubes', len(inc_tubes))
+# r10di: the capsule shell strip beside the lens (125.3-127 s) reads as the video's dark curved wall (left edge ~110,
+# black to the right) rather than pale facets (170 -> 36): its eight shades at 0.6x
+_shell = {}
+for _k, _c in enumerate([0.667, 0.549, 0.439, 0.345, 0.267, 0.212, 0.173, 0.141]):
+    _g = round(_c * 0.6, 3)
+    _shell['corehub_intro/ending_shell_u%d' % _k] = unlit('ending_shell_dk_u%d' % _k, 'lights/white002', '%s %s %s' % (_g, round(_g * 1.016, 3), round(_g * 1.016, 3)))
+_ns = 0
+for e in v.by_target.get('intro_pod_shell', ()) if hasattr(v, 'by_target') else [x for x in v.entities if x['targetname'] == 'intro_pod_shell']:
+    for so in e.solids:
+        for f in so.sides:
+            if f.mat.lower() in _shell: f.mat = _shell[f.mat.lower()]; _ns += 1
+print('r10di shell faces darkened', _ns)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
