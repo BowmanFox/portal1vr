@@ -125,6 +125,12 @@ knots.update({112.0: (83.0, 0.0, 22.0), 112.25: (90.0, 0.0, 26.0), 112.5: (90.0,
               114.5: (90.0, 0.0, 8.1)})
 assert txt.count('{name="intro_discard_cube",poses=[[110.7500,Vector(8389.8750,-37.7813,1590.0000)],[111.2500,Vector(8401.3333,47.2500,1460.0000)],[112.0000,Vector(8493.8118,-31.5612,1409.7186)],[112.5000,Vector(8486.4625,-14.5516,1380.0000)],[113.0000,Vector(8506.2973,-1.7792,1325.0000)],') == 1
 txt = txt.replace('{name="intro_discard_cube",poses=[[110.7500,Vector(8389.8750,-37.7813,1590.0000)],[111.2500,Vector(8401.3333,47.2500,1460.0000)],[112.0000,Vector(8493.8118,-31.5612,1409.7186)],[112.5000,Vector(8486.4625,-14.5516,1380.0000)],[113.0000,Vector(8506.2973,-1.7792,1325.0000)],', '{name="intro_discard_cube",poses=[[111.9000,Vector(8382.0,-26.0,1587.0)],[112.2500,Vector(8401.7,-17.4,1547.0)],[112.5000,Vector(8404.6,-23.2,1519.0)],[112.7500,Vector(8401.2,-27.0,1486.0)],[113.0000,Vector(8385.0,-40.0,1477.0)],')
+for _a, _b in [("local capsuleOffset=(capsuleEye+Vector(34.75,33.0,-10)-capsuleRest)*capsuleBlend;",
+                "local r10sl=(t-125.95)/0.9;if(r10sl<0)r10sl=0;if(r10sl>1)r10sl=1;r10sl=r10sl*r10sl*(3-2*r10sl);local r10slv=Vector(0,-3.0+48.0*r10sl,0)*capsuleBlend;" + chr(10) + "    local capsuleOffset=(capsuleEye+Vector(34.75,33.0,-10)-capsuleRest)*capsuleBlend+r10slv;"),
+               ("local follow=eye+Vector(34.75,33.0,-10);", "local follow=eye+Vector(34.75,33.0,-10)+r10slv;"),
+               ('MoveProp("intro_pod",pod+capsuleOffset);', 'MoveProp("intro_pod",pod+capsuleOffset);{local dk=(t>=125.3&&t<128.0);if(dk!=r10PodDark){EntFire("intro_pod","Color",dk?"62 62 66":"255 255 255",0);r10PodDark=dk;}}')]:
+    assert txt.count(_a) == 1, _a
+    txt = txt.replace(_a, _b)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -235,6 +241,12 @@ pos_set.update({111.75: (8448.0, 0.0, 1660.0), 112.0: (8448.0, 0.0, 1635.4), 112
                 # r10de: the video still sees ring D at the frame edge at 114.75 s, then plunges into the furnace
                 # r10df: the whole stack (and this path) sits 47 higher so ring D can stay the furnace collar
                 114.75: (8448.0, 0.0, 1224.0), 114.875: (8448.0, 0.0, 1122.0)})
+# r10dg: capsule approach (119.5-120.85 s) -- the video's far ring (the transport ring at x 11312, r 89) grows at a steady
+# rate (1/size falls ~7.6 per second) from 0.104f at 119.75 s; ours ran 25-80% bigger (closer) from 119.75 to 120.35 s.
+# Re-timed so ring and capsule sizes follow the video (capsule width 0.07/0.12/0.20 of the frame at 120.25/120.5/120.75 s)
+for _t in [k for k in kd if 119.1 < k < 120.9]: del kd[_t]
+pos_set.update({119.25: (10196.0, 0.0, 128.0), 119.5: (10300.0, 0.0, 128.0), 119.75: (10465.0, 0.0, 128.0), 120.0: (10660.0, 0.0, 128.0),
+                120.25: (10795.0, 0.0, 128.0), 120.5: (11000.0, 0.0, 128.0), 120.7: (11140.0, 6.0, 131.0), 120.85: (11230.0, 11.25093, 134.30992)})
 for k, q in pos_set.items():
     for t0 in list(kd):
         if abs(t0 - k) < 1e-4: del kd[t0]
@@ -267,6 +279,7 @@ assert txt.count(anchor) == 1
 txt = txt.replace(anchor, '    foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}\n' + anchor)
 txt = txt.replace('cutTab <- [', 'r10Fades <- ' + str(fades).replace(' ', '') + ';\ncutTab <- [', 1)
 # the cube rides ahead in the lab tube (100-101.5 s) instead of sitting where the camera passes through it
+txt = txt.replace('cutTab <- [', 'r10PodDark <- false;' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10LabCube <- [[99.8,7565],[100,7575],[100.5,7600],[101,7625],[101.5,7640],[101.9,7900]];' + chr(10) + 'cutTab <- [', 1)
 # cube passage (52-53.8 s): the video dissolves from the far cube to a close one at ~52.55 s; the cube jumps
 # closer under a short dip instead of drifting slowly toward the camera
