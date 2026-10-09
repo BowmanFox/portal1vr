@@ -5497,7 +5497,7 @@ local processTime=t;if(processTime<57)processTime=57;if(processTime>65)processTi
 for(local i=0;i<2;i++)MoveProp("intro_processing_cube_"+i,Vector(3882+30-i*50,220+i*40,2250+i*260-(processTime-57)*70));
 
     SetRedHaze(t);
-    MoveProp("r10_scan_plate",(t>=80.75&&t<82.9)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_scan_grey",(t>=80.75&&t<82.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_exit_collar2",(t>=80.75&&t<82.9)?Vector(0,0,-3000):Vector(4968.7,0,256));
+    MoveProp("r10_scan_plate",(t>=80.75&&t<82.9)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_pod_sleeve",(t>=39.2&&t<41.8)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inc_frame",(t>=108.0&&t<111.9)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_scan_grey",(t>=80.75&&t<82.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_exit_collar2",(t>=80.75&&t<82.9)?Vector(0,0,-3000):Vector(4968.7,0,256));
     if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0","intro_transfer_scan_upper_1","intro_transfer_scan_fore_1","intro_transfer_mount_1"])MoveProp(nm,Vector(0,0,-3000));}
     SetLensGlow(t);
     SetFlicker(t);

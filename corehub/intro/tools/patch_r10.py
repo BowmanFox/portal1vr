@@ -780,9 +780,13 @@ print('lab hanging turrets named', ht)
 # the video looks down the shaft at a white iris with dark rings round it; the furnace's orange top showed round the
 # iris from 110 s. A dark frame just above it (open in the middle for the camera and the falling parts) hides it until
 # the camera drops through at 114.25 s.
-for lo, hi in (((8188, -260, 1300), (8708, -75, 1306)), ((8188, 75, 1300), (8708, 260, 1306)),
-               ((8188, -75, 1300), (8373, 75, 1306)), ((8523, -75, 1300), (8708, 75, 1306))):
-    box(lo, hi, TUNNEL, world=False)
+# r10ch: the frame is a brush entity the director shows only until 111.9 s -- from 112 s the video is inside the orange
+# shaft and sees no black round the light tubes (112.75-113.25 s)
+_fr = [v.make_prism(Vec(*lo), Vec(*hi), TUNNEL).solid for lo, hi in (
+    ((8188, -260, 1300), (8708, -75, 1306)), ((8188, 75, 1300), (8708, 260, 1306)),
+    ((8188, -75, 1300), (8373, 75, 1306)), ((8523, -75, 1300), (8708, 75, 1306)))]
+v.create_ent('func_brush', targetname='r10_inc_frame', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(_fr)
 # ---------- r10bb: shaft lids and the factory collar ----------
 # the video looks down on a flat rust floor round the top collar and dark rings round the iris; the chamber's lower
 # orange wall showed as a bright annulus from 110 s. Two thin plates (holes inside the collars) close the shaft
@@ -1214,6 +1218,37 @@ for e in v.entities:
             for f in so.sides:
                 if f.mat.lower() == 'metal/metalwall_bts_006b': f.mat = CAP_FRAME; cf += 1
 print('capsule frame sides salmon', cf)
+# ---------- r10ch: pod rise tube veil (39.2-41.8 s) ----------
+# the video's pod-rise tube reads as grey frosted walls with the shelves washed out behind them; our tube glass is nearly
+# clear (alpha 0.15). A translucent 16-sided sleeve inside the rings (radius 40, inner faces only) veils everything but
+# the far opening while the rise lasts.
+# r10ci: the veil is lighter where the video's tube is (frame top and right) and near black where it is dark (left and
+# bottom): measured 82/72/42/33 against our 56/64/57/57; looking up with roll -20 the frame's top, right, bottom and left
+# are the tube's azimuths 160, 250, 340 and 70 degrees
+import math as _m
+_anch = [(70, 0.03), (160, 0.55), (250, 0.36), (340, 0.0), (430, 0.03)]
+def _veil_c(az):
+    az = az % 360
+    if az < 70: az += 360
+    for (a0, c0), (a1, c1) in zip(_anch, _anch[1:]):
+        if a0 <= az <= a1: return c0 + (c1 - c0) * (az - a0) / (a1 - a0)
+    return 0.2
+pv = []
+for k in range(16):
+    yaw = k * 22.5; rr = 41.0
+    c = round(_veil_c(yaw), 3)
+    POD_VEIL = unlit(f'pod_veil_{k:02d}', 'lights/white002', f'{c} {c} {round(c * 1.02, 3)}', '"$translucent" "1"\n"$alpha" "0.36"\n"$nocull" "1"\n')
+    cx, cy = 1856 + rr * _m.cos(_m.radians(yaw)), -256 + rr * _m.sin(_m.radians(yaw))
+    sol = v.make_prism(Vec(-1, -8.6, 560), Vec(1, 8.6, 1120), POD_VEIL).solid
+    sol.localise(Vec(cx, cy, 0), _st.Angle(0, yaw, 0))
+    rx, ry = _m.cos(_m.radians(yaw)), _m.sin(_m.radians(yaw))
+    for f in sol.sides:   # side normals point into the solid: the face nearest the axis has its normal along +radial
+        n = f.normal()
+        if n.x * rx + n.y * ry < 0.9: f.mat = NODRAW
+    pv.append(sol)
+v.create_ent('func_brush', targetname='r10_pod_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(pv)
+print('pod sleeve', len(pv), sum(1 for so in pv for f in so.sides if 'pod_veil' in f.mat))
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
