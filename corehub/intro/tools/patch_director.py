@@ -75,7 +75,16 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           # r10at: collar at (46%, 58%) of the frame in shot A and (45%, 68%) at 57 s in shot B (video)
           55.25: (-7.0, -5.0, 0.0), 55.5: (-7.0, -5.0, 0.0), 56.0: (-6.0, -5.0, 0.0), 56.25: (-5.0, -5.0, 0.0), 56.5: (-5.0, -5.0, 0.0), 56.51: (-5.0, -5.0, 0.0),
           56.52: (-10.0, -10.0, 0.0), 57.0: (-13.0, -10.0, 0.0), 57.5: (-22.0, -10.0, 0.0), 58.0: (-34.0, -9.0, 0.0), 58.25: (-40.0, -9.0, 0.0),
-          58.5: (-44.0, -8.0, 0.0), 58.57: (-45.0, -8.0, 0.0), 58.58: (-16.0, 58.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
+          58.5: (-44.0, -8.0, 0.0), 58.57: (-45.0, -8.0, 0.0), 58.58: (-16.0, 58.0, 0.0),
+          # r10bu: the video cuts from the glare to a look straight down into the inlet iris (71.4-71.75 s) and tilts up to the 16 wall
+          # r10bv: the camera sits 45 units from the turret (it was 66; the video's turret is ~1.5x larger) and is aimed so
+          # the eye follows the video's track (measured: right/up of centre, degrees)
+          67.5: (-13.7, 60.6, 0.0), 67.75: (-10.4, 65.3, 0.0), 68.0: (-10.4, 69.0, 0.0), 68.25: (-10.4, 71.3, 0.0), 68.5: (-10.9, 74.9, 0.0),
+          68.75: (-10.4, 77.5, 0.0), 69.0: (-9.5, 76.6, 0.0), 69.25: (-7.6, 76.2, 0.0), 69.5: (-6.7, 73.55, 0.0), 69.75: (-5.8, 70.9, 0.0),
+          70.0: (-10.0, 70.0, 0.0), 70.25: (-16.1, 69.5, 0.0), 70.5: (-20.6, 70.0, 0.0), 70.75: (-19.9, 68.6, 0.0), 71.0: (-17.1, 66.7, 0.0),
+          71.2: (-17.1, 65.8, 0.0), 71.33: (-17.1, 65.8, 0.0), 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
+          71.8: (66.0, -2.0, 8.0), 71.9: (42.0, -4.0, 4.0), 72.0: (22.0, -5.0, 2.0), 72.1: (10.0, -6.0, 0.0), 72.25: (-1.0, -6.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
+for _t in [k for k in knots if 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
 knots.update(edits2)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
@@ -100,7 +109,7 @@ funnel = {86.0: (5770.0, 0.0, 280.0), 86.25: (5880.0, 80.0, 505.0), 86.5: (5950.
           87.0: (5952.0, 150.0, 320.0), 87.25: (5952.0, 180.0, 275.0), 87.5: (5952.0, 210.0, 256.0)}
 copper_x = [(84.2, 5240.0), (84.55, 5260.0), (85.0, 5330.0), (85.5, 5450.0), (85.75, 5600.0), (86.0, 5770.0)]   # r10am: the room west of the towers is dark; start at them
 pod_z = [(39.5, 640.0), (39.75, 660.0), (40.0, 680.0), (40.25, 700.0), (40.5, 720.0), (40.75, 745.0), (41.0, 770.0), (41.25, 810.0), (41.5, 880.0), (41.75, 1000.0)]
-shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 660.0), (80.0, 610.0), (80.5, 590.0), (81.0, 580.0), (81.5, 580.0), (82.0, 580.0), (82.25, 540.0), (82.5, 400.0)]   # r10az: hover higher over the iris (video 81-82 s: the iris ~45% of the frame width)   # r10ao: hover over the iris until 82.2 s, then drop through it
+shaft_z = [(77.0, 835.0), (78.0, 790.0), (79.0, 720.0), (79.5, 685.0), (80.0, 655.0), (80.25, 650.0), (80.5, 645.0), (80.75, 618.0), (81.0, 580.0), (81.5, 580.0), (82.0, 580.0), (82.25, 540.0), (82.5, 400.0)]   # r10az: hover higher over the iris (video 81-82 s: the iris ~45% of the frame width)   # r10ao: hover over the iris until 82.2 s, then drop through it
 # r10ah: sludge chamber (87-90 s) -- the video is lower and closer over the walkways than the tube (z 256)
 sludge_z = {86.5: 246.0, 86.75: 226.0, 87.0: 206.0, 87.25: 192.0, 87.5: 186.0, 87.75: 186.0, 88.0: 186.0, 88.25: 186.0,
             88.5: 186.0, 88.75: 186.0, 89.0: 186.0, 89.25: 186.0, 89.5: 188.0, 89.75: 196.0, 90.0: 210.0, 90.25: 232.0, 90.5: 250.0}
@@ -153,9 +162,15 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            # r10bn: the video stays in the tower on the scanning column (red laser, cube) until ~63.85 s, then goes to the
            # turret-lift collar from above; the descent now starts at its 63.75 s pose
            63.25: (4010.0, 0.0, 1320.0), 63.5: (4010.0, 0.0, 1295.0), 63.75: (4010.0, 0.0, 1270.0), 63.86: (4010.0, 0.0, 1262.0),
-           63.87: (4390.0, 45.0, 1535.0)}
+           63.87: (4390.0, 45.0, 1535.0),
+           67.5: (4550.0, 11.0, 1000.0), 67.75: (4554.0, 18.5, 1000.0), 68.0: (4554.0, 18.5, 1000.0), 69.0: (4554.0, 18.5, 1000.0),
+           70.0: (4554.0, 18.5, 1000.0), 71.0: (4554.0, 18.5, 1000.0),
+           71.33: (4554.0, 18.5, 1000.0), 71.34: (4789.0, 55.0, 1105.0), 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
+           71.7: (4785.0, 45.0, 1104.0), 71.8: (4772.0, 30.0, 1112.0), 71.9: (4748.0, 15.0, 1124.0), 72.0: (4722.0, 5.0, 1136.0),
+           72.1: (4700.0, 0.0, 1145.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
 kd = dict(kn)
+for _t in [k for k in kd if 67.4 < k < 72.25]: del kd[_t]   # r10bu/bv: turret framing and the inlet iris shot
 for k, q in pos_set.items():
     for t0 in list(kd):
         if abs(t0 - k) < 1e-4: del kd[t0]
@@ -180,11 +195,11 @@ txt = txt.replace(cube_old, cube_new)
 txt = txt.replace('cutTab <- [', 'r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10TurretZ <- [[65.9,820],[66.45,1010]];r10GlowPath <- [[114.0,Vector(8425,61,900)],[114.5,Vector(8454,28,740)],[115.1,Vector(8448,0,600)],[116.4,Vector(8436,-24,640)]];' + chr(10) + 'cutTab <- [', 1)
 # turret laser in the lens (69.3-71.3 s): the video washes the frame pink; a second env_fade tints the screen red
-txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[69.5,70],[70.2,88],[70.9,88],[71.3,0]];r10RedAlpha <- 0;' + chr(10) +
-    'function SetRedHaze(t){local a=(t>=69.2&&t<71.3)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;' +
+txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[71.28,0],[71.33,150],[71.37,150],[71.46,0]];r10RedAlpha <- 0;' + chr(10) +
+    'function SetRedHaze(t){local a=(t>=69.2&&t<71.5)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;' +
     'local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);' +
     'EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}' + chr(10) +
-    'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.3);if(g){local a=ReferenceAngles(t);local q=PositionAt(t);local pr=(a.x+33.0)*0.0174533;local yr=a.y*0.0174533;MoveProp("r10_glow_b",q+Vector(cos(pr)*cos(yr),cos(pr)*sin(yr),-sin(pr))*26.0);};if(g==r10GlowOn)return;EntFire("laser_turret_glow",g?"TurnOn":"TurnOff","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
+    'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10GlowOn)return;EntFire("r10_glare_ov",g?"StartOverlays":"StopOverlays","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
 txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
@@ -216,8 +231,9 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
             'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
-            '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);MoveProp("r10_close_arm_a",p);MoveProp("r10_close_arm_b",p);};'
+            '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
+            '{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};'
             '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=66.25&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
@@ -226,7 +242,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}')
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
-txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;r10HazeA <- -1;' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10CloseCones <- [[79.75,Vector(4827,0,-260)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
 tl_old = '    local turretOn=(t>=67.2 && t<71.35)?1:0;'
@@ -234,6 +250,9 @@ assert txt.count(tl_old) == 1
 txt = txt.replace(tl_old, '    local turretOn=(t>=67.2 && t<69.4)?1:0;')   # r10bs: the video shows only the glare from 69.5 s
 sh_old = '    local shaftOn=t<79.9?1:0;'
 assert txt.count(sh_old) == 1
-txt = txt.replace(sh_old, '    local shaftOn=(t>=71.2 && t<79.9)?1:0;')   # r10bs: no scanner lasers in the turret room shot
+txt = txt.replace(sh_old, '    local shaftOn=(t>=72.25 && t<79.6)?1:0;')   # r10bs: no scanner lasers in the turret room shot
+cake_old = 'MoveProp("intro_cake",t<74.5?Vector(4814,14,956):Vector(0,0,-3000));'
+assert txt.count(cake_old) == 1
+txt = txt.replace(cake_old, 'MoveProp("intro_cake",(t<74.5&&!(t>=71.3&&t<72.35))?Vector(4814,14,956):Vector(0,0,-3000));')
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)

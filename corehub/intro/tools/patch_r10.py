@@ -1046,22 +1046,42 @@ for e in [v.spawn] + list(v.entities):
             for f in so.sides:
                 if f.mat.lower() == 'corehub_intro/steel_u': f.mat = RUST_RR; rr += 1
 print('rust room faces -> rust_rr', rr)
-# ---------- r10bt: glare as a world-space veil with the red glow in front of it ----------
-# the video's glare frame is nearly flat grey (sd 3-5 over the wall, mean 107) with the red glow on top of it (legs
-# R +46, corners +30). The screen fade dimmed the red along with everything else, so the veil is now a translucent grey
-# plane 25 units in front of the lens and the glow beam runs between 9 and 20 units, in front of the veil. Both are
-# kept at their offset from the lens by the director.
-HAZE = unlit('haze', 'lights/white002', '0.45 0.45 0.45')
-hz = v.make_prism(Vec(-1, -75, 955), Vec(1, 75, 1055), HAZE).solid
-hz.localise(Vec(4544 + 25 * math.cos(math.radians(61)), 25 * math.sin(math.radians(61)), 0), __import__('srctools').Angle(0, 61, 0))
-v.create_ent('func_brush', targetname='r10_haze_plane', Solidity='1', spawnflags='2', rendermode='2', renderamt='0',
-             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(hz)
-v.create_ent('info_target', targetname='r10_glow_a', origin='4554 16 1006', spawnflags='1')
+# ---------- r10bu: glare tuning, the inlet iris shot (71.34-72.3 s) ----------
+# glare: a stronger, darker veil flattens the wall like the video (sd 3-5); the glow beam is half as wide and fainter
 for e in v.entities:
+    if e['targetname'] == 'r10_red_fade': e['rendercolor'] = '137 136 136'
     if e['targetname'] == 'laser_turret_glow':
-        e['LightningStart'] = 'r10_glow_a'; e['BoltWidth'] = '10'; e['renderamt'] = '10'; e['rendercolor'] = '255 40 50'
+        e['BoltWidth'] = '18'; e['renderamt'] = '8'; e['rendercolor'] = '255 40 50'
+    if e['classname'] == 'env_beam' and e['targetname'].startswith('shaft_') and e['targetname'].endswith('_beam'):
+        e['renderamt'] = '22'
+# the video cuts (a quick dissolve) from the glare to a look straight down into the inlet iris, a scanner arm with its
+# yellow cones reaching in and the rust floor around it (71.4-71.75 s), then tilts up to the "16" wall. A rust plate
+# with a square hole under the petals stands in for that floor while the shot lasts; the tube ring above the petals and
+# the cake are moved away.
+pl = []
+for lo, hi in (((4560, -320, 940), (4715, 320, 946)), ((4885, -320, 940), (4980, 320, 946)),
+               ((4715, -320, 940), (4885, -85, 946)), ((4715, 85, 940), (4885, 320, 946))):
+    pl.append(v.make_prism(Vec(*lo), Vec(*hi), RUST_TU).solid)
+v.create_ent('func_brush', targetname='r10_inlet_plate', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(pl)
+ir = 0
 for e in v.entities:
-    if e['targetname'] == 'r10_red_fade': e['renderamt'] = '0'
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/transport_ring_white.mdl' and e['origin'] in ('4800 0 984', '4800.0 0.0 984.0'):
+        e['classname'] = 'prop_dynamic_override'; e['targetname'] = 'r10_inlet_ring'; e['solid'] = '0'; ir += 1
+print('inlet ring named', ir)
+# ---------- r10bv: lens glare as a screen overlay sequence (69.4-71.34 s) ----------
+# the screen fade dimmed the red glow with everything else; a translucent overlay sequence carries both the grey veil
+# and the red glow round the turret's lower body, stepping every 0.2 s with the turret as the camera tilts
+sys.path.insert(0, str(R10 / 'tools'))
+import make_glare
+gl = make_glare.main()
+kv = {'targetname': 'r10_glare_ov', 'origin': '4544 0 1000'}
+for i, (nm, d) in enumerate(zip(gl, [0.2] * 9 + [0.14]), 1):
+    kv[f'OverlayName{i}'] = nm; kv[f'OverlayTime{i}'] = str(d)
+v.create_ent('env_screenoverlay', **kv)
+for e in v.entities:
+    if e['targetname'] == 'laser_turret_glow': e['renderamt'] = '0'
+print('glare overlays', len(gl))
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

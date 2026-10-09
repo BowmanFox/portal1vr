@@ -733,8 +733,16 @@ knots <- [
 {t=70.50000000,a=Vector(-9.00000000,63.00000000,0.00000000)},
 {t=71.00000000,a=Vector(-8.00000000,62.00000000,0.00000000)},
 {t=71.25000000,a=Vector(-7.00000000,40.00000000,0.00000000)},
-{t=71.50000000,a=Vector(-8.00000000,12.00000000,0.00000000)},
-{t=72.00000000,a=Vector(-8.00000000,0.00000000,0.00000000)},
+{t=71.33000000,a=Vector(-7.32000000,31.04000000,0.00000000)},
+{t=71.34000000,a=Vector(89.00000000,0.00000000,-8.00000000)},
+{t=71.50000000,a=Vector(89.00000000,0.00000000,-4.00000000)},
+{t=71.60000000,a=Vector(88.00000000,0.00000000,2.00000000)},
+{t=71.70000000,a=Vector(84.00000000,0.00000000,8.00000000)},
+{t=71.80000000,a=Vector(66.00000000,-2.00000000,8.00000000)},
+{t=71.90000000,a=Vector(42.00000000,-4.00000000,4.00000000)},
+{t=72.00000000,a=Vector(22.00000000,-5.00000000,2.00000000)},
+{t=72.10000000,a=Vector(10.00000000,-6.00000000,0.00000000)},
+{t=72.25000000,a=Vector(-1.00000000,-6.00000000,0.00000000)},
 {t=72.50000000,a=Vector(-2.00000000,-6.00000000,0.00000000)},
 {t=72.75000000,a=Vector(-2.00000000,-6.00000000,0.00000000)},
 {t=73.00000000,a=Vector(-3.00000000,-6.00000000,0.00000000)},
@@ -1686,9 +1694,15 @@ positions <- [
 {t=70.75000000,p=Vector(4544.00000000,0.00000000,1000.00000000)},
 {t=71.00000000,p=Vector(4544.00000000,0.00000000,1000.00000000)},
 {t=71.25000000,p=Vector(4566.00000000,0.00000000,1040.00000000)},
-{t=71.50000000,p=Vector(4598.00000000,0.00000000,1090.00000000)},
-{t=71.75000000,p=Vector(4634.00000000,0.00000000,1128.00000000)},
-{t=72.00000000,p=Vector(4672.00000000,0.00000000,1152.00000000)},
+{t=71.33000000,p=Vector(4576.24000000,0.00000000,1056.00000000)},
+{t=71.34000000,p=Vector(4789.00000000,55.00000000,1105.00000000)},
+{t=71.50000000,p=Vector(4789.00000000,55.00000000,1103.00000000)},
+{t=71.60000000,p=Vector(4789.00000000,52.00000000,1102.00000000)},
+{t=71.70000000,p=Vector(4785.00000000,45.00000000,1104.00000000)},
+{t=71.80000000,p=Vector(4772.00000000,30.00000000,1112.00000000)},
+{t=71.90000000,p=Vector(4748.00000000,15.00000000,1124.00000000)},
+{t=72.00000000,p=Vector(4722.00000000,5.00000000,1136.00000000)},
+{t=72.10000000,p=Vector(4700.00000000,0.00000000,1145.00000000)},
 {t=72.25000000,p=Vector(4676.00000000,0.00000000,1152.00000000)},
 {t=72.50000000,p=Vector(4680.00000000,0.00000000,1152.00000000)},
 {t=72.75000000,p=Vector(4684.00000000,0.00000000,1152.00000000)},
@@ -1717,13 +1731,13 @@ positions <- [
 {t=78.50000000,p=Vector(4800.00000000,0.00000000,755.00000000)},
 {t=78.75000000,p=Vector(4800.00000000,0.00000000,737.50000000)},
 {t=79.00000000,p=Vector(4800.00000000,0.00000000,720.00000000)},
-{t=79.25000000,p=Vector(4800.00000000,0.00000000,690.00000000)},
-{t=79.50000000,p=Vector(4800.00000000,0.00000000,660.00000000)},
-{t=79.75000000,p=Vector(4800.00000000,0.00000000,635.00000000)},
-{t=80.00000000,p=Vector(4800.00000000,0.00000000,610.00000000)},
-{t=80.25000000,p=Vector(4800.00000000,0.00000000,600.00000000)},
-{t=80.50000000,p=Vector(4800.00000000,0.00000000,590.00000000)},
-{t=80.75000000,p=Vector(4800.00000000,0.00000000,585.00000000)},
+{t=79.25000000,p=Vector(4800.00000000,0.00000000,702.50000000)},
+{t=79.50000000,p=Vector(4800.00000000,0.00000000,685.00000000)},
+{t=79.75000000,p=Vector(4800.00000000,0.00000000,670.00000000)},
+{t=80.00000000,p=Vector(4800.00000000,0.00000000,655.00000000)},
+{t=80.25000000,p=Vector(4800.00000000,0.00000000,650.00000000)},
+{t=80.50000000,p=Vector(4800.00000000,0.00000000,645.00000000)},
+{t=80.75000000,p=Vector(4800.00000000,0.00000000,618.00000000)},
 {t=81.00000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
 {t=81.25000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
 {t=81.50000000,p=Vector(4800.00000000,0.00000000,580.00000000)},
@@ -5250,10 +5264,11 @@ r10Fades <- [[62.9,63.05,0,235],[63.05,63.3,235,0],[52.45,52.55,0,110],[52.55,52
 r10LabCube <- [[99.8,7565],[100,7575],[100.5,7600],[101,7625],[101.5,7640],[101.9,7900]];
 r10CubeX <- [[51,3420],[52,3394],[52.5,3437],[52.54,3437],[52.56,3295],[53.0,3339],[53.5,3386],[53.83,3418],[55.5,3480]];
 r10TurretZ <- [[65.9,820],[66.45,1010]];r10GlowPath <- [[114.0,Vector(8425,61,900)],[114.5,Vector(8454,28,740)],[115.1,Vector(8448,0,600)],[116.4,Vector(8436,-24,640)]];
-r10Red <- [[69.2,0],[69.5,80],[70.2,104],[70.9,104],[71.3,0]];r10RedAlpha <- 0;
-function SetRedHaze(t){local a=(t>=69.2&&t<71.3)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}
-r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.3);if(g==r10GlowOn)return;EntFire("laser_turret_glow",g?"TurnOn":"TurnOff","",0);r10GlowOn=g;}
-r10CollarDark <- false;
+r10Red <- [[69.2,0],[69.5,95],[70.2,120],[71.28,120],[71.33,150],[71.37,150],[71.46,0]];r10RedAlpha <- 0;
+function SetRedHaze(t){local a=(t>=69.2&&t<71.5)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}
+r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.3);if(g){local a=ReferenceAngles(t);local q=PositionAt(t);local pr=(a.x+33.0)*0.0174533;local yr=a.y*0.0174533;MoveProp("r10_glow_b",q+Vector(cos(pr)*cos(yr),cos(pr)*sin(yr),-sin(pr))*30.0);};if(g==r10GlowOn)return;EntFire("laser_turret_glow",g?"TurnOn":"TurnOff","",0);r10GlowOn=g;}
+r10CollarDark <- false;r10HazeA <- -1;
+r10CloseCones <- [[79.75,Vector(4827,0,-260)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];
 r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];
 cutTab <- [[0.0,4.5],[32.4990684,32.6659014],[38.9388222,39.2724882],[54.1206,54.8547],[83.1829338,84.5509644],[95.7287754,96.596307],[99.7995006,99.9663336],[105.3049896,105.6386556],[109.7093808,109.8428472]];
 dropTab <- [[44.0,2330.0],[45.0,2600.0],[46.0,2640.0],[46.5,2650.0],[47.0,2700.0],[47.4,2790.0]];
@@ -5443,7 +5458,7 @@ function SetSceneTime(t) {
       fadeAlpha=Lerp1([[99.599301,0],[99.6660342,96],[99.7327674,184],[99.7995006,255]],t);
     foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}
     SetScreenBlack(fadeAlpha);
-    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}
+    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=66.25&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}
     // The storage cube would sit in the 22 s look-up; it is never seen again.
     MoveProp("intro_cube_pile_0",(t>21.8 && t<22.4)?Vector(-90,-40,-400):Vector(-90,-40,101));
     SetEarlyShaftCube(t);
@@ -5481,7 +5496,7 @@ local transferTime=t;if(transferTime<74)transferTime=74;if(transferTime>80)trans
 // The cube passes the eye at75, falls well ahead by76 and clears the iris by77.4.
 // It must not remain parked over the iris when the old transferTime clamps.
 MoveProp("intro_transfer_cube",(t<74.6||t>=77.4)?Vector(0,0,-3000):Vector(4800,0,880-(t-75)*520));
-MoveProp("intro_cake",t<74.5?Vector(4814,14,956):Vector(0,0,-3000));
+MoveProp("intro_cake",(t<74.5&&!(t>=71.3&&t<72.35))?Vector(4814,14,956):Vector(0,0,-3000));
 MoveProp("intro_transfer_core",Vector(4807,-10,780-(transferTime-74)*105));
 local processTime=t;if(processTime<57)processTime=57;if(processTime>65)processTime=65;
 for(local i=0;i<2;i++)MoveProp("intro_processing_cube_"+i,Vector(3882+30-i*50,220+i*40,2250+i*260-(processTime-57)*70));
@@ -5602,14 +5617,14 @@ function SetTransportBeams(t) {
     local localEnd=Vector(-0.4067366431*rel.x-0.9135454576*rel.y,
                           0.9135454576*rel.x-0.4067366431*rel.y,rel.z);
     MoveProp("laser_turret_b",localEnd);
-    local turretOn=(t>=67.2 && t<71.35)?1:0;
+    local turretOn=(t>=67.2 && t<69.4)?1:0;
     if(turretOn!=turretBeamState) {
         EntFire("laser_turret",turretOn==1?"TurnOn":"TurnOff","",0);
         turretBeamState=turretOn;
     }
     // Exact79.5 still has red projection; by80.0 it has cleared the yellow scan.
     // Names are supplied by the shared scanner_arms beam-naming correction.
-    local shaftOn=t<79.9?1:0;
+    local shaftOn=(t>=72.25 && t<79.6)?1:0;
     if(shaftOn!=shaftBeamState) {
         foreach(z in [1200,760,620])for(local i=0;i<3;i++)
             EntFire("shaft_"+z+"_"+i+"_beam",shaftOn==1?"TurnOn":"TurnOff","",0);

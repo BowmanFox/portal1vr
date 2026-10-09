@@ -38,18 +38,18 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10bp` + `director_r10bp` (outputs/Corehub-Intro). Test run: `videos/r10m_bp_side.mp4`.
+Published build: `corehub_r10bu` + `director_r10bu` (outputs/Corehub-Intro). Test run: `videos/r10m_bu_side.mp4`.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|
 | 1 | Opening room | 0–22 | 7.5 | 8.5 | ceiling bright/neutral looking up and dark at grazing angles; far wall and chamber glass toned to the video; rubble shapes |
 | 2 | Iris and ascent | 22–32.5 | 7.5 | 9 | matches shot for shot; iris petal edge shading, small falling debris at 26 s |
-| 3 | Rust room | 32.5–39 | 4 | 8 | r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
+| 3 | Rust room | 32.5–39 | 4 | 8 | r10bs: the panel behind junction A is taller and wider like the video (33.0–33.2 s), junction A has only its left pipe, the rust tile is brighter and more neutral; r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
 | 4 | Pod rise | 39.5–49 | 4 | 8.5 | r10bo: pod walls rebuilt as shelves of small oval pods with hanging cables (the video's look at 40–42 s); 42–43.5 s framing still differs |
 | 5 | Cube passage | 48–55 | 4.5 | 8.5 | cube hidden until 51.5 s like the video; 48.5 s pale tube interior |
 | 6 | Processing tower | 55.3–65 | 4.5 | 9 | r10bn/bp: the camera's own climb tube is hidden during the climb (58.6–63.9 s) so the scanning column, rings, lasers and rust wall read clear like the video; the view stays on the column until ~63.85 s |
-| 7 | Turret and "16" inlet | 65–74 | 5 | 8 | turret rises in the ring and holds front-on through the glare; dark bars round it; sign framed top-centre at 72.5–73 s; 71.5 s dissolve missing |
-| 8 | Transfer and scanners | 74–83 | 5 | 8 | light-grey shaft rings; cones/iris re-timed; 81.5 s iris framed closer than the video |
+| 7 | Turret and "16" inlet | 65–74 | 5 | 8.5 | r10bs–bu: the wall behind the turret is the rust-patched tile with the grey band (67.5–69.25 s); cage posts leave by 67.4 s; a rust screen hides the scanner shaft; the glare is a red wedge from the eye under a grey veil (still more saturated, the veil weaker than the video); the cut to a look straight down into the inlet iris with a scanner arm (71.34–72.25 s) is in; 64.5–66 s platform with hanging tubes still differs |
+| 8 | Transfer and scanners | 74–83 | 5 | 8.5 | r10bs–bt: the scanner head and its three cones pass right under the lens inside the white ring (80–80.75 s) on a long arm like the video; shaft lasers dimmer and off before the head passes; 81.25–82.25 s iris view still has the second arm and the exit collar in frame |
 | 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8.5 | gallery restaged (r10bc–bh): ring A at the dark room wall (91 s), pale copper ring B (92 s), rust wall (metalwall_bts_006a) across the view with the truss under it, the run to the broken flange on the right, a jagged black hole with cream boxes passing on the left (94–94.4 s), white collar tunnel narrowing to black (95 s) |
 | 10 | Factory passage | 96.6–99.8 | 6 | 8.5 | r10bj/bm: floor and benches beyond the walkway darkened to the video's near-black (the walkway stays mid grey); 98 s collar darkened for its frame |
 | 11 | Lab and test chamber | 100–109.5 | 4 | 9 | r10bl: from the tube the video sees black tiles with a grey pipe and a small white sign on the right (a screen hides the test chamber until the 102.8 s turn); chamber view matches |
