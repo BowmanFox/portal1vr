@@ -1535,6 +1535,56 @@ for e in v.by_target.get('intro_pod_shell', ()) if hasattr(v, 'by_target') else 
         for f in so.sides:
             if f.mat.lower() in _shell: f.mat = _shell[f.mat.lower()]; _ns += 1
 print('r10di shell faces darkened', _ns)
+# r10dk: sludge exit (89.8-90.9 s) -- the video's camera passes through a copper ring out of the sludge room (its arc at
+# the frame top at 90.0 s, a wide band at 90.125 s) and then sees only the dark room; ours turned over the white tile border
+SL_COVER = unlit('sl_cover', 'lights/white002', '0.03 0.03 0.03')
+slc = []
+for lo, hi in (((6290, 70, -20), (6320, 616, 96)), ((5580, 584, -20), (6324, 614, 96))):
+    so = v.make_prism(Vec(*lo), Vec(*hi), SL_COVER).solid
+    for f in so.sides: f.lightmap = 32
+    slc.append(so)
+v.create_ent('func_brush', targetname='r10_sl_cover', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(slc)
+v.create_ent('prop_dynamic_override', targetname='r10_sl_exit_ring', model='models/corehub_intro/transport_ring_orange.mdl',
+             origin='6011 470 266', angles='0 52 0', solid='0', disableshadows='1')
+# r10dl: vault doorway (123.7-125.25 s) -- looking back down the capsule tube the video sees light grey glossy glass
+# rings round a dark centre (124.0-124.5 s: the tube's middle 75-124 against our 42-64); a light translucent 16-sided
+# sleeve inside the tube (radius 40, inner faces) stands in for the glass while the doorway shot lasts
+CAP_SLEEVE = unlit('cap_sleeve', 'lights/white002', '0.84 0.84 0.85', '"$translucent" "1"\n"$alpha" "0.42"\n"$nocull" "1"\n')
+# r10dm: a plain sleeve washed the tube out (124.0-125.0 s SSIM 0.34/0.37/0.34 -> 0.30/0.33/0.31); the video's glass
+# shows concentric light bands with dark gaps, so the sleeve is cut into 18-unit bands every 46 units
+csl = []
+_ri, _ro, _zc = 40.0, 41.0, 128.0
+_w = _ro * math.tan(math.radians(11.25)) + 0.3
+for _b in range(22):
+    _x0 = 10300.0 + _b * 46.0; _x1 = _x0 + 18.0
+    if _x1 > 11288: break
+    for _k in range(16):
+        _a = math.radians(_k * 22.5)
+        def _P(x, t, r, a=_a): return Vec(x, r * math.cos(a) - t * math.sin(a), _zc + r * math.sin(a) + t * math.cos(a))
+        _faces = [[_P(_x0, -_w, _ri), _P(_x1, -_w, _ri), _P(_x1, _w, _ri), _P(_x0, _w, _ri)],
+                  [_P(_x0, -_w, _ro), _P(_x1, -_w, _ro), _P(_x1, _w, _ro), _P(_x0, _w, _ro)],
+                  [_P(_x0, -_w, _ri), _P(_x1, -_w, _ri), _P(_x1, -_w, _ro), _P(_x0, -_w, _ro)],
+                  [_P(_x0, _w, _ri), _P(_x1, _w, _ri), _P(_x1, _w, _ro), _P(_x0, _w, _ro)],
+                  [_P(_x0, -_w, _ri), _P(_x0, _w, _ri), _P(_x0, _w, _ro), _P(_x0, -_w, _ro)],
+                  [_P(_x1, -_w, _ri), _P(_x1, _w, _ri), _P(_x1, _w, _ro), _P(_x1, -_w, _ro)]]
+        _so = convex(_faces, NODRAW)
+        _so.sides[0].mat = CAP_SLEEVE
+        csl.append(_so)
+v.create_ent('func_brush', targetname='r10_cap_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(csl)
+print('r10dl capsule sleeve', len(csl))
+# r10dm: factory hall (96.6-99.8 s) -- the video's back wall reads as a dark warm brown band (97.75 s: 36/20/11, 98.1 s:
+# 25/14/8) where ours was a bright patterned rust (81/61/45, 45/34/25): the hall's side walls at about half the level, warmer
+FAC_WALL = unlit('fac_wall', 'metal/metalwall_bts_006b', '0.32 0.18 0.085')
+_fw = 0
+for e in [v.spawn] + list(v.entities):
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if abs(lo.x - 6900) < 1 and abs(hi.x - 7460) < 1 and hi.y - lo.y < 20 and (abs(lo.y - 520) < 1 or abs(hi.y + 520) < 1) and hi.z - lo.z > 400:
+            for f in so.sides:
+                if f.mat.lower() == 'corehub_intro/hall_u': f.mat = FAC_WALL; _fw += 1
+print('r10dm factory side walls darkened', _fw)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
