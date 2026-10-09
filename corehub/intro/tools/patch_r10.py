@@ -845,6 +845,7 @@ for e in v.entities:
     o = Vec.from_str(e['origin'])
     if e['model'] == 'models/corehub_intro/r10_broken.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 185) < 1:
         e['model'] = 'models/corehub_intro/r10_wallhole.mdl'; e['origin'] = '6679 150 255'; e['angles'] = '0 0 0'; be += 1   # r10bf
+        e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '1.6'; e['solid'] = '0'   # r10bg: the video's hole is ~0.35 of the frame
     elif e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and abs(o.x - 6592) < 1 and abs(o.y - 256) < 1:
         e['classname'] = 'prop_dynamic_override'; e['modelscale'] = '0.75'; e['solid'] = '0'; be += 1
 # r10bf: the video passes a jagged black hole in a rust panel close to the right of the rails (94-94.4 s), not a closed
@@ -860,6 +861,60 @@ print('broken flange / hole / last ring', be)
 for i, x in enumerate((11312, 11360)):
     v.create_ent('prop_dynamic_override', targetname=f'r10_cap_ring_{i}', model='models/corehub_intro/transport_ring.mdl',
                  origin=f'{x} 0 128', angles='0 0 0', modelscale='0.9', solid='0', disableshadows='1')
+# ---------- r10bg: black beyond the cream collar ----------
+# the video's cream collar (95 s) shows a black centre; the factory-tube rings behind it read as a lit tunnel
+BLACK = unlit('black', 'lights/white002', '0 0 0')
+_bk = v.make_prism(Vec(7300, -120, 136), Vec(7304, 120, 376), BLACK).solid   # r10bh: far end of the tube, so the rings show   # non-solid: the camera passes it in the 95.7 s black
+v.create_ent('func_illusionary', rendermode='0').solids.append(_bk)
+wr = 0
+for e in v.entities:   # the video's tunnel beyond the collar is white rings narrowing to black
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring_orange.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.y) < 1 and abs(o.z - 256) < 1 and (abs(o.x - 7015) < 2 or abs(o.x - 7212) < 2):
+            e['model'] = 'models/corehub_intro/transport_ring_white.mdl'; wr += 1
+print('collar tunnel rings white', wr)
+# ---------- r10bi: rust room posts and side pipes ----------
+# the video's junction rings stand on thick grey posts and carry side pipes ending in flanges (32.75-33.25 s left/right,
+# 33.75 s, the shaft rings 34.5-35 s, and the lower run 36.25-37 s where the camera rides upside down: its "post below"
+# is a pipe going up in the world and its "pipe left" runs to -y). A dark plane over the lower run reads as the video's
+# floor there.
+posts = [((-32, -5500, 2628), '90 0 0'), ((-32, -5560, 2688), '0 -90 0'),
+         ((416, -5500, 2628), '90 0 0'), ((416, -5440, 2688), '0 90 0'), ((416, -5560, 2688), '0 -90 0'),
+         ((768, -5162, 2628), '90 0 0'),
+         ((768, -5012, 2176), '0 90 0'), ((768, -5132, 1664), '0 -90 0'), ((768, -5132, 1152), '0 -90 0'),
+         ((1560, -5808, 512), '0 -90 0'), ((1560, -5748, 572), '-90 0 0')]
+for (x, y, z), ang in posts:
+    v.create_ent('prop_static', model='models/corehub_intro/r10_post.mdl', origin=f'{x} {y} {z}', angles=ang, solid='0', disableshadows='1')
+box((860, -6000, 760), (2000, -5500, 768), RUST_DARK, world=False)
+print('rust room posts', len(posts))
+# the lower run's down-branch at x 2048 reads as a tube going up behind the 36.25-37 s junction; the video shows it only
+# from 37.5 s. Named so the director can bring it in then.
+db = 0
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/p9_entry_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 2048) < 1 and abs(o.y + 5748) < 1 and o.z in (0.0, 128.0, 256.0):
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = f'r10_rr_down_{int(o.z)}'; db += 1
+print('down-branch rings named', db)
+# ---------- r10bj: factory floor beyond the walkway ----------
+# the video's walkway is mid grey (measured 93/91/88) but the floor beyond its railings is near black-brown (28/20/15);
+# the one floor slab under both read 52/47/39 there. Split it: the walkway strip keeps the floor material.
+FAC_FLOOR_DARK = unlit('fac_floor_dark', 'metal/metalfloor_bts_001a', '0.60 0.60 0.60')
+ff = 0
+for e in [v.spawn] + list(v.entities):
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if (abs(lo.z - 140) < 1 and abs(hi.z - 156) < 1 and abs(lo.y + 6744) < 1 and abs(hi.y + 5904) < 1
+                and any(f.mat.lower() == 'corehub_intro/p9_factory_v4_floor' for f in so.sides)):
+            ff += 1; continue
+        keep.append(so)
+    if len(keep) != len(e.solids):
+        e.solids[:] = keep
+if ff:
+    box((-6600, -6744, 140), (-3500, -6090, 156), FAC_FLOOR_DARK, world=False)
+    box((-6600, -6090, 140), (-3500, -5904, 156), 'corehub_intro/p9_factory_v4_floor', world=False)
+print('factory floor split', ff)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
