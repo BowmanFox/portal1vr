@@ -1290,6 +1290,66 @@ for k in range(16):
 v.create_ent('func_brush', targetname='r10_cp_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(cpv)
 print('cube passage sleeve', len(cpv), sum(1 for so in cpv for f in so.sides if f.mat == CP_VEIL))
+# ---------- r10cq: scanner shaft as the video's stacked rings (75.4-80.75 s) ----------
+# The video looks down a stack of flat grey 12-sided rings with dark rust between them, the tube's four black rails
+# converging on a white target. Measured from the video's radial luminance profiles (ring edges tracked at 0.1 s,
+# 76.0-80.2 s; the camera's descent solved with them, see the director): ring A z 695-710 (grey 86-101.6, dark rust
+# beyond), ring B top 605 (hole 95), ring C 552-576 (hole 52, step at 66, outer 80.5), target disc z 506 (r 33.8, white
+# centre r 20, black ring and cross), rust floor below. The tube's rings (with their glass) leave the shaft meanwhile.
+SC_GREY = unlit('sc_grey', 'lights/white002', '0.49 0.49 0.49')
+SC_STEP = unlit('sc_step', 'lights/white002', '0.30 0.30 0.30')
+SC_DARK = unlit('sc_dark', 'lights/white002', '0.13 0.13 0.13')
+SC_RUST = unlit('sc_rust', 'metal/metalwall_bts_006a', '0.62 0.62 0.66')
+SC_WHITE = unlit('sc_white', 'lights/white002', '0.80 0.80 0.80')
+SC_BLACK = unlit('sc_black', 'lights/white002', '0.05 0.05 0.05')
+def ring12(a, b, z0, z1, top, inner=None, cx=4800.0, cy=0.0, n=12, rot=15.0):
+    out = []
+    tq = math.tan(math.pi / n)
+    for k in range(n):
+        yaw = rot + k * 360.0 / n
+        so = v.make_prism(Vec(a, -b * tq, z0), Vec(b, b * tq, z1), top).solid
+        so.localise(Vec(cx, cy, 0), Angle(0, yaw, 0))
+        rx, ry = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        for f in so.sides:
+            nr = f.normal()   # into the solid
+            if nr.z < -0.9: f.mat = top
+            elif nr.z > 0.9: f.mat = NODRAW
+            elif a > 0 and nr.x * rx + nr.y * ry > 0.9: f.mat = inner or SC_DARK   # the hole wall
+            else: f.mat = NODRAW
+            f.lightmap = 32
+        out.append(so)
+    return out
+scs = []
+scs += ring12(86.0, 101.6, 695, 710, SC_GREY)                 # ring A: grey trim round the hole
+scs += ring12(101.6, 230.0, 700, 709.5, SC_RUST, NODRAW)     # ring A: dark rust beyond
+scs += ring12(95.0, 230.0, 593, 605, SC_GREY)                 # ring B
+scs += ring12(52.0, 66.0, 552, 564, SC_GREY)                  # ring C, inner step
+scs += ring12(66.0, 80.5, 552, 576, SC_GREY, SC_STEP)         # ring C, outer step
+scs += ring12(0.0, 33.8, 494, 506, SC_GREY)                   # target disc
+scs += ring12(0.0, 20.0, 506, 507, SC_WHITE)                  # its white centre
+scs += ring12(20.0, 23.0, 506, 507.2, SC_BLACK)               # black ring
+for k in range(2):                                            # black cross
+    so = v.make_prism(Vec(-19, -0.8, 507), Vec(19, 0.8, 507.6), SC_BLACK).solid
+    so.localise(Vec(4800, 0, 0), Angle(0, 15 + 90 * k, 0)); scs.append(so)
+for k in range(4):                                            # the tube's four rails, as wide as the video's spokes
+    so = v.make_prism(Vec(45, -2.5, 330), Vec(49, 2.5, 930), SC_BLACK).solid
+    so.localise(Vec(4800, 0, 0), Angle(0, 45 + 90 * k, 0))
+    for f in so.sides:
+        if abs(f.normal().z) > 0.9: f.mat = NODRAW
+    scs.append(so)
+fl = v.make_prism(Vec(4540, -260, 322), Vec(5060, 260, 330), SC_RUST).solid   # rust floor under the stack
+for f in fl.sides:
+    if f.normal().z > -0.9: f.mat = NODRAW
+scs.append(fl)
+v.create_ent('func_brush', targetname='r10_sc_rings', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(scs)
+shr = 0
+for e in v.entities:
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/transport_ring_white.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 4800) < 5 and abs(o.y) < 5 and 560 < o.z < 940:
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = f'r10_sh_ring_{int(round(o.z))}'; e['solid'] = '0'; shr += 1
+print('scanner shaft rings', len(scs), 'solids; tube rings made dynamic', shr)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

@@ -13,8 +13,14 @@ $published = Join-Path (Resolve-Path (Join-Path $r10 '..\..\..')).Path 'outputs\
 $ver = Get-Content -LiteralPath (Join-Path $published 'Rebuild-verification.json') -Raw | ConvertFrom-Json
 if (-not $Build) { $Build = $ver.compile.geometryCompileRevision }
 if (-not $Director) {
-    $Director = Get-ChildItem (Join-Path $r10 'build') -Filter 'director_*.nut' | Where-Object { (Get-FileHash $_.FullName).Hash -eq $ver.directorSha256 } |
-        Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object { $_.BaseName }
+    # prefer the director named like the build when it is the published one (two builds can share a director's content)
+    $same = Join-Path $r10 ('build\director_' + ($Build -replace '^corehub_', '') + '.nut')
+    if ((Test-Path -LiteralPath $same) -and ((Get-FileHash -LiteralPath $same).Hash -eq $ver.directorSha256)) {
+        $Director = [IO.Path]::GetFileNameWithoutExtension($same)
+    } else {
+        $Director = Get-ChildItem (Join-Path $r10 'build') -Filter 'director_*.nut' | Where-Object { (Get-FileHash $_.FullName).Hash -eq $ver.directorSha256 } |
+            Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object { $_.BaseName }
+    }
 }
 if (-not $Build -or -not $Director) { throw "Could not work out the published build/director ($Build / $Director)." }
 "build $Build, director $Director"
