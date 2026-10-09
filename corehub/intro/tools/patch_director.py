@@ -88,6 +88,13 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           71.8: (66.0, -2.0, 8.0), 71.9: (42.0, -4.0, 4.0), 72.0: (22.0, -5.0, 2.0), 72.1: (10.0, -6.0, 0.0), 72.25: (-1.0, -6.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
 for _t in [k for k in knots if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
 knots.update(edits2)
+# r10ca: the rust room's lower run (36.12-38.94 s) was shot upside down (pitch 180); upright it frames junction E like the
+# video -- the panel behind it at mid height, the dark floor below, black above. (p, y) -> (180 - p, y - 180), cut at 36.12 s
+# inside the video's dissolve
+knots[36.12] = (180.0, 164.0, 0.0)
+for _t in [k for k in knots if 36.12 < k <= 38.94]:
+    _a, _b, _c = knots[_t]; knots[_t] = (180.0 - _a, _b - 180.0, _c)
+knots[36.121] = (0.0, -16.0, 0.0)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -187,7 +194,9 @@ newpos = 'positions <- [\n' + ',\n'.join('{t=%.8f,p=Vector(%.8f,%.8f,%.8f)}' % (
 txt = txt[:ps] + newpos + txt[pe:]
 fades = [[62.9,63.05,0,235],[63.05,63.3,235,0],[52.45,52.55,0,110],[52.55,52.68,110,0],[38.70,38.9388,0,255],[39.2725,39.60,255,0],[53.83,54.1206,0,255],[54.8547,55.27,240,240],
          [55.27,55.47,240,0],[82.55,83.1829,40,255],[84.5510,84.97,255,0],[95.33,95.7288,0,255],
-         [104.97,105.305,0,255],[56.37,56.52,0,75],[56.52,56.70,75,0],[58.42,58.58,0,100],[58.58,58.72,100,0],[109.40,109.7094,0,255],[109.8428,110.6,255,0],[123.60,123.70,0,150],[123.70,123.82,150,0],[102.72,102.80,0,110],[102.80,102.90,110,0],[63.78,63.865,0,150],[63.865,63.97,150,0]]
+         [104.97,105.305,0,255],[56.37,56.52,0,75],[56.52,56.70,75,0],[58.42,58.58,0,100],[58.58,58.72,100,0],[109.40,109.7094,0,255],[109.8428,110.6,255,0],[123.60,123.70,0,150],[123.70,123.82,150,0],[102.72,102.80,0,110],[102.80,102.90,110,0],[63.78,63.865,0,150],[63.865,63.97,150,0],
+         # r10cb: the video fades the rust room in from black (32.63-33.07 s, measured luma ratio)
+         [32.60,32.70,255,228],[32.70,32.77,228,145],[32.77,32.83,145,100],[32.83,32.90,100,50],[32.90,33.04,50,15],[33.04,33.07,15,0]]
 anchor = '    SetScreenBlack(fadeAlpha);'
 assert txt.count(anchor) == 1
 txt = txt.replace(anchor, '    foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}\n' + anchor)
@@ -210,7 +219,7 @@ txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[71.28,0],[71.33,150],[71.
     'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10GlowOn)return;EntFire("r10_glare_ov",g?"StartOverlays":"StopOverlays","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
-txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0"])MoveProp(nm,Vector(0,0,-3000));}' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
+txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0","intro_transfer_scan_upper_1","intro_transfer_scan_fore_1","intro_transfer_mount_1"])MoveProp(nm,Vector(0,0,-3000));}' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
 exp_old = 'local exposure=P41_Lerp1([[0,0.58],[22.6,0.58],[23.1,1.0],[33,1.0]],t);'
 exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.85],[10.3,0.60],[10.6,0.22],[11.6,0.25],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10bz: the video's ceiling stays lit to 10.3 s and is dark (39-45) at 10.75-11.25 s   # r10ar: bright again as the camera looks up at the iris (22.3 s)
 assert txt.count(exp_old) == 1

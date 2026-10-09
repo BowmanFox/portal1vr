@@ -27,6 +27,32 @@ foreach ($f in 'patch_r10.py','patch_director.py','record_movie.ps1','assemble_m
 Copy-Item (Join-Path $r10 'tools\*.py') (Join-Path $dst 'tools') -Force
 Copy-Item (Join-Path $work 'watcher.ps1') (Join-Path $dst 'tools\watcher.ps1') -Force
 foreach ($f in 'build_board.py', 'scanner_board.qc', 'scanner_board.smd') { Copy-Item (Join-Path $r10 "models\$f") (Join-Path $dst "models\$f") -Force }
+# Every custom model source (QC/SMD and the scripts that generate them) and the generated r10 materials, so each
+# commit carries all custom assets, not only the scanner board.
+Get-ChildItem -LiteralPath (Join-Path $r10 'models') -File | Where-Object { $_.Extension -in '.qc', '.smd', '.py' } |
+    ForEach-Object { Copy-Item $_.FullName (Join-Path $dst ('models\' + $_.Name)) -Force }
+$tm = Join-Path $work 'transport-models'
+if (Test-Path $tm) {
+    New-Item -ItemType Directory -Force (Join-Path $dst 'models\transport') | Out-Null
+    Get-ChildItem -LiteralPath $tm -File | Where-Object { $_.Extension -in '.qc', '.smd', '.py' } |
+        ForEach-Object { Copy-Item $_.FullName (Join-Path $dst ('models\transport\' + $_.Name)) -Force }
+}
+$mat = Join-Path $work 'runtime\game\corehub_intro\materials\corehub_intro\r10'
+if (Test-Path $mat) {
+    $mdst = Join-Path $dst 'materials\corehub_intro\r10'; New-Item -ItemType Directory -Force $mdst | Out-Null
+    Copy-Item (Join-Path $mat '*') $mdst -Force
+}
+# The newest test build (it can be ahead of the published one) goes to wip\, so work in progress is committed too.
+$wipName = ''
+$wipVmf = Get-ChildItem (Join-Path $r10 'build') -Filter 'corehub_r10*.vmf' | Sort-Object LastWriteTime | Select-Object -Last 1
+if ($wipVmf) {
+    $wipName = $wipVmf.BaseName -replace '^corehub_', ''
+    New-Item -ItemType Directory -Force (Join-Path $dst 'wip') | Out-Null
+    Copy-Item $wipVmf.FullName (Join-Path $dst 'wip\corehub_intro_wip.vmf') -Force
+    $wipDir = Join-Path $r10 "build\director_$wipName.nut"
+    if (Test-Path $wipDir) { Copy-Item $wipDir (Join-Path $dst 'wip\director_wip.nut') -Force }
+    Set-Content -LiteralPath (Join-Path $dst 'wip\BUILD.txt') -Value "Newest test build: corehub_$wipName + director_$wipName. Published build (map\): $Build + $Director." -Encoding Ascii
+}
 Copy-Item (Join-Path $r10 'STATUS.md') (Join-Path $dst 'README.md') -Force
 if (Test-Path (Join-Path $r10 'review')) { Copy-Item (Join-Path $r10 'review\*') (Join-Path $dst 'review') -Force }
 $lock = New-Object System.Threading.Mutex($false, 'CorehubR10GitPush')
@@ -39,7 +65,7 @@ try {
     git add -A -- corehub/intro
     git diff --cached --quiet
     if ($LASTEXITCODE -eq 0) { 'no changes since the last commit' } else {
-        git -c user.name='Niko (via Claude)' -c user.email='awesomeguy3612@gmail.com' commit -q -m "Corehub intro rebuild ($Build + $Director)" -m "Separated middle rooms, frontal walls, WIP surfaces, 60 fps test runs; see corehub/intro/README.md for per-scene scores." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_014AMsH7FRGKMAJSenMpS1Ga"
+        git -c user.name='Niko (via Claude)' -c user.email='awesomeguy3612@gmail.com' commit -q -m "Corehub intro rebuild ($Build + $Director; newest test $wipName)" -m "Separated middle rooms, frontal walls, WIP surfaces, 60 fps test runs; see corehub/intro/README.md for per-scene scores." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_014AMsH7FRGKMAJSenMpS1Ga"
         git log --oneline -1
     }
     # Pushing needs the user's explicit go-ahead, recorded as r10\PUSH_APPROVED; until then this only commits locally.

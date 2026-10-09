@@ -882,10 +882,10 @@ posts = [((-32, -5500, 2628), '90 0 0'), ((-32, -5560, 2688), '0 -90 0'),
          ((416, -5500, 2628), '90 0 0'), ((416, -5440, 2688), '0 90 0'), ((416, -5560, 2688), '0 -90 0'),
          ((768, -5162, 2628), '90 0 0'),
          ((768, -5012, 2176), '0 90 0'), ((768, -5132, 1664), '0 -90 0'), ((768, -5132, 1152), '0 -90 0'),
-         ((1560, -5808, 512), '0 -90 0'), ((1560, -5748, 572), '-90 0 0')]
+         ((1560, -5688, 512), '0 90 0'), ((1560, -5748, 452), '90 0 0')]   # r10ca: the lower run is shot upright now (pipe left, lit pipe down)
 for (x, y, z), ang in posts:
     v.create_ent('prop_static', model='models/corehub_intro/r10_post.mdl', origin=f'{x} {y} {z}', angles=ang, solid='0', disableshadows='1')
-box((860, -6000, 760), (2000, -5500, 768), RUST_DARK, world=False)
+box((860, -6000, 256), (2000, -5500, 264), RUST_DARK, world=False)   # r10ca: the floor under the upright lower run (36.2-37.7 s)
 print('rust room posts', len(posts))
 # the lower run's down-branch at x 2048 reads as a tube going up behind the 36.25-37 s junction; the video shows it only
 # from 37.5 s. Named so the director can bring it in then.
@@ -1020,7 +1020,7 @@ for e in list(v.entities):
         v.remove_ent(e); print('junction A right pipe removed')
 # rust room: the video's panel behind junction A is taller and wider (33.0-33.2 s: top at 25 -> 10 %, left edge 26 -> 15 %);
 # open the black frame to y -6320..-4977, z 2510..ceiling and carry the rust wall up to the ceiling
-RUST_RR = unlit('rust_rr', 'metal/metalwall_bts_006a', '1.00 1.00 1.02')
+RUST_RR = unlit('rust_rr', 'metal/metalwall_bts_006a', '0.80 0.83 0.88')   # r10cb: rust pixels read 20 % brighter and redder than the video (33.25-36 s: warm median 76 vs 61)
 win = 0
 for e in v.entities:
     if e['classname'] != 'func_detail': continue
