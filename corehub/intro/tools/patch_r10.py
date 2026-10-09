@@ -1411,7 +1411,7 @@ v.create_ent('func_brush', targetname='r10_pod_rails', Solidity='1', spawnflags=
 # the last (the collars at z 1456 and 1280) but had nothing at the probe level between them. Measured from the video's
 # ring edges (113.0-113.4 s) that ring sits at z ~1331 with a 38-unit hole and a grey face out to 49.
 INC_GREY = unlit('inc_grey', 'lights/white002', '0.50 0.50 0.51', '"$translucent" "1"\n"$alpha" "0.55"\n')   # r10cy: translucent like the video's
-ir2 = ring12(51.0, 66.0, 1301, 1305, INC_GREY, INC_GREY, cx=8448.0, cy=0.0)   # r10cy: least-squares fit over 112.6-113.4 s
+ir2 = ring12(51.0, 66.0, 1379, 1383, INC_GREY, INC_GREY, cx=8448.0, cy=0.0)   # r10cy: least-squares fit over 112.6-113.4 s; r10dd/df: re-fitted to the video's own descent, top 1383
 v.create_ent('func_brush', targetname='r10_inc_ring2', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(ir2)
 # the probes' red cones read as a bright pink cross (112.5-113.8 s); the video's are faint wide pink fans
@@ -1454,6 +1454,75 @@ for lo, hi, keep in (((5850, 50, 330), (5852, 250, 640), 'px'), ((6052, 50, 330)
 sw += ring12(70.0, 142.0, 324, 328, RUST, NODRAW, cx=5952.0, cy=150.0)   # r10dc: a rust ceiling round the funnel (the room's white walls showed through)
 v.create_ent('func_brush', targetname='r10_sl_shaft', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sw)
+# ---------- r10dd: incinerator probes and ring spacing re-measured from the video ----------
+# The video's camera falls at 113 -> 157 -> 161 u/s through the shaft (its three grey collars' outer edges, taken as
+# equal radii, tracked 112.2-114.1 s; one probe tip fitted against that descent stays put to +-1 unit over 0.75 s):
+# ring B sits 124 below the top collar and ring C 107 below that (ours were 155 and 21 below). Its probes are short
+# glowing white tubes 7 across reaching 28-50 from the axis (white-blob tracks 112.0-113.9 s: z 1503 at azimuth 249;
+# z 1410 at -23 and 158; z 1309 at 69, 159.5 and 248), not our long capsules at 58-138, and each throws a wide
+# translucent cone out from the axis along it (pink fans 112-113 s, greyer below).
+from srctools.vmf import Solid, Side
+_rm = 0
+for e in list(v.entities):
+    mdl = (e['model'] or '').lower(); o = e['origin']
+    if not o or not mdl.endswith(('p9_end_radial_probe.mdl', 'final_scanner_mount.mdl', 'p9_end_red_cone.mdl')): continue
+    o = Vec.from_str(o)
+    if abs(o.x - 8448) < 200 and abs(o.y) < 200 and round(o.z) in (1430, 1324): v.remove_ent(e); _rm += 1
+_mv = 0
+for e in v.entities:
+    if (e['model'] or '').lower().endswith('p9_end_v3_collar.mdl') and e['origin'] and Vec.from_str(e['origin']) == Vec(8448, 0, 1280):
+        e['origin'] = '8448 0 1272'; _mv += 1   # ring C: top face at 1276 (r10df)
+    elif (e['model'] or '').lower().endswith('p9_end_v3_collar.mdl') and e['origin'] and Vec.from_str(e['origin']) == Vec(8448, 0, 1456):
+        e['origin'] = '8448 0 1503'; _mv += 1   # ring A: top face at 1507 (r10df)
+INC_TUBE = unlit('inc_tube', 'lights/white002', '1.0 1.0 1.0')
+INC_CAP = unlit('inc_cap', 'lights/white002', '0.11 0.11 0.115')
+INC_ARM = unlit('inc_arm', 'lights/white002', '0.26 0.26 0.27')
+INC_PINK = unlit('inc_pink', 'lights/white002', '0.86 0.56 0.56', '"$translucent" "1"\n"$alpha" "0.30"\n"$nocull" "1"\n')
+INC_HAZE = unlit('inc_haze', 'lights/white002', '0.64 0.59 0.60', '"$translucent" "1"\n"$alpha" "0.22"\n"$nocull" "1"\n')
+ICX, ICY = 8448.0, 0.0
+def rbar(r0, r1, hw, z, phi, mat):
+    so = v.make_prism(Vec(r0, -hw, z - hw), Vec(r1, hw, z + hw), mat).solid
+    so.localise(Vec(ICX, ICY, 0), Angle(0, phi, 0))
+    for f in so.sides: f.lightmap = 32
+    return so
+def convex(faces, mat):
+    pts = [q for fc in faces for q in fc]
+    c = Vec(sum(q.x for q in pts) / len(pts), sum(q.y for q in pts) / len(pts), sum(q.z for q in pts) / len(pts))
+    so = Solid(v)
+    for fc in faces:
+        p0, p1, p2 = fc[0], fc[1], fc[2]
+        sd = Side(v, [p0.copy(), p1.copy(), p2.copy()], mat=mat)
+        if Vec.dot(sd.normal(), c - p0) < 0: sd = Side(v, [p0.copy(), p2.copy(), p1.copy()], mat=mat)
+        sd.reset_uv(); sd.lightmap = 32
+        so.sides.append(sd)
+    return so
+def cone(z, phi, L, half, mat):
+    # square pyramid: apex on the shaft axis at z, opening along azimuth phi
+    a = math.radians(phi); ux, uy = math.cos(a), math.sin(a); vx, vy = -uy, ux
+    h = L * math.tan(math.radians(half)); ap = Vec(ICX, ICY, z)
+    def P(s, t, w): return Vec(ICX + ux * s + vx * t, ICY + uy * s + vy * t, z + w)
+    b = [P(L, -h, -h), P(L, h, -h), P(L, h, h), P(L, -h, h)]
+    return convex([[b[0], b[1], b[2]]] + [[ap, b[i], b[(i + 1) % 4]] for i in range(4)], mat)
+# r10de: the top level carries a long tube each side (left and right, pink fans), the middle level only the top and bottom
+# tubes (the bottom one throws the video's narrow red beam), the lowest level four with grey fans; ring D (the furnace
+# collar) sits 112 below ring C like the others (video 114.0-114.4 s and the 115.5 s view back down: z 1117, ours 1164)
+INC_RED = unlit('inc_red', 'lights/white002', '0.95 0.30 0.32', '"$translucent" "1"\n"$alpha" "0.42"\n"$nocull" "1"\n')
+# r10df: rather than sinking ring D into the furnace mouth (which opened a dark gap round it, 115.5-116 s), the stack above
+# it rises 47 units: rings A/B/C at 1507/1383/1276 keep the video's 124/107/112 spacing down to the furnace collar (1164)
+inc_tubes = [(1550, 69.0, 26.0, 54.0, 'pink'), (1550, 249.0, 34.5, 58.5, 'pink'), (1457, -22.5, 31.0, 50.0, 'haze'), (1457, 157.5, 28.5, 47.0, 'red'),
+             (1356, 69.0, 32.0, 50.0, 'haze'), (1356, 159.5, 27.0, 46.0, 'haze'), (1356, 248.0, 16.5, 34.5, 'haze'), (1356, -21.0, 30.0, 48.0, 'haze')]
+itb, ipk, ihz, ird = [], [], [], []
+for z, phi, r0, r1, kind in inc_tubes:
+    itb.append(rbar(r0, r1, 3.5, z, phi, INC_TUBE))
+    itb.append(rbar(r1, r1 + 6.0, 4.5, z, phi, INC_CAP))
+    itb.append(rbar(r1 + 6.0, 118.0, 1.5, z, phi, INC_ARM))
+    if kind == 'pink': ipk.append(cone(z, phi, 150.0, 20.0, INC_PINK))
+    elif kind == 'red': ird.append(cone(z, phi, 150.0, 4.5, INC_RED))
+    else: ihz.append(cone(z, phi, 150.0, 20.0, INC_HAZE))
+for nm, sl in (('r10_inc_tubes', itb), ('r10_inc_cones', ipk), ('r10_inc_haze', ihz), ('r10_inc_beam', ird)):
+    v.create_ent('func_brush', targetname=nm, Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+                 rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sl)
+print('r10dd incinerator: probes removed', _rm, 'collar moved', _mv, 'tubes', len(inc_tubes))
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
