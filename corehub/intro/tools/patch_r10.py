@@ -1299,7 +1299,7 @@ print('cube passage sleeve', len(cpv), sum(1 for so in cpv for f in so.sides if 
 SC_GREY = unlit('sc_grey', 'lights/white002', '0.49 0.49 0.49')
 SC_STEP = unlit('sc_step', 'lights/white002', '0.30 0.30 0.30')
 SC_DARK = unlit('sc_dark', 'lights/white002', '0.22 0.22 0.22')   # r10cr: the video's gaps read 52-58, ours 27-34
-SC_RUST = unlit('sc_rust', 'metal/metalwall_bts_006a', '0.85 0.84 0.88')
+SC_RUST = unlit('sc_rust', 'metal/metalwall_bts_006a', '0.95 0.84 0.70')   # r10cu: warmer like the video's rust (ours read blue-grey)
 SC_WHITE = unlit('sc_white', 'lights/white002', '0.70 0.70 0.70')
 SC_BLACK = unlit('sc_black', 'lights/white002', '0.05 0.05 0.05')
 def ring12(a, b, z0, z1, top, inner=None, cx=4800.0, cy=0.0, n=12, rot=15.0):
@@ -1377,6 +1377,20 @@ for grp, (z, rad, sc, azs) in {'760': (680, 150, '0.8', (10, 190)), '620': (612,
             if e['targetname'] == f'shaft_{grp}_{i}_b': e['origin'] = _polar(6, az + 180, 520)
 for e in v.entities:   # r10cr: the shaft lasers read as bright pink lines over the rings; the video's are faint
     if e['classname'] == 'env_beam' and e['targetname'].startswith('shaft_') and e['targetname'].endswith('_beam'): e['renderamt'] = '20'
+# ---------- r10cu: rust room descent (33.8-35.4 s) ----------
+# going down the shaft the video's right side is black (34.0-35.25 s: 0-2 against our 13-44); ours looked across the
+# room at the lower run's lit end wall (x 2272). A black screen stands in front of it until the descent is over.
+SC_BLK2 = unlit('rr_black', 'lights/white002', '0.02 0.02 0.02')
+rb = v.make_prism(Vec(2262, -6460, -100), Vec(2270, -5040, 1150), SC_BLK2).solid
+v.create_ent('func_brush', targetname='r10_rr_black', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(rb)
+# r10cv: the video's tube after the pod rise is dark (rings ~30 against our grey ~70-90): its rings take the darkest skin
+dk = 0
+for e in v.entities:
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/transport_ring.mdl' and e['skin'] == '1':
+        o = Vec.from_str(e['origin'])
+        if 2000 < o.x < 2760 and abs(o.y) < 1 and abs(o.z - 1152) < 1: e['skin'] = '0'; dk += 1
+print('pod tube rings darkened', dk)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

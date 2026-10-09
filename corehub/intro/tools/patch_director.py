@@ -105,6 +105,15 @@ knots.update({37.88: (20.0, 0.0, 0.0), 37.95: (26.0, 0.0, 0.0), 38.02: (12.0, 0.
 # concentric at 82.6-82.75 s); ours tilted up from 82 s and lost the iris off the bottom edge
 for _t in [k for k in knots if 82.0 < k < 83.0]: del knots[_t]
 knots.update({82.25: (88.0, 0.0, 0.0), 82.5: (89.0, 0.0, 0.0), 82.8: (89.0, 0.0, 0.0)})
+# r10cv: tube ride after the pod rise (43.75-46.6 s) -- the video's tube runs off to the lower left: its rings' centre sits
+# at (-0.21..-0.06, +0.46..+0.54)f, ours at (+0.34..+0.27) below the middle; looking 10 degrees higher puts it there
+for _t in [k for k in knots if 43.6 < k < 46.65]:
+    _a, _b, _c = knots[_t]; knots[_t] = (_a - 10.0, _b, _c)
+# r10ct: scanner shaft -- the video's vanishing point sits steadily at (-0.03, +0.10) of the focal length (measured
+# 76.5-80.2 s); ours wandered (+0.02..+0.06, +0.03..+0.14). Pitch 84 and roll -13 put the nadir there; the yaw takes over
+# the old roll so the rails and boards keep their image angles (yaw + roll is what turns the picture when looking down).
+for _t in [k for k in knots if 75.6 < k < 80.3]:
+    _a, _b, _c = knots[_t]; knots[_t] = (84.0, _b + _c + 13.0, -13.0)
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -325,7 +334,7 @@ txt = txt.replace('cutTab <- [', 'r10Veil <- [[77.3,0],[77.42,110],[77.5,186],[7
     'EntFire("r10_veil_fade","Fade","",0);r10VeilA=a;}' + chr(10) + 'cutTab <- [', 1)
 sq_old = '    SetRedHaze(t);' + chr(10)
 assert txt.count(sq_old) == 1
-txt = txt.replace(sq_old, sq_old + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
+txt = txt.replace(sq_old, sq_old + '    MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
 sf_old = '    SetLensGlow(t);' + chr(10)
 assert txt.count(sf_old) == 1
 txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))
