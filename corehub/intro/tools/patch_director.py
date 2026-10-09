@@ -313,7 +313,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}')
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
-txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;r10HazeA <- -1;' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;r10HazeA <- -1;r10RingDark <- false;' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10CloseCones <- [[79.75,Vector(4827,0,-150)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
 tl_old = '    local turretOn=(t>=67.2 && t<71.35)?1:0;'
@@ -337,7 +337,7 @@ txt = txt.replace('cutTab <- [', 'r10Veil <- [[77.3,0],[77.42,110],[77.5,186],[7
     'EntFire("r10_veil_fade","Fade","",0);r10VeilA=a;}' + chr(10) + 'cutTab <- [', 1)
 sq_old = '    SetRedHaze(t);' + chr(10)
 assert txt.count(sq_old) == 1
-txt = txt.replace(sq_old, sq_old + '    MoveProp("r10_inc_ring2",(t>=111.5&&t<113.5)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_pod_dark",(t>=43.3&&t<47.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_pod_rails",(t>=43.3&&t<48.6)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
+txt = txt.replace(sq_old, sq_old + '    MoveProp("r10_sl_shaft",(t>=86.21&&t<87.1)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    {local rd=(t>=36.33&&t<36.7);if(rd!=r10RingDark){EntFire("r10_rr_ring_near","Color",rd?"62 62 64":"255 255 255",0);r10RingDark=rd;}};' + chr(10) + '    MoveProp("r10_lab_white",(t>=103.0&&t<105.31)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_inc_ring2",(t>=111.5&&t<113.5)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_pod_dark",(t>=43.3&&t<47.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_pod_rails",(t>=43.3&&t<48.6)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
 sf_old = '    SetLensGlow(t);' + chr(10)
 assert txt.count(sf_old) == 1
 txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))

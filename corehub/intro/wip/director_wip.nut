@@ -5261,7 +5261,7 @@ r10TurretZ <- [[65.9,820],[66.45,1010]];r10GlowPath <- [[114.0,Vector(8425,61,90
 r10Red <- [[69.2,0],[71.28,0],[71.33,150],[71.37,150],[71.46,0]];r10RedAlpha <- 0;
 function SetRedHaze(t){local a=(t>=69.2&&t<71.5)?Lerp1(r10Red,t).tointeger():0;if(a==r10RedAlpha)return;local f=Entities.FindByName(null,"r10_red_fade");if(f==null)return;f.__KeyValueFromString("renderamt",""+a);EntFire("r10_red_fade","Fade","",0);r10RedAlpha=a;}
 r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10GlowOn)return;EntFire("r10_glare_ov",g?"StartOverlays":"StopOverlays","",0);r10GlowOn=g;}
-r10CollarDark <- false;r10HazeA <- -1;
+r10CollarDark <- false;r10HazeA <- -1;r10RingDark <- false;
 r10CloseCones <- [[79.75,Vector(4827,0,-150)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];
 r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];
 r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.85&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}
@@ -5499,6 +5499,9 @@ local processTime=t;if(processTime<57)processTime=57;if(processTime>65)processTi
 for(local i=0;i<2;i++)MoveProp("intro_processing_cube_"+i,Vector(3882+30-i*50,220+i*40,2250+i*260-(processTime-57)*70));
 
     SetRedHaze(t);
+    MoveProp("r10_sl_shaft",(t>=86.21&&t<87.1)?Vector(0,0,0):Vector(0,0,-4000));
+    {local rd=(t>=36.33&&t<36.7);if(rd!=r10RingDark){EntFire("r10_rr_ring_near","Color",rd?"62 62 64":"255 255 255",0);r10RingDark=rd;}};
+    MoveProp("r10_lab_white",(t>=103.0&&t<105.31)?Vector(0,0,0):Vector(0,0,-4000));
     MoveProp("r10_inc_ring2",(t>=111.5&&t<113.5)?Vector(0,0,0):Vector(0,0,-4000));
     MoveProp("r10_pod_dark",(t>=43.3&&t<47.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_pod_rails",(t>=43.3&&t<48.6)?Vector(0,0,0):Vector(0,0,-4000));
     MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));

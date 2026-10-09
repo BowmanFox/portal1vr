@@ -1419,6 +1419,40 @@ rc = 0
 for e in v.entities:
     if e['targetname'].startswith('intro_p9_scan_red_'): e['rendermode'] = '2'; e['renderamt'] = '110'; rc += 1
 print('incinerator red cones dimmed', rc)
+# r10cz: lab (103-105.3 s) -- the video's white tiled wall runs from the turrets' east side away to the south and fills
+# the left half of the frame by 104.5 s, over a white floor (104.5 s: left half 189-209 against our 33-44). A tall white
+# wall (x 7900, facing west) and a white floor at the panel's foot stand in for the turn.
+lw = []
+so = v.make_prism(Vec(7900, -495, 60), Vec(7904, -60, 340), LABWALL).solid
+for f in so.sides:
+    if f.normal().x < 0.9: f.mat = NODRAW   # keep the west face (normal into the solid points +x)
+lw.append(so)
+so = v.make_prism(Vec(7560, -500, 116), Vec(7900, -170, 120), LABWALL).solid
+for f in so.sides:
+    if f.normal().z > -0.9: f.mat = NODRAW   # keep the top
+lw.append(so)
+v.create_ent('func_brush', targetname='r10_lab_white', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(lw)
+# r10da: lower run (36.3-36.7 s) -- passing the first entry ring the video sees it dark (near ring ~40); ours lit it grey
+for e in v.entities:
+    if e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/p9_entry_ring.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 1048) < 1 and abs(o.y + 5748) < 1 and abs(o.z - 512) < 1:
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = 'r10_rr_ring_near'; e['solid'] = '0'; e['rendercolor'] = '255 255 255'
+            print('near entry ring named')
+# r10db: sludge funnel (86.2-87.1 s) -- the video drops through a rust-walled shaft into the funnel (rust all round the
+# rings, 86.25-87.0 s); ours already showed the sludge room's white tiles round the funnel
+sw = []
+for lo, hi, keep in (((5850, 50, 330), (5852, 250, 640), 'px'), ((6052, 50, 330), (6054, 250, 640), 'nx'),
+                     ((5850, 48, 330), (6054, 50, 640), 'py'), ((5850, 250, 330), (6054, 252, 640), 'ny')):
+    so = v.make_prism(Vec(*lo), Vec(*hi), RUST).solid
+    for f in so.sides:
+        n = f.normal()   # into the solid: the face toward the shaft's middle has its normal pointing outward
+        inner = {'px': n.x < -0.9, 'nx': n.x > 0.9, 'py': n.y < -0.9, 'ny': n.y > 0.9}[keep]
+        if not inner: f.mat = NODRAW
+    sw.append(so)
+v.create_ent('func_brush', targetname='r10_sl_shaft', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sw)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
