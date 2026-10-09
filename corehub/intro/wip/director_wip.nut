@@ -758,6 +758,9 @@ knots <- [
 {t=80.25000000,a=Vector(83.50000000,0.00000000,26.25000000)},
 {t=81.50000000,a=Vector(87.00000000,0.00000000,0.00000000)},
 {t=82.00000000,a=Vector(86.80000000,0.00000000,0.00000000)},
+{t=82.25000000,a=Vector(88.00000000,0.00000000,0.00000000)},
+{t=82.50000000,a=Vector(89.00000000,0.00000000,0.00000000)},
+{t=82.80000000,a=Vector(89.00000000,0.00000000,0.00000000)},
 {t=83.00000000,a=Vector(35.00000000,0.00000000,0.00000000)},
 {t=84.00000000,a=Vector(0.00000000,0.00000000,0.00000000)},
 {t=86.00000000,a=Vector(-10.00000000,20.00000000,0.00000000)},
@@ -1733,9 +1736,11 @@ positions <- [
 {t=81.75000000,p=Vector(4800.00000000,0.00000000,545.00000000)},
 {t=82.00000000,p=Vector(4800.00000000,0.00000000,545.00000000)},
 {t=82.25000000,p=Vector(4800.00000000,0.00000000,520.00000000)},
-{t=82.50000000,p=Vector(4800.00000000,0.00000000,400.00000000)},
-{t=82.75000000,p=Vector(4809.24761294,0.00000000,336.30185171)},
-{t=83.00000000,p=Vector(4843.71492289,0.00000000,287.71384896)},
+{t=82.40000000,p=Vector(4800.00000000,0.00000000,430.00000000)},
+{t=82.50000000,p=Vector(4800.00000000,0.00000000,345.00000000)},
+{t=82.60000000,p=Vector(4801.00000000,0.00000000,300.00000000)},
+{t=82.75000000,p=Vector(4812.00000000,0.00000000,272.00000000)},
+{t=83.00000000,p=Vector(4844.00000000,0.00000000,262.00000000)},
 {t=83.25000000,p=Vector(4941.50000000,0.00000000,256.00000000)},
 {t=83.50000000,p=Vector(5033.00000000,0.00000000,256.00000000)},
 {t=83.75000000,p=Vector(5124.50000000,0.00000000,256.00000000)},
@@ -5259,6 +5264,7 @@ r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10G
 r10CollarDark <- false;r10HazeA <- -1;
 r10CloseCones <- [[79.75,Vector(4827,0,-260)],[80.0,Vector(4810,0,-95)],[80.25,Vector(4806,0,-56)],[80.5,Vector(4805,0,-52)],[80.75,Vector(4838,-9,-85)],[81.05,Vector(4845,0,-170)]];
 r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];
+r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.8&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}
 cutTab <- [[0.0,4.5],[32.4990684,32.6659014],[38.9388222,39.2724882],[54.1206,54.8547],[83.1829338,84.5509644],[95.7287754,96.596307],[99.7995006,99.9663336],[105.3049896,105.6386556],[109.7093808,109.8428472]];
 dropTab <- [[44.0,2330.0],[45.0,2600.0],[46.0,2640.0],[46.5,2650.0],[47.0,2700.0],[47.4,2790.0]];
 incineratorLaserState <- null;
@@ -5405,7 +5411,7 @@ P41_lastExposure <- -1;
 function P41_Update(t){
  if(t>=32.51)return;
  P41_SetIntroIris(t);P41_SetEarlyShaftCube(t);P41_SetOpeningDebris(t);
- local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.85],[10.3,0.60],[10.6,0.22],[11.6,0.25],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);
+ local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.72],[10.3,0.56],[10.5,0.42],[10.6,0.30],[10.75,0.20],[10.9,0.08],[11.1,0.06],[11.6,0.10],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);
  if(exposure!=P41_lastExposure){P41_lastExposure=exposure;
   EntFire("p41_preview_ceiling_control","SetMaterialVar","["+exposure+" "+(exposure*0.976)+" "+(exposure*1.01)+"]",0);
  }
@@ -5437,7 +5443,7 @@ function SetSceneTime(t) {
     // endpoint after the film's134-second duration.
     if(originalTime>=131.2308376)fadeAlpha=Lerp1(closingFade,originalTime);
     if(t<32.4990684){
-      if(t<6.8)fadeAlpha=92;else if(t<7.05)fadeAlpha=92*(7.05-t)/0.25;
+      if(t<6.8)fadeAlpha=92;
       if(t<5.338656)fadeAlpha=92+(255-92)*Lerp1(openingReveal,t)/255;
       if(t>=32.1654024)fadeAlpha=Lerp1([[32.1654024,0],[32.2321356,32],[32.2655022,61],[32.2988688,94],[32.3322354,122],[32.365602,155],[32.3989686,187],[32.4323352,215],[32.4657018,244],[32.4990684,255]],t);
     }
@@ -5447,7 +5453,7 @@ function SetSceneTime(t) {
       fadeAlpha=Lerp1([[99.599301,0],[99.6660342,96],[99.7327674,184],[99.7995006,255]],t);
     foreach(f in r10Fades) if(t>=f[0] && t<f[1]){local k=(t-f[0])/(f[1]-f[0]);local a=(f[2]+(f[3]-f[2])*k).tointeger();if(a>fadeAlpha)fadeAlpha=a;}
     SetScreenBlack(fadeAlpha);
-    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_tu_tubes",(t<67.4)?Vector(4575,58,1340):Vector(0,0,-3000));MoveProp("r10_exit_collar",(t>=81.0&&t<82.4)?Vector(0,0,-3000):Vector(4967,0,256));{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=63.87&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}
+    {local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10DropPath.len()-1;i++)if(t>=r10DropPath[i][0]&&t<=r10DropPath[i+1][0]){local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));local hid=Vector(0,0,-3000);local P1=[Vector(4761.8,38.2,950),Vector(4761.8,-38.2,950),Vector(4838.2,-38.2,950),Vector(4838.2,38.2,950)];local P2=[Vector(4838.2,38.2,950),Vector(4838.2,-38.2,950),Vector(4761.8,-38.2,950),Vector(4761.8,38.2,950)];if(ins){MoveProp("r10_inlet_frame_orig",hid);MoveProp("r10_inlet_frame2",Vector(4800,0,938));foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,q);foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,hid);}else{MoveProp("r10_inlet_frame2",hid);foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,hid);if(t>=72.35&&t<72.5){MoveProp("r10_inlet_frame_orig",Vector(4800,0,950));foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,q);};};};MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_tu_tubes",(t<67.4)?Vector(4575,58,1340):Vector(0,0,-3000));MoveProp("r10_exit_collar",(t>=81.0&&t<82.4)?Vector(0,0,-3000):Vector(4967,0,256));{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=63.87&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};{local cr=(t>=119.0&&t<121.0);MoveProp("r10_cap_ring_0",cr?Vector(11312,0,128):Vector(0,0,-3000));MoveProp("r10_cap_ring_1",cr?Vector(11360,0,128):Vector(0,0,-3000));};{local dk=(t>=97.92&&t<98.12);if(dk!=r10CollarDark){EntFire("r10_fac_collar","Color",dk?"70 66 62":"255 255 255",0);r10CollarDark=dk;}};MoveProp("r10_funnel_lo1",(t<86.95)?Vector(5952,150,255):Vector(0,0,-3000));MoveProp("r10_funnel_lo2",(t<86.95)?Vector(5952,150,170):Vector(0,0,-3000));{local h=(t>=102.8||t<99.0);MoveProp("r10_lab_tur_0",h?Vector(7774.4,-183.4,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_1",h?Vector(7854.2,-162.0,206.8):Vector(0,0,-3000));MoveProp("r10_lab_tur_2",h?Vector(7909.8,-116.5,206.8):Vector(0,0,-3000));}}
     // The storage cube would sit in the 22 s look-up; it is never seen again.
     MoveProp("intro_cube_pile_0",(t>21.8 && t<22.4)?Vector(-90,-40,-400):Vector(-90,-40,101));
     SetEarlyShaftCube(t);
@@ -5491,8 +5497,10 @@ local processTime=t;if(processTime<57)processTime=57;if(processTime>65)processTi
 for(local i=0;i<2;i++)MoveProp("intro_processing_cube_"+i,Vector(3882+30-i*50,220+i*40,2250+i*260-(processTime-57)*70));
 
     SetRedHaze(t);
+    MoveProp("r10_scan_plate",(t>=80.75&&t<82.9)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_scan_grey",(t>=80.75&&t<82.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_exit_collar2",(t>=80.75&&t<82.9)?Vector(0,0,-3000):Vector(4968.7,0,256));
     if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0","intro_transfer_scan_upper_1","intro_transfer_scan_fore_1","intro_transfer_mount_1"])MoveProp(nm,Vector(0,0,-3000));}
     SetLensGlow(t);
+    SetFlicker(t);
     MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));
     {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}
     MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));

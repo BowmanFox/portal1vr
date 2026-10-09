@@ -1062,6 +1062,8 @@ pl = []
 for lo, hi in (((4560, -320, 940), (4715, 320, 946)), ((4885, -320, 940), (4980, 320, 946)),
                ((4715, -320, 940), (4885, -85, 946)), ((4715, 85, 940), (4885, 320, 946))):
     pl.append(v.make_prism(Vec(*lo), Vec(*hi), RUST_TU).solid)
+# r10cc: the video's iris sits on a grey square (71.5-71.75 s), not over the open tube; a grey floor under the petals
+pl.append(v.make_prism(Vec(4715, -85, 922), Vec(4885, 85, 928), unlit('scan_grey', 'lights/white002', '0.48 0.48 0.48')).solid)
 v.create_ent('func_brush', targetname='r10_inlet_plate', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
              rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(pl)
 ir = 0
@@ -1141,6 +1143,56 @@ for e in v.entities:   # the lower corridor's black ceiling slab reads as the vi
         if abs(lo.x - 2176) < 1 and abs(hi.x - 3008) < 1 and abs(lo.z + 128) < 1 and abs(hi.z + 112) < 1:
             for f in so.sides: f.mat = RUST_DARK
 print('r10cb lower run: end wall pieces replaced', ew)
+# ---------- r10cc: scanner iris view (80.75-82.9 s) ----------
+# the video looks straight down at the iris set in a flat rust floor: a grey square behind the petals, black beams left
+# and right, a darker panel on the right, black at the top and bottom edges (81.5 s: floor 85/74/69, grey 123, panel
+# 65/61/62). Ours looked down into the open room, its walls and the floor far below. A func_brush floor stands in while
+# the shot lasts; the static orange ring in the front wall's tube opening becomes dynamic so the director can move it out.
+SCAN_FLOOR = unlit('scan_floor', 'metal/metalwall_bts_006a', '1.00 1.00 1.03')
+SCAN_PANEL = unlit('scan_panel', 'metal/metalwall_bts_006a', '0.78 0.80 0.86')
+SCAN_GREY = unlit('scan_grey', 'lights/white002', '0.48 0.48 0.48')
+sp = []
+for lo, hi, m in (
+        ((4635, 125, 278), (4950, 250, 284), SCAN_FLOOR), ((4635, -175, 278), (4950, -125, 284), SCAN_FLOOR),
+        ((4635, -125, 278), (4650, 125, 284), SCAN_FLOOR), ((4920, -125, 278), (4950, 125, 284), SCAN_FLOOR),
+        ((4650, -125, 114), (4920, 125, 120), SCAN_FLOOR),   # r10cd: rust floor seen through the opened iris (82.3-82.6 s)
+        ((4560, 250, 278), (4980, 440, 286), 'corehub_intro/black_u'), ((4560, -194, 278), (4980, -175, 286), 'corehub_intro/black_u'),
+        ((4560, -440, 278), (4980, -194, 284), SCAN_PANEL),
+        ((4950, -175, 278), (4980, 250, 290), 'corehub_intro/black_u'), ((4560, -175, 278), (4635, 250, 286), 'corehub_intro/black_u'),
+        ((4976, -440, 290), (4980, 440, 360), 'corehub_intro/black_u')):
+    sp.append(v.make_prism(Vec(*lo), Vec(*hi), m).solid)
+v.create_ent('func_brush', targetname='r10_scan_plate', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sp)
+# r10cd: the grey shutter under the petals is its own brush -- the video's iris opens at ~82.3 s
+v.create_ent('func_brush', targetname='r10_scan_grey', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(
+    v.make_prism(Vec(4650, -125, 250), Vec(4920, 125, 256), SCAN_GREY).solid)
+for e in v.entities:
+    if (e['classname'] == 'prop_static' and e['model'] == 'models/corehub_intro/transport_ring_orange.mdl'
+            and abs(Vec.from_str(e['origin']).x - 4968.7) < 0.5 and abs(Vec.from_str(e['origin']).z - 256) < 1):
+        e['classname'] = 'prop_dynamic_override'; e['targetname'] = 'r10_exit_collar2'; print('static exit collar named', e['origin'])
+# ---------- r10cd: inlet iris look (71.3-72.35 s) ----------
+# the video's inlet iris from above is the transfer iris: flat white petals in a square round a grey frame with cyan
+# lights. Ours (the cake iris, petals pointing up, the plain frame) read as a black disc with angled petals. While the
+# shot lasts the director swaps in a copy of the transfer iris (petals 12 above the refined frame, as at 274/286).
+for e in v.entities:
+    if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/iris_frame.mdl':
+        o = Vec.from_str(e['origin'])
+        if abs(o.x - 4800) < 1 and abs(o.y) < 1 and abs(o.z - 950) < 1:
+            e['classname'] = 'prop_dynamic_override'; e['targetname'] = 'r10_inlet_frame_orig'; print('inlet frame named')
+v.create_ent('prop_dynamic_override', targetname='r10_inlet_frame2', model='models/corehub_intro/transfer_refined_iris_frame.mdl',
+             origin='4800 0 938', angles='90 0 0', solid='0', disableshadows='1')
+for k, (x, y, yaw) in enumerate(((4838.2, 38.2, 0), (4838.2, -38.2, 270), (4761.8, -38.2, 180), (4761.8, 38.2, 90))):
+    v.create_ent('prop_dynamic_override', targetname=f'r10_inlet_petal_{k}', model='models/corehub_intro/iris_quarter.mdl',
+                 origin=f'{x} {y} 950', angles=f'90 {yaw} 0', solid='0', disableshadows='1')
+# ---------- r10ce: the opening's light flicker (6.8-7.85 s) ----------
+import make_flicker
+fl = make_flicker.main()
+kv = {'targetname': 'r10_flicker_ov', 'origin': '-12825 -191 100'}
+for i, (nm, d) in enumerate(fl, 1):
+    kv[f'OverlayName{i}'] = nm; kv[f'OverlayTime{i}'] = str(d)
+v.create_ent('env_screenoverlay', **kv)
+print('flicker overlays', len(fl))
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

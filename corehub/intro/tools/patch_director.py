@@ -101,6 +101,10 @@ knots[36.121] = (0.0, -16.0, 0.0)
 # tilted straight down the branch (pitch 90) and saw nothing but tube
 for _t in [k for k in knots if 37.8 < k < 38.4]: del knots[_t]
 knots.update({37.88: (20.0, 0.0, 0.0), 37.95: (26.0, 0.0, 0.0), 38.02: (12.0, 0.0, 0.0), 38.1: (0.0, 0.0, 0.0)})
+# r10cc: the video keeps looking straight down into the iris through 82.8 s and dives into it (the tube's rings
+# concentric at 82.6-82.75 s); ours tilted up from 82 s and lost the iris off the bottom edge
+for _t in [k for k in knots if 82.0 < k < 83.0]: del knots[_t]
+knots.update({82.25: (88.0, 0.0, 0.0), 82.5: (89.0, 0.0, 0.0), 82.8: (89.0, 0.0, 0.0)})
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).
@@ -188,7 +192,9 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            89.25: (5954.0, 369.0, 296.0), 89.5: (5962.0, 394.0, 296.0), 89.75: (5974.0, 415.0, 290.0), 90.0: (5988.0, 440.0, 275.0),
            63.87: (4508.2, -417.3, 1470.0), 64.0: (4504.6, -386.5, 1430.0), 64.25: (4498.7, -334.7, 1300.0), 64.5: (4494.0, -292.8, 1245.0), 64.75: (4492.2, -251.1, 1195.0), 65.0: (4493.1, -209.8, 1160.0), 65.25: (4500.1, -159.5, 1130.0), 65.5: (4510.5, -110.0, 1105.0), 65.75: (4522.3, -66.3, 1088.0), 66.0: (4532.7, -32.6, 1075.0), 66.25: (4541.5, -9.1, 1060.0), 66.5: (4546.4, 3.0, 1045.0), 67.0: (4547.3, 5.9, 1015.0),   # r10by   # r10bx: the tube end fills the frame (48.5 s) 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
            71.7: (4785.0, 45.0, 1104.0), 71.8: (4772.0, 30.0, 1112.0), 71.9: (4748.0, 15.0, 1124.0), 72.0: (4722.0, 5.0, 1136.0),
-           72.1: (4700.0, 0.0, 1145.0)}
+           72.1: (4700.0, 0.0, 1145.0),
+           # r10cd: the video passes through the opened iris by ~82.5 s; ours was still 115 above it at 82.75 s
+           82.4: (4800.0, 0.0, 430.0), 82.5: (4800.0, 0.0, 345.0), 82.6: (4801.0, 0.0, 300.0), 82.75: (4812.0, 0.0, 272.0), 83.0: (4844.0, 0.0, 262.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
 kd = dict(kn)
 for _t in [k for k in kd if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del kd[_t]   # r10bu/bv: turret framing and the inlet iris shot
@@ -225,9 +231,12 @@ txt = txt.replace('cutTab <- [', 'r10Red <- [[69.2,0],[71.28,0],[71.33,150],[71.
     'r10GlowOn <- false;function SetLensGlow(t){local g=(t>=69.4&&t<71.34);if(g==r10GlowOn)return;EntFire("r10_glare_ov",g?"StartOverlays":"StopOverlays","",0);r10GlowOn=g;}' + chr(10) + 'cutTab <- [', 1)
 anchor2 = '    SetPursuitShaft(t);'
 assert txt.count(anchor2) == 1
-txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0","intro_transfer_scan_upper_1","intro_transfer_scan_fore_1","intro_transfer_mount_1"])MoveProp(nm,Vector(0,0,-3000));}' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
+txt = txt.replace(anchor2, '    SetRedHaze(t);' + chr(10) + '    MoveProp("r10_scan_plate",(t>=80.75&&t<82.9)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_scan_grey",(t>=80.75&&t<82.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_exit_collar2",(t>=80.75&&t<82.9)?Vector(0,0,-3000):Vector(4968.7,0,256));' + chr(10) + '    if(t>=81.1&&t<82.5){foreach(nm in ["intro_transfer_scan_upper_0","intro_transfer_scan_fore_0","intro_transfer_scan_head_0","intro_transfer_scan_cone_0","intro_transfer_mount_0","intro_transfer_scan_upper_1","intro_transfer_scan_fore_1","intro_transfer_mount_1"])MoveProp(nm,Vector(0,0,-3000));}' + chr(10) + '    SetLensGlow(t);' + chr(10) + '    MoveProp("intro_turret",Vector(4575,58,Lerp1(r10TurretZ,t)));' + chr(10) + '    {local g=(t>=114.0&&t<116.4);local p=Vector(0,0,-3000);if(g){p=r10GlowPath[0][1];for(local i=0;i<r10GlowPath.len()-1;i++)if(t>=r10GlowPath[i][0]&&t<=r10GlowPath[i+1][0]){local f=(t-r10GlowPath[i][0])/(r10GlowPath[i+1][0]-r10GlowPath[i][0]);p=r10GlowPath[i][1]+(r10GlowPath[i+1][1]-r10GlowPath[i][1])*f;break;};};MoveProp("r10_core_glow",p);}' + chr(10) + '    MoveProp("intro_factory_cube",(t>=99.8 && t<101.9)?Vector(Lerp1(r10LabCube,t),0,256):Vector(0,0,-3000));' + chr(10) + anchor2)
 exp_old = 'local exposure=P41_Lerp1([[0,0.58],[22.6,0.58],[23.1,1.0],[33,1.0]],t);'
-exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.85],[10.3,0.60],[10.6,0.22],[11.6,0.25],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10bz: the video's ceiling stays lit to 10.3 s and is dark (39-45) at 10.75-11.25 s   # r10ar: bright again as the camera looks up at the iris (22.3 s)
+# r10ce: measured on the top strip, the video's ceiling is 132/108/76/58/36 at 10.0-10.75 s and nearly black (8-15) at
+# 10.9-11.1 s; ours read 173/120/66/42/40 and 32-46. The band above the far tile wall is that ceiling seen through the
+# chamber glass, so it darkens with it (11.25-11.5 s: video 42-72, ours 79-105).
+exp_new = 'local exposure=P41_Lerp1([[0,0.93],[9.6,0.93],[10.0,0.72],[10.3,0.56],[10.5,0.42],[10.6,0.30],[10.75,0.20],[10.9,0.08],[11.1,0.06],[11.6,0.10],[12.4,0.75],[21.2,0.75],[21.7,0.35],[22.05,0.35],[22.35,0.93],[33,0.93]],t);'   # r10bz: the video's ceiling stays lit to 10.3 s and is dark (39-45) at 10.75-11.25 s   # r10ar: bright again as the camera looks up at the iris (22.3 s)
 assert txt.count(exp_old) == 1
 txt = txt.replace(exp_old, exp_new)
 tint_old = '"SetMaterialVar","["+exposure+" "+exposure+" "+exposure+"]"'
@@ -256,7 +265,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
             '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
-            '{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};'
+            '{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));local hid=Vector(0,0,-3000);local P1=[Vector(4761.8,38.2,950),Vector(4761.8,-38.2,950),Vector(4838.2,-38.2,950),Vector(4838.2,38.2,950)];local P2=[Vector(4838.2,38.2,950),Vector(4838.2,-38.2,950),Vector(4761.8,-38.2,950),Vector(4761.8,38.2,950)];if(ins){MoveProp("r10_inlet_frame_orig",hid);MoveProp("r10_inlet_frame2",Vector(4800,0,938));foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,q);foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,hid);}else{MoveProp("r10_inlet_frame2",hid);foreach(i,q in P2)MoveProp("r10_inlet_petal_"+i,hid);if(t>=72.35&&t<72.5){MoveProp("r10_inlet_frame_orig",Vector(4800,0,950));foreach(i,q in P1)MoveProp("intro_cake_iris_"+i,q);};};};'
             'MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));'
             'MoveProp("r10_tu_tubes",(t<67.4)?Vector(4575,58,1340):Vector(0,0,-3000));'
             'MoveProp("r10_exit_collar",(t>=81.0&&t<82.4)?Vector(0,0,-3000):Vector(4967,0,256));'
@@ -280,5 +289,14 @@ txt = txt.replace(sh_old, '    local shaftOn=(t>=72.25 && t<79.6)?1:0;')   # r10
 cake_old = 'MoveProp("intro_cake",t<74.5?Vector(4814,14,956):Vector(0,0,-3000));'
 assert txt.count(cake_old) == 1
 txt = txt.replace(cake_old, 'MoveProp("intro_cake",(t<74.5&&!(t>=71.3&&t<72.35))?Vector(4814,14,956):Vector(0,0,-3000));')
+# r10ce: the opening's light flicker (6.8-7.85 s) is a screen-overlay sequence (tools/make_flicker.py); the global fade
+# now holds 92 until 6.8 s and the overlay does the rest
+fl_old = 'if(t<6.8)fadeAlpha=92;else if(t<7.05)fadeAlpha=92*(7.05-t)/0.25;'
+assert txt.count(fl_old) == 1
+txt = txt.replace(fl_old, 'if(t<6.8)fadeAlpha=92;')
+txt = txt.replace('cutTab <- [', 'r10FlickOn <- false;function SetFlicker(t){local g=(t>=6.8&&t<7.85);if(g==r10FlickOn)return;EntFire("r10_flicker_ov",g?"StartOverlays":"StopOverlays","",0);r10FlickOn=g;}' + chr(10) + 'cutTab <- [', 1)
+sf_old = '    SetLensGlow(t);' + chr(10)
+assert txt.count(sf_old) == 1
+txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)
