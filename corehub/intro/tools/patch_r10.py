@@ -752,7 +752,7 @@ print('cream collar faces/props', cf)
 # the video's lens glare (69.5-71.2 s) is a wide soft pink glow from the turret's eye down to the bottom of the frame:
 # a second, wide and faint beam on the laser's own endpoints, switched on by the director for the glare only
 v.create_ent('env_beam', targetname='laser_turret_glow', LightningStart='laser_turret_a', LightningEnd='laser_turret_b',
-             BoltWidth='26', NoiseAmplitude='0', renderamt='70', rendercolor='255 135 130', texture='sprites/laserbeam.spr',
+             BoltWidth='70', NoiseAmplitude='0', renderamt='16', rendercolor='255 90 100', texture='sprites/laserbeam.spr',
              spawnflags='0', life='0', damage='0', origin='4576 54 1159', TextureScroll='0', framerate='0', framestart='0', HDRColorScale='1.0')
 # the "16" wall and the gallery read warm brown rust in the video; the same texture showed its grey panels there
 RUST_WARM = unlit('rust_warm', 'metal/metalwall_bts_001b', '1.25 0.95 0.70')
@@ -955,6 +955,12 @@ for e in v.entities:
     if e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/pod_wall.mdl':
         e['model'] = 'models/corehub_intro/pod_wall2.mdl'; pw += 1
 print('pod walls -> shelves', pw)
+# ---------- r10br: scanner close-up ----------
+# the video brings a scanner head with its three yellow light cones right up to the lens (80-80.75 s) before it settles
+# above the iris; a copy pointing up at the camera is moved by the director
+for nm, mdl in (('r10_close_cones', 'transfer_scan_cones'), ('r10_close_head', 'transfer_scan_head')):
+    v.create_ent('prop_dynamic_override', targetname=nm, model=f'models/corehub_intro/{mdl}.mdl', origin='4800 0 700',
+                 angles='90 0 0', solid='0', disableshadows='1')
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

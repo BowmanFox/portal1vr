@@ -216,6 +216,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local f=(t-r10DropPath[i][0])/(r10DropPath[i+1][0]-r10DropPath[i][0]);p=r10DropPath[i][1]+(r10DropPath[i+1][1]-r10DropPath[i][1])*f;break;};};'
             'MoveProp("intro_drop",p);MoveProp("r10_tube_end",(t<48.85)?Vector(2812,0,1152):Vector(0,0,-3000));'
             'MoveProp("r10_tw_column",(t<58.58)?Vector(3754,0,1272):Vector(0,0,-3000));MoveProp("r10_tw_backwall",(t<58.58)?Vector(0,0,0):Vector(0,0,-4000));'
+            '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'
@@ -225,6 +226,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
 assert txt.count(drop_old) == 1
 txt = txt.replace(drop_old, drop_new)
 txt = txt.replace('cutTab <- [', 'r10CollarDark <- false;' + chr(10) + 'cutTab <- [', 1)
+txt = txt.replace('cutTab <- [', 'r10CloseCones <- [[79.75,Vector(4800,0,-260)],[80.0,Vector(4840,40,-170)],[80.25,Vector(4800,0,-120)],[80.5,Vector(4800,0,-110)],[80.75,Vector(4815,0,-150)],[81.05,Vector(4845,0,-200)]];' + chr(10) + 'cutTab <- [', 1)
 txt = txt.replace('cutTab <- [', 'r10DropPath <- [[44.0,Vector(2300,-12,1142)],[45.0,Vector(2470,-12,1142)],[46.0,Vector(2625,-12,1142)],[46.5,Vector(2695,-12,1142)],[47.0,Vector(2752,-12,1142)],[47.2,Vector(2760,-52,1146)],[47.6,Vector(2760,-270,1150)]];' + chr(10) + 'cutTab <- [', 1)
 dst.write_text(txt)
 print('knots', len(rows), '->', len(knots), 'written', dst)
