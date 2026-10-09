@@ -1391,6 +1391,34 @@ for e in v.entities:
         o = Vec.from_str(e['origin'])
         if 2000 < o.x < 2760 and abs(o.y) < 1 and abs(o.z - 1152) < 1: e['skin'] = '0'; dk += 1
 print('pod tube rings darkened', dk)
+# r10cw: on the tube ride after the pod rise the video's right side (south of the tube) is dark (13-40 against our
+# 46-92 at 44.5-46.5 s): a dark screen stands in front of the room's lit south wall (y -180) for the ride
+pk = v.make_prism(Vec(1990, -176, 860), Vec(2836, -170, 1760), unlit('pod_dark', 'metal/black_wall_metal_001a', '0.30 0.30 0.30')).solid
+v.create_ent('func_brush', targetname='r10_pod_dark', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.append(pk)
+# r10cw: the video's tube rails read as thick black wedges (like the transfer shaft's); ours are thin lines
+prl = []
+for k in range(4):
+    ang = 45 + 90 * k
+    so = v.make_prism(Vec(1990, -2.5, 45), Vec(2830, 2.5, 49), unlit('pod_rail', 'lights/white002', '0.03 0.03 0.03')).solid
+    so.localise(Vec(0, 0, 1152), Angle(0, 0, ang - 90))
+    for f in so.sides:
+        if abs(f.normal().x) > 0.9: f.mat = NODRAW
+    prl.append(so)
+v.create_ent('func_brush', targetname='r10_pod_rails', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(prl)
+# r10cx: incinerator descent -- the video passes three rings (at 112.6, 113.4 and 114.1 s); ours matched the first and
+# the last (the collars at z 1456 and 1280) but had nothing at the probe level between them. Measured from the video's
+# ring edges (113.0-113.4 s) that ring sits at z ~1331 with a 38-unit hole and a grey face out to 49.
+INC_GREY = unlit('inc_grey', 'lights/white002', '0.50 0.50 0.51', '"$translucent" "1"\n"$alpha" "0.55"\n')   # r10cy: translucent like the video's
+ir2 = ring12(51.0, 66.0, 1301, 1305, INC_GREY, INC_GREY, cx=8448.0, cy=0.0)   # r10cy: least-squares fit over 112.6-113.4 s
+v.create_ent('func_brush', targetname='r10_inc_ring2', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(ir2)
+# the probes' red cones read as a bright pink cross (112.5-113.8 s); the video's are faint wide pink fans
+rc = 0
+for e in v.entities:
+    if e['targetname'].startswith('intro_p9_scan_red_'): e['rendermode'] = '2'; e['renderamt'] = '110'; rc += 1
+print('incinerator red cones dimmed', rc)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')

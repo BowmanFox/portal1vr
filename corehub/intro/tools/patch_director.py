@@ -109,6 +109,9 @@ knots.update({82.25: (88.0, 0.0, 0.0), 82.5: (89.0, 0.0, 0.0), 82.8: (89.0, 0.0,
 # at (-0.21..-0.06, +0.46..+0.54)f, ours at (+0.34..+0.27) below the middle; looking 10 degrees higher puts it there
 for _t in [k for k in knots if 43.6 < k < 46.65]:
     _a, _b, _c = knots[_t]; knots[_t] = (_a - 10.0, _b, _c)
+# r10cy: vault doorway (124.25-125.5 s) -- the video's tube centre sits at y +0.13..+0.20f, ours +0.21..+0.28f: look 4.5 lower
+for _t in [k for k in knots if 124.1 < k < 125.6]:
+    _a, _b, _c = knots[_t]; knots[_t] = (_a + 4.5, _b, _c)
 # r10ct: scanner shaft -- the video's vanishing point sits steadily at (-0.03, +0.10) of the focal length (measured
 # 76.5-80.2 s); ours wandered (+0.02..+0.06, +0.03..+0.14). Pitch 84 and roll -13 put the nadir there; the yaw takes over
 # the old roll so the rails and boards keep their image angles (yaw + roll is what turns the picture when looking down).
@@ -334,7 +337,7 @@ txt = txt.replace('cutTab <- [', 'r10Veil <- [[77.3,0],[77.42,110],[77.5,186],[7
     'EntFire("r10_veil_fade","Fade","",0);r10VeilA=a;}' + chr(10) + 'cutTab <- [', 1)
 sq_old = '    SetRedHaze(t);' + chr(10)
 assert txt.count(sq_old) == 1
-txt = txt.replace(sq_old, sq_old + '    MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
+txt = txt.replace(sq_old, sq_old + '    MoveProp("r10_inc_ring2",(t>=111.5&&t<113.5)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_pod_dark",(t>=43.3&&t<47.3)?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_pod_rails",(t>=43.3&&t<48.6)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    MoveProp("r10_rr_black",(t>=33.8&&t<35.4)?Vector(0,0,0):Vector(0,0,-4000));' + chr(10) + '    SetVeil(t);' + chr(10) + '    {local sq=(t>=75.4&&t<80.75);MoveProp("r10_sc_rings",sq?Vector(0,0,0):Vector(0,0,-4000));foreach(z in [584,664,744,824,904])MoveProp("r10_sh_ring_"+z,sq?Vector(0,0,-3000):Vector(4800,0,z));}' + chr(10))
 sf_old = '    SetLensGlow(t);' + chr(10)
 assert txt.count(sf_old) == 1
 txt = txt.replace(sf_old, sf_old + '    SetFlicker(t);' + chr(10))
