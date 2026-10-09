@@ -79,10 +79,10 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           # r10bu: the video cuts from the glare to a look straight down into the inlet iris (71.4-71.75 s) and tilts up to the 16 wall
           # r10bv: the camera sits 45 units from the turret (it was 66; the video's turret is ~1.5x larger) and is aimed so
           # the eye follows the video's track (measured: right/up of centre, degrees)
-          67.5: (-13.7, 60.6, 0.0), 67.75: (-10.4, 65.3, 0.0), 68.0: (-10.4, 69.0, 0.0), 68.25: (-10.4, 71.3, 0.0), 68.5: (-10.9, 74.9, 0.0),
-          68.75: (-10.4, 77.5, 0.0), 69.0: (-9.5, 76.6, 0.0), 69.25: (-7.6, 76.2, 0.0), 69.5: (-6.7, 73.55, 0.0), 69.75: (-5.8, 70.9, 0.0),
-          70.0: (-10.0, 70.0, 0.0), 70.25: (-16.1, 69.5, 0.0), 70.5: (-20.6, 70.0, 0.0), 70.75: (-19.9, 68.6, 0.0), 71.0: (-17.1, 66.7, 0.0),
-          71.2: (-17.1, 65.8, 0.0), 71.33: (-17.1, 65.8, 0.0), 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
+          67.5: (-1.7, 61.2, 0.0), 67.75: (1.6, 65.9, 0.0), 68.0: (1.6, 69.6, 0.0), 68.25: (1.6, 71.9, 0.0), 68.5: (1.1, 75.5, 0.0),
+          68.75: (1.6, 78.1, 0.0), 69.0: (2.5, 77.2, 0.0), 69.25: (4.4, 76.8, 0.0), 69.5: (5.3, 74.15, 0.0), 69.75: (6.2, 71.5, 0.0),
+          70.0: (2.0, 70.6, 0.0), 70.25: (-4.1, 70.1, 0.0), 70.5: (-8.4, 70.6, 0.0), 70.75: (-7.9, 69.2, 0.0), 71.0: (-5.1, 67.3, 0.0),
+          71.2: (-5.1, 66.4, 0.0), 71.33: (-5.1, 66.4, 0.0),   # r10bw: 56 units from the turret near its eye height (r10bv's 45 framed it 1.26x too large) 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
           71.8: (66.0, -2.0, 8.0), 71.9: (42.0, -4.0, 4.0), 72.0: (22.0, -5.0, 2.0), 72.1: (10.0, -6.0, 0.0), 72.25: (-1.0, -6.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
 for _t in [k for k in knots if 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
 knots.update(edits2)
@@ -163,9 +163,10 @@ pos_set = {55.0: (3435.0, 0.0, 1152.0), 55.25: (3445.0, 0.0, 1152.0), 55.5: (345
            # turret-lift collar from above; the descent now starts at its 63.75 s pose
            63.25: (4010.0, 0.0, 1320.0), 63.5: (4010.0, 0.0, 1295.0), 63.75: (4010.0, 0.0, 1270.0), 63.86: (4010.0, 0.0, 1262.0),
            63.87: (4390.0, 45.0, 1535.0),
-           67.5: (4550.0, 11.0, 1000.0), 67.75: (4554.0, 18.5, 1000.0), 68.0: (4554.0, 18.5, 1000.0), 69.0: (4554.0, 18.5, 1000.0),
-           70.0: (4554.0, 18.5, 1000.0), 71.0: (4554.0, 18.5, 1000.0),
-           71.33: (4554.0, 18.5, 1000.0), 71.34: (4789.0, 55.0, 1105.0), 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
+           67.5: (4547.0, 6.0, 1004.0), 67.75: (4548.6, 8.7, 1008.0), 68.0: (4548.6, 8.7, 1008.0), 69.0: (4548.6, 8.7, 1008.0),
+           70.0: (4548.6, 8.7, 1008.0), 71.0: (4548.6, 8.7, 1008.0),
+           71.33: (4548.6, 8.7, 1008.0), 71.34: (4789.0, 55.0, 1105.0),
+           48.5: (2786.0, 0.0, 1152.0), 48.75: (2796.0, 0.0, 1152.0),   # r10bx: the tube end fills the frame (48.5 s) 71.5: (4789.0, 55.0, 1103.0), 71.6: (4789.0, 52.0, 1102.0),
            71.7: (4785.0, 45.0, 1104.0), 71.8: (4772.0, 30.0, 1112.0), 71.9: (4748.0, 15.0, 1124.0), 72.0: (4722.0, 5.0, 1136.0),
            72.1: (4700.0, 0.0, 1145.0)}
 kn = [(float(a), (float(b), float(c), float(d))) for a, b, c, d in re.findall(r'\{t=([-\d.]+),p=Vector\(([-\d.]+),([-\d.]+),([-\d.]+)\)\}', newpos)]
@@ -219,10 +220,10 @@ lk_old = """ {t=69.3,p=Vector(4516,-46,1122)},
  {t=69.5,p=Vector(4506,-64,1124)},
  {t=70.0,p=Vector(4498,-80,1146)},
  {t=71.35,p=Vector(4498,-80,1146)}"""
-lk_new = """ {t=69.3,p=Vector(4549,9,1142)},
- {t=69.5,p=Vector(4549,9,1142)},
- {t=70.0,p=Vector(4549,9,1142)},
- {t=71.35,p=Vector(4549,9,1142)}"""
+lk_new = """ {t=69.3,p=Vector(4667,13,1179)},
+ {t=69.5,p=Vector(4667,13,1179)},
+ {t=70.0,p=Vector(4667,13,1179)},
+ {t=71.35,p=Vector(4667,13,1179)}"""
 assert txt.count(lk_old) == 1
 txt = txt.replace(lk_old, lk_new)
 # r10as: chrome drop ahead of the camera in the pod-rise run, turning off into the pale crossing tube at 47.1 s
@@ -234,6 +235,7 @@ drop_new = ('{local p=Vector(0,0,-3000);if(t>=44.0&&t<47.6){for(local i=0;i<r10D
             '{local cc=(t>=79.75&&t<81.05);local p=Vector(0,0,-3000);if(cc){local q=r10CloseCones[0][1];for(local i=0;i<r10CloseCones.len()-1;i++)if(t>=r10CloseCones[i][0]&&t<=r10CloseCones[i+1][0]){local f=(t-r10CloseCones[i][0])/(r10CloseCones[i+1][0]-r10CloseCones[i][0]);q=r10CloseCones[i][1]+(r10CloseCones[i+1][1]-r10CloseCones[i][1])*f;break;};p=Vector(q.x,q.y,PositionAt(t).z+q.z);};MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);local pb=(t<80.1)?p:Vector(0,0,-3000);if(t>=71.3&&t<72.35){p=Vector(4820,50,990);pb=p;MoveProp("r10_close_cones",p);MoveProp("r10_close_head",p);};MoveProp("r10_close_arm_a",(t<72.35)?Vector(0,0,-3000):p);MoveProp("r10_close_arm_b",pb);};'
             '{local twt=(t<58.58||t>=63.9);MoveProp("r10_tw_tube_0",twt?Vector(3754,0,1396):Vector(0,0,-3000));MoveProp("r10_tw_tube_1",twt?Vector(3754,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_2",twt?Vector(4010,0,1640):Vector(0,0,-3000));MoveProp("r10_tw_tube_3",twt?Vector(4010,0,1396):Vector(0,0,-3000));};'
             '{local ins=(t>=71.3&&t<72.35);MoveProp("r10_inlet_plate",ins?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_inlet_ring",ins?Vector(0,0,-3000):Vector(4800,0,984));};'
+            'MoveProp("r10_cube_sleeve",(t>=48.86&&t<50.6)?Vector(0,0,0):Vector(0,0,-4000));'
             '{local tp=(t<67.4);MoveProp("r10_tu_posts",tp?Vector(0,0,0):Vector(0,0,-4000));local ts=(t>=66.25&&t<71.2);MoveProp("r10_tu_screen",ts?Vector(0,0,0):Vector(0,0,-4000));};'
             '{local lsc=(t<102.8);MoveProp("r10_lab_screen",lsc?Vector(0,0,0):Vector(0,0,-4000));MoveProp("r10_lab_pipe_0",lsc?Vector(7480,-134,272):Vector(0,0,-3000));MoveProp("r10_lab_pipe_1",lsc?Vector(7730,-134,272):Vector(0,0,-3000));};'
             '{local dbr=(t>=37.3);MoveProp("r10_rr_down_0",dbr?Vector(2048,-5748,0):Vector(0,0,-3000));MoveProp("r10_rr_down_128",dbr?Vector(2048,-5748,128):Vector(0,0,-3000));MoveProp("r10_rr_down_256",dbr?Vector(2048,-5748,256):Vector(0,0,-3000));};'

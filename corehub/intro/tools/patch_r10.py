@@ -1082,6 +1082,24 @@ v.create_ent('env_screenoverlay', **kv)
 for e in v.entities:
     if e['targetname'] == 'laser_turret_glow': e['renderamt'] = '0'
 print('glare overlays', len(gl))
+# ---------- r10bx: pod walls and the pale tube end ----------
+# the video's pod shelves read lighter and with more contrast (40-41 s right side 63-78, sd 15-27; ours 43-48, sd 10-13)
+for k, c in ((2, 0.0793), (3, 0.1249), (4, 0.1819), (5, 0.2508), (6, 0.3320), (7, 0.4256)):
+    c2 = round(c * 1.5, 4)
+    (MOD / 'materials/models/corehub_intro' / f'podwall_s{k}.vmt').write_text(
+        f'"UnlitGeneric"\n{{\n"$basetexture" "lights/white002"\n"$color" "[{c2} {c2} {round(c2 * 1.02, 4)}]"\n}}\n')
+# the pale wall closing the tube fills the frame at 48.5 s in the video (140-160); the cap read 112
+(MOD / 'materials/models/corehub_intro/r10_tube_end.vmt').write_text(
+    '"UnlitGeneric"\n{\n"$basetexture" "concrete/concrete_modular_wall001a"\n"$color" "[0.88 0.89 0.88]"\n"$nocull" "1"\n"$model" "1"\n}\n')
+# ---------- r10bx: dark run before the cube room (49-50.6 s) ----------
+# the video rides a dark tube from the pale wall to the cube room (49.25-50.5 s: dark rings, nothing of the room); our
+# clear tube showed the room's pale walls the whole way. A dark sleeve round the tube hides them until 50.6 s.
+sl = []
+for lo, hi in (((2790, -96, 1056), (3400, -90, 1248)), ((2790, 90, 1056), (3400, 96, 1248)),
+               ((2790, -96, 1056), (3400, 96, 1062)), ((2790, -96, 1242), (3400, 96, 1248))):
+    sl.append(v.make_prism(Vec(*lo), Vec(*hi), TUNNEL).solid)
+v.create_ent('func_brush', targetname='r10_cube_sleeve', Solidity='1', spawnflags='2', rendermode='0', renderamt='255',
+             rendercolor='255 255 255', disablereceiveshadows='1', disableshadows='1', vrad_brush_cast_shadows='0').solids.extend(sl)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
