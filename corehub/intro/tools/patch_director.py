@@ -84,7 +84,9 @@ edits2 = {44.0: (-19.0, -11.0, 0.0), 45.0: (-15.0, -11.0, 0.0), 45.5: (-14.0, -1
           70.0: (2.0, 70.6, 0.0), 70.25: (-4.1, 70.1, 0.0), 70.5: (-8.4, 70.6, 0.0), 70.75: (-7.9, 69.2, 0.0), 71.0: (-5.1, 67.3, 0.0),
           71.2: (-5.1, 66.4, 0.0), 71.33: (-5.1, 66.4, 0.0),
           # r10by: under the turret-lift collar (63.87-67 s)
-          63.87: (22.0, 82, 0.0), 64.0: (25.0, 81, 0.0), 64.25: (8.0, 79, 0.0), 64.5: (12.0, 77, 0.0), 64.75: (17.0, 75, 0.0), 65.0: (23.0, 73, 0.0), 65.25: (31.0, 71, 0.0), 65.5: (39.0, 69, 0.0), 65.75: (47.0, 67, 0.0), 66.0: (55.0, 65, 0.0), 66.25: (42.0, 63.5, 0.0), 66.5: (12.0, 62.5, 0.0), 67.0: (0.0, 55.0, 0.0),   # r10bw: 56 units from the turret near its eye height (r10bv's 45 framed it 1.26x too large) 71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
+          63.87: (22.0, 82, 0.0), 64.0: (25.0, 81, 0.0), 64.25: (8.0, 79, 0.0), 64.5: (12.0, 77, 0.0), 64.75: (17.0, 75, 0.0), 65.0: (23.0, 73, 0.0), 65.25: (31.0, 71, 0.0), 65.5: (39.0, 69, 0.0), 65.75: (47.0, 67, 0.0), 66.0: (55.0, 65, 0.0), 66.25: (42.0, 63.5, 0.0), 66.5: (12.0, 62.5, 0.0), 67.0: (0.0, 55.0, 0.0),
+          # r10cb: the inlet iris shot's first knots had slipped behind a comment, so 71.34-71.8 s swept from the turret yaw
+          71.34: (89.0, 0.0, -8.0), 71.5: (89.0, 0.0, -4.0), 71.6: (88.0, 0.0, 2.0), 71.7: (84.0, 0.0, 8.0),
           71.8: (66.0, -2.0, 8.0), 71.9: (42.0, -4.0, 4.0), 72.0: (22.0, -5.0, 2.0), 72.1: (10.0, -6.0, 0.0), 72.25: (-1.0, -6.0, 0.0)}   # r10au: tilts up faster (collar at the bottom edge by 58.25 s)
 for _t in [k for k in knots if 63.865 < k < 67.0 or 67.4 < k < 72.25]: del knots[_t]   # r10bu/bv: turret framing and the inlet iris shot replace these
 knots.update(edits2)
@@ -95,6 +97,10 @@ knots[36.12] = (180.0, 164.0, 0.0)
 for _t in [k for k in knots if 36.12 < k <= 38.94]:
     _a, _b, _c = knots[_t]; knots[_t] = (180.0 - _a, _b - 180.0, _c)
 knots[36.121] = (0.0, -16.0, 0.0)
+# r10cb: the video stays level through the drop at x 2048 (37.8-38.4 s) with only a short nod into the bend; ours
+# tilted straight down the branch (pitch 90) and saw nothing but tube
+for _t in [k for k in knots if 37.8 < k < 38.4]: del knots[_t]
+knots.update({37.88: (20.0, 0.0, 0.0), 37.95: (26.0, 0.0, 0.0), 38.02: (12.0, 0.0, 0.0), 38.1: (0.0, 0.0, 0.0)})
 new = 'knots <- [\n' + ',\n'.join('{t=%.8f,a=Vector(%.8f,%.8f,%.8f)}' % ((t,) + knots[t]) for t in sorted(knots)) + '\n'
 txt = txt[:start] + new + txt[end:]
 # Fades measured from the video's mean luminance around each cut (the cuts dissolve, they are not hard).

@@ -470535,11 +470535,11 @@ entity
 entity
 {
 	"id" "2046"
-	"angles" "0 -90 0"
+	"angles" "0 90 0"
 	"classname" "prop_static"
 	"disableshadows" "1"
 	"model" "models/corehub_intro/r10_post.mdl"
-	"origin" "1560 -5808 512"
+	"origin" "1560 -5688 512"
 	"solid" "0"
 	editor
 	{
@@ -470552,11 +470552,11 @@ entity
 entity
 {
 	"id" "2047"
-	"angles" "-90 0 0"
+	"angles" "90 0 0"
 	"classname" "prop_static"
 	"disableshadows" "1"
 	"model" "models/corehub_intro/r10_post.mdl"
-	"origin" "1560 -5748 572"
+	"origin" "1560 -5748 452"
 	"solid" "0"
 	editor
 	{
@@ -470576,7 +470576,7 @@ entity
 		side
 		{
 			"id" "18497"
-			"plane" "(860 -6000 760) (2000 -6000 760) (2000 -5500 760)"
+			"plane" "(860 -6000 256) (2000 -6000 256) (2000 -5500 256)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[1 0 0 0] 0.25"
 			"vaxis" "[0 -1 0 0] 0.25"
@@ -470587,7 +470587,7 @@ entity
 		side
 		{
 			"id" "18498"
-			"plane" "(860 -5500 768) (2000 -5500 768) (2000 -6000 768)"
+			"plane" "(860 -5500 264) (2000 -5500 264) (2000 -6000 264)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[1 0 0 0] 0.25"
 			"vaxis" "[0 -1 0 0] 0.25"
@@ -470598,7 +470598,7 @@ entity
 		side
 		{
 			"id" "18502"
-			"plane" "(860 -5500 760) (2000 -5500 760) (2000 -5500 768)"
+			"plane" "(860 -5500 256) (2000 -5500 256) (2000 -5500 264)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[1 0 0 0] 0.25"
 			"vaxis" "[0 0 -1 0] 0.25"
@@ -470609,7 +470609,7 @@ entity
 		side
 		{
 			"id" "18501"
-			"plane" "(2000 -6000 760) (860 -6000 760) (860 -6000 768)"
+			"plane" "(2000 -6000 256) (860 -6000 256) (860 -6000 264)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[1 0 0 0] 0.25"
 			"vaxis" "[0 0 -1 0] 0.25"
@@ -470620,7 +470620,7 @@ entity
 		side
 		{
 			"id" "18500"
-			"plane" "(2000 -5500 760) (2000 -6000 760) (2000 -6000 768)"
+			"plane" "(2000 -5500 256) (2000 -6000 256) (2000 -6000 264)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[0 1 0 0] 0.25"
 			"vaxis" "[0 0 -1 0] 0.25"
@@ -470631,7 +470631,7 @@ entity
 		side
 		{
 			"id" "18499"
-			"plane" "(860 -5500 768) (860 -6000 768) (860 -6000 760)"
+			"plane" "(860 -5500 264) (860 -6000 264) (860 -6000 256)"
 			"material" "corehub_intro/r10/rust_dark"
 			"uaxis" "[0 1 0 0] 0.25"
 			"vaxis" "[0 0 -1 0] 0.25"

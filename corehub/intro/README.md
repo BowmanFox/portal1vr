@@ -38,18 +38,18 @@ r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable ope
 
 ## Scores (1–10, against the 2009 video; ending blink/black not scored)
 
-Published build: `corehub_r10bz` + `director_r10bz` (outputs/Corehub-Intro). Test run: `videos/r10m_bz_side.mp4`.
+Published build: `corehub_r10ca` + `director_r10ca` (outputs/Corehub-Intro). Test run: `videos/r10m_ca_side.mp4`.
 
 | # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
 |---|---|---|---|---|---|
 | 1 | Opening room | 0–22 | 7.5 | 8.5 | r10bz: the ceiling stays lit to 10.3 s and goes dark (39-45 like the video) as the camera tilts down to the room; ceiling bright/neutral looking up; 7 s light shafts and the dark upper wall band still missing |
 | 2 | Iris and ascent | 22–32.5 | 7.5 | 9 | matches shot for shot; iris petal edge shading, small falling debris at 26 s |
-| 3 | Rust room | 32.5–39 | 4 | 8 | r10bs: the panel behind junction A is taller and wider like the video (33.0–33.2 s), junction A has only its left pipe, the rust tile is brighter and more neutral; r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
+| 3 | Rust room | 32.5–39 | 4 | 8.2 | r10ca: the lower run (36.12–38.94 s) is shot upright like the video (it rode upside down): floor below, the panel at mid height, black above; r10bs: the panel behind junction A is taller and wider like the video (33.0–33.2 s), junction A has only its left pipe, the rust tile is brighter and more neutral; r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
 | 4 | Pod rise | 39.5–49 | 4 | 8.5 | r10bx: pod shelves lighter; the pale tube end fills the frame at 48.5 s; the video's tube walls read grey/translucent at 40-41 s where ours are clear |
 | 5 | Cube passage | 48–55 | 4.5 | 8.8 | r10bx: a dark sleeve hides the cube room until 50.6 s, so the run from the pale wall is the video's dark tube (49.25-50.5 s); cube hidden until 51.5 s |
 | 6 | Processing tower | 55.3–65 | 4.5 | 9 | r10bn/bp: the camera's own climb tube is hidden during the climb (58.6–63.9 s) so the scanning column, rings, lasers and rust wall read clear like the video; the view stays on the column until ~63.85 s |
 | 7 | Turret and "16" inlet | 65–74 | 5 | 9 | r10bv-by: the glare is a screen-space lens veil with a red glow that follows the turret (wall sd 3 like the video, legs R +60); the camera sits 56 units from the turret and follows the video's eye track; the descent comes in beside the lift collar and looks down past the tubes hanging from it into the floor ring (64-66.5 s); the cut to the inlet iris (71.34 s) is in |
-| 8 | Transfer and scanners | 74–83 | 5 | 8.5 | r10bs-bz: the scanner head and cones pass under the lens inside the white ring (80-80.75 s); the second arm and the exit collar leave the 81-82.4 s iris view, the camera holds lower; arm 1's white link still crosses the iris view |
+| 8 | Transfer and scanners | 74–83 | 5 | 8.5 | r10ca: both arms' white links and mounts leave the 81.1–82.5 s iris view; r10bs-bz: the scanner head and cones pass under the lens inside the white ring (80-80.75 s); the second arm and the exit collar leave the 81-82.4 s iris view, the camera holds lower |
 | 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8.8 | r10bz: the sludge room is framed wider (camera 40 higher, 40 back) like the video; the gallery lattice is taller and nearer under the tube so it fills the lower third (91-93.75 s) |
 | 10 | Factory passage | 96.6–99.8 | 6 | 8.5 | r10bj/bm: floor and benches beyond the walkway darkened to the video's near-black (the walkway stays mid grey); 98 s collar darkened for its frame |
 | 11 | Lab and test chamber | 100–109.5 | 4 | 9 | r10bl: from the tube the video sees black tiles with a grey pipe and a small white sign on the right (a screen hides the test chamber until the 102.8 s turn); chamber view matches |

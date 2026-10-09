@@ -885,7 +885,7 @@ posts = [((-32, -5500, 2628), '90 0 0'), ((-32, -5560, 2688), '0 -90 0'),
          ((1560, -5688, 512), '0 90 0'), ((1560, -5748, 452), '90 0 0')]   # r10ca: the lower run is shot upright now (pipe left, lit pipe down)
 for (x, y, z), ang in posts:
     v.create_ent('prop_static', model='models/corehub_intro/r10_post.mdl', origin=f'{x} {y} {z}', angles=ang, solid='0', disableshadows='1')
-box((860, -6000, 256), (2000, -5500, 264), RUST_DARK, world=False)   # r10ca: the floor under the upright lower run (36.2-37.7 s)
+# r10ca put a floor under the upright lower run at z 256; r10cb raises it to z 340 and runs it to the end wall (below)
 print('rust room posts', len(posts))
 # the lower run's down-branch at x 2048 reads as a tube going up behind the 36.25-37 s junction; the video shows it only
 # from 37.5 s. Named so the director can bring it in then.
@@ -1111,6 +1111,36 @@ for e in v.entities:
     if (e['classname'].startswith('prop_') and e['model'] == 'models/corehub_intro/transport_ring_orange.mdl' and e['targetname'] == 'r10_wall_collar'
             and abs(Vec.from_str(e['origin']).x - 4967) < 2):
         e['targetname'] = 'r10_exit_collar'; print('exit collar renamed', e['origin'])
+# ---------- r10cb: rust room lower run (36.2-38.94 s) ----------
+# the video's lower run passes a rust panel at junction E (x ~1690: 36.25-37.4 s its top edge and sides fit a panel
+# ~515 wide reaching z ~624, the tube through a hole), then looks at a wall that fills the frame above a pale band and a
+# dark floor (37.5-38.3 s: band at ~62 %, floor below). Ours showed the small end panel far off inside black.
+RUST_BAND = unlit('rust_band', 'metal/metalwall_bts_006a', '1.30 1.22 1.12')
+for lo, hi in (((1688, -6028, 300), (1696, -5800, 624)), ((1688, -5696, 300), (1696, -5514, 624)),
+               ((1688, -5800, 300), (1696, -5696, 460)), ((1688, -5800, 564), (1696, -5696, 624))):
+    box(lo, hi, RUST_RR, world=False)
+ew = 0
+for e in v.entities:
+    if e['classname'] != 'func_detail': continue
+    keep = []
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if abs(lo.x - 2272) < 1 and abs(hi.x - 2280) < 1 and lo.y > -6200 and hi.y < -5370 and lo.z > -101 and hi.z < 1101:
+            ew += 1; continue
+        keep.append(so)
+    if len(keep) != len(e.solids): e.solids[:] = keep
+box((2272, -6460, -100), (2280, -5040, 1150), RUST_RR, world=False)     # end wall: floor to above the frame, full width
+box((2268, -6460, 348), (2272, -5040, 364), RUST_BAND, world=False)      # the pale band above the floor
+for lo, hi in (((860, -6460, 340), (2272, -5798, 348)), ((860, -5698, 340), (2272, -5040, 348)),
+               ((860, -5798, 340), (1998, -5698, 348)), ((2098, -5798, 340), (2272, -5698, 348))):
+    box(lo, hi, RUST_DARK, world=False)                                  # floor at z 340 with a hole for the down-branch
+for e in v.entities:   # the lower corridor's black ceiling slab reads as the video's dark rust (38.25-38.9 s)
+    if e['classname'] != 'func_detail': continue
+    for so in e.solids:
+        lo, hi = so.get_bbox()
+        if abs(lo.x - 2176) < 1 and abs(hi.x - 3008) < 1 and abs(lo.z + 128) < 1 and abs(hi.z + 112) < 1:
+            for f in so.sides: f.mat = RUST_DARK
+print('r10cb lower run: end wall pieces replaced', ew)
 dst = R10 / 'build' / (NAME + '.vmf')
 v.export(dst.open('w'), inc_version=False)
 print('wrote', dst, len(added), 'boxes')
