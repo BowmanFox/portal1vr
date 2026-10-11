@@ -8,6 +8,7 @@ import numpy as np
 from srctools import VMF, Vec
 
 DEG = math.pi / 180.0
+SCENE_VERSION = 3      # bump when the prepared (pickled) Scene layout changes
 
 
 # ----------------------------------------------------------------------------- math
@@ -163,6 +164,35 @@ class ModelLib:
                         q = parse_qc(os.path.join(root, f))
                         if q['modelname']: self.models[q['modelname']] = q
         self._cache = {}
+        self.stock_roots = []          # folders holding compiled stock models (<root>/models/...mdl), see mdlread.py
+        self.mat_exists = None         # optional callable(material path) -> bool, to pick the right $cdmaterials folder
+
+    def _stock(self, modelname, skin):
+        for r in self.stock_roots:
+            p = os.path.join(r, modelname)
+            if not os.path.exists(p): continue
+            from mdlread import read_model
+            m = read_model(p)
+            fam = m['skins'][skin] if 0 <= skin < len(m['skins']) else (m['skins'][0] if m['skins'] else [])
+            names = {}
+            out = []
+            for ref, P, N, UV in m['tris']:
+                if ref not in names:
+                    tex = fam[ref] if ref < len(fam) else (m['textures'][ref] if ref < len(m['textures']) else '')
+                    cands = [(cd + '/' + tex).strip('/') for cd in m['cdmaterials']] or [tex]
+                    pick = cands[0]
+                    if self.mat_exists:
+                        for c in cands:
+                            if self.mat_exists(c): pick = c; break
+                    names[ref] = pick
+                P = np.asarray(P, dtype=np.float64)
+                nrm = np.cross(P[1] - P[0], P[2] - P[0]); ln = np.linalg.norm(nrm)
+                nrm = nrm / ln if ln > 1e-12 else np.array([0, 0, 1.0])
+                if nrm @ np.asarray(N, dtype=np.float64).sum(axis=0) < 0:
+                    P = P[::-1]; UV = UV[::-1]; nrm = -nrm
+                out.append((names[ref], P, np.asarray(UV, dtype=np.float64), nrm))
+            return out
+        return None
 
     def tris(self, modelname, skin=0):
         """-> list of (material path, verts[3,3], uvs[3,2], normal[3]) in model space, or None when unknown"""
@@ -170,7 +200,7 @@ class ModelLib:
         if key in self._cache: return self._cache[key]
         q = self.models.get(modelname)
         if q is None:
-            self._cache[key] = None; return None
+            self._cache[key] = self._stock(modelname, skin); return self._cache[key]
         out = []
         # studiomdl rotates SMD data +90 degrees about Z by default; "$origin x y z r" adds r degrees and an offset.
         rot = 90.0 + q['origin'][3]
@@ -215,6 +245,8 @@ class Scene:
         self.props = []              # every prop_* placement
         self.lights = []
         self.beams = []
+        self.mat_controls = {}       # targetname -> (material, variable) of material_modify_control entities
+        self.version = SCENE_VERSION
         self.static = None
         self.dynamic = {}
         self.missing_models = {}
@@ -250,6 +282,8 @@ class Scene:
                 continue
             if cls == 'env_beam':
                 self.beams.append({k: e[k] for k in e.keys()}); continue
+            if cls == 'material_modify_control':
+                self.mat_controls[name] = (e['materialName'].lower().replace('\\', '/'), e['materialVar'].lower()); continue
             tint = (1.0, 1.0, 1.0)
             rc = e['rendercolor', '']
             if rc:
@@ -269,9 +303,11 @@ class Scene:
                                        origin=parse_vec(e['origin', '0 0 0']), angles=parse_vec(e['angles', '0 0 0']),
                                        scale=float(e['modelscale', '1'] or 1), tint=tint, parent=e['parentname', '']))
 
-    def finalize(self, model_dirs):
-        """(re)instance every prop from the model sources found under model_dirs"""
+    def finalize(self, model_dirs, stock_roots=(), mat_exists=None):
+        """(re)instance every prop from the model sources found under model_dirs (QC + SMD), falling back to
+        compiled stock models under stock_roots"""
         self.models = ModelLib(model_dirs)
+        self.models.stock_roots = list(stock_roots); self.models.mat_exists = mat_exists
         self.static = TriSet()
         st = self.brush_static
         self.static.v = list(st.v); self.static.uv = list(st.uv); self.static.mat = list(st.mat); self.static.n = list(st.n)

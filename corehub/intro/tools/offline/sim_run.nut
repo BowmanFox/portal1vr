@@ -8,6 +8,7 @@ function jnum(v) { return format("%.4f", v.tofloat()); }
 function jvec(v) { return "[" + jnum(v.x) + "," + jnum(v.y) + "," + jnum(v.z) + "]"; }
 function jstr(s) { local o = ""; foreach (ch in s) { if (ch == '"' || ch == '\\') o += "\\"; if (ch >= 32) o += ch.tochar(); } return "\"" + o + "\""; }
 local dumpIdx = 0; local fireIdx = 0;
+simLastDump <- {};
 simTime = 0.0;
 Start();
 local n = 0;
@@ -19,14 +20,17 @@ while (dumpIdx < simDumpTimes.len()) {
         local line = "{\"t\":" + jnum(simDumpTimes[dumpIdx]) + ",\"simt\":" + jnum(t);
         line += ",\"eye\":" + jvec(PositionAt(t > 134 ? 134 : t)) + ",\"ang\":" + jvec(ReferenceAngles(t > 134 ? 134 : t)) + ",\"fov\":" + jnum(FilmFov(t));
         line += ",\"black\":" + screenBlackAlpha;
-        line += ",\"ents\":{";
+        line += ",\"delta\":1,\"ents\":{";
         local first = true;
         foreach (name, e in simEnts) {
             if (!e.touched) continue;
+            local js = "{\"o\":" + jvec(e.origin);
+            foreach (k, v in e.kv) js += "," + jstr(k) + ":" + jstr(v);
+            js += "}";
+            if (name in simLastDump && simLastDump[name] == js) continue;      // delta: only entities that changed since the last dump
+            simLastDump[name] <- js;
             if (!first) line += ","; first = false;
-            line += jstr(name) + ":{\"o\":" + jvec(e.origin);
-            foreach (k, v in e.kv) line += "," + jstr(k) + ":" + jstr(v);
-            line += "}";
+            line += jstr(name) + ":" + js;
         }
         line += "},\"fires\":[";
         first = true;

@@ -32,7 +32,9 @@ def ramp(table, prefix, top, factors, **kw):
 u(MAP, 'p9_room_metric_v13/opening_floor', (0.53, 0.543, 0.546), base='tile/white_floor_tile002b')
 u(MAP, 'p9_joined_v12/far_wall', (0.655, 0.655, 0.652), base='tile/white_wall_tile003a')
 u(MAP, 'p9_joined_v12/plaster', (1.0, 1.0, 1.02), base='concrete/concrete_bts_wall001a')
-u(MAP, 'p9_ceiling_exposure_v2', (0.93, 0.91, 0.94), base='tile/white_ceiling_tile001a')   # $color is driven by the director
+# The director drives this material's $color through the map's material_modify_control (the ceiling "exposure"),
+# which only works when the material carries the MaterialModify proxy.
+u(MAP, 'p9_ceiling_exposure_v2', (0.93, 0.91, 0.94), base='tile/white_ceiling_tile001a', extra={'__raw__': '"Proxies"\n{\n"MaterialModify"\n{\n}\n}'})
 u(MAP, 'p9_joined_v14/border', (0.142, 0.149, 0.139))
 u(MAP, 'p9_joined_v14/ceiling', (0.60, 0.60, 0.59))
 u(MAP, 'p9_exterior_v2/service_panel', (0.225, 0.262, 0.292), base='tile/white_wall_tile003a')
@@ -195,7 +197,9 @@ def vmt(d):
     if d['alpha'] is not None:
         lines += ['"$translucent" "1"', '"$alpha" "%g"' % d['alpha']]
     if d['nocull']: lines.append('"$nocull" "1"')
-    for k, v in d['extra'].items(): lines.append(f'"{k}" "{v}"')
+    for k, v in d['extra'].items():
+        if k == '__raw__': lines.append(v)
+        else: lines.append(f'"{k}" "{v}"')
     lines.append('}')
     return '\n'.join(lines) + '\n'
 

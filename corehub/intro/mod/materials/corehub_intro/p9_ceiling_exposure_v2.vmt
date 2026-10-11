@@ -2,4 +2,10 @@
 {
 "$basetexture" "tile/white_ceiling_tile001a"
 "$color" "[0.93 0.91 0.94]"
+"Proxies"
+{
+"MaterialModify"
+{
+}
+}
 }
