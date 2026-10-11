@@ -2,10 +2,10 @@
 # movie: records a continuous test run of a build with the automatic reference camera (no input needed), using the
 # game's own startmovie at a fixed frame rate plus the in-game soundtrack, then assembles the videos (assemble.sh).
 # usage: movie -Prefix <name> [-Fps 60] [-Width 1280] [-Height 800] [-End 134.4] [-Quality 90] [-Bsp <bsp>] [-Director <nut>]
-#              [-NoAssemble] [-Map <mapname>] [-Extra "<more launch args>"]
+#              [-NoAssemble] [-Map <mapname>] [-Extra "<more launch args>"] [-Lead <frames, default 2>]
 # The normal mapspawn/autoexec/director are restored afterwards.
 source ${0:A:h:h}/env.sh
-prefix=""; fps=60; width=1280; height=800; endt=134.4; quality=90; bsp=""; director=""; assemble=1; map=corehub_intro; extra=()
+prefix=""; fps=60; width=1280; height=800; endt=134.4; quality=90; bsp=""; director=""; assemble=1; map=corehub_intro; extra=(); lead=2.0
 while (( $# )); do
   case $1 in
     -Prefix) shift; prefix=$1 ;;
@@ -17,6 +17,7 @@ while (( $# )); do
     -Bsp) shift; bsp=$1 ;;
     -Director) shift; director=$1 ;;
     -Map) shift; map=$1 ;;
+    -Lead) shift; lead=$1 ;;
     -Extra) shift; extra=(${(z)1}) ;;
     -NoAssemble) assemble=0 ;;
   esac
@@ -54,6 +55,9 @@ function MovieTick(){
  if(!movStarted){
   movStarted=true;
   EntFire("intro_client","Command","cl_mouseenable 0;cl_drawhud 0;r_drawviewmodel 0;con_notifytime 0;developer 0;hud_saytext_time 0;startmovie movies/$prefix/f jpg wav jpeg_quality $quality $quality $quality $quality",0,p);
+  // The first recorded frame comes about two frames after the director's clock starts (measured on run r10m_ea from the
+  // tube rings: +2.1 frames). Delay the director's clock by that much so frame n shows director time n/fps.
+  movD.startTime=movD.startTime+($lead/$fps.0);
   printl("MOVIE_BEGIN "+movPrefix+" world="+Time()+" start="+movD.startTime);
  }
  local t=Time()-movD.startTime;

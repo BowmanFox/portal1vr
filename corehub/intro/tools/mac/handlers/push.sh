@@ -48,7 +48,8 @@ for f in $R10/*.py $R10/tools/*.py; do cp $f $D/tools/; done
 for sub in offline; do
   [[ -d $R10/tools/$sub ]] && /usr/bin/rsync -a --exclude '__pycache__' --exclude '*.pkl' --exclude '*.pyc' --exclude '*.jpg' --exclude '*.png' $R10/tools/$sub/ $D/tools/$sub/
 done
-[[ -d $R10/gen ]] && /usr/bin/rsync -a --exclude '__pycache__' --exclude '*.pyc' --exclude '*.pkl' $R10/gen/ $D/gen/
+# (gen/base and gen/out/build are copies of the map and director already pushed under wip/ and map/)
+[[ -d $R10/gen ]] && /usr/bin/rsync -a --exclude '__pycache__' --exclude '*.pyc' --exclude '*.pkl' --exclude 'base/' --exclude 'out/build/' $R10/gen/ $D/gen/
 for f in $R/mac/*.sh $R/mac/*.py $R/mac/*.json $R/mac/*.md $R/mac/*.txt; do cp $f $D/tools/mac/; done
 for f in $R/mac/handlers/*.sh; do cp $f $D/tools/mac/handlers/; done
 for f in $R10/models/*.(qc|smd|py); do cp $f $D/models/; done

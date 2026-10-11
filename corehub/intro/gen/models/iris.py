@@ -54,13 +54,14 @@ def materials():
     mat('iris_side', (0.12, 0.12, 0.125))
     mat('irisf_ring', (0.31, 0.33, 0.345))               # frame ring (video 76 81 85)
     mat('irisf_ring_in', (0.20, 0.21, 0.22))
-    ramp('irisf_wall', (0.155, 0.155, 0.155), (0.0, 0.08, 0.45, 1.0))   # dark intake wall, lighter toward the far side
+    ramp('irisf_cav', (0.20, 0.20, 0.20), (0.0, 0.0, 0.0, 0.0, 0.05, 0.25, 0.6, 1.0))   # cavity wall: black, grey only on the far side
     mat('irisf_black', (0.012, 0.012, 0.012))
     mat('asc_band', (0.305, 0.31, 0.31))                 # collar underside (video 74-80)
     mat('asc_band_in', (0.245, 0.25, 0.25))
     mat('asc_groove', (0.15, 0.15, 0.15))
     ramp('asc_wall', (0.10, 0.10, 0.10), (0.35, 0.55, 0.8, 1.0))
     mat('asc_black', (0.02, 0.02, 0.02))
+    mat('asc_rail', (0.03, 0.03, 0.032))
 
 
 # ------------------------------------------------------------------------------------------------ petals
@@ -95,22 +96,28 @@ def quarter():
     return m
 
 
-# ------------------------------------------------------------------------------------------------ frame
+# ------------------------------------------------------------------------------------------------ frame and tube
+# Sizes solved from the video (tools/offline: ring regression over the 23.5-31.2 s hold and the ascent bundle solve):
+#   frame ring 45.4 .. 53.7 at the ceiling; the tube mouth is 116.8 above it with radius 45.84; the collars have
+#   radius 61.06 and sit at 933.4, 1488.0, 2351.9 and 3216.7 (set in scenes/iris.py); the camera climbs at 2087 u/s.
 FRAME_R0 = 45.4; FRAME_R1 = 53.7          # light ring at the ceiling (X = 0)
-MOUTH_X = 58.6                             # height of the tube's first collar above the frame ring
-COLLAR_R = 35.3
+MOUTH_X = 116.8; MOUTH_R = 45.84           # the tube's lower rim, seen from the room as the light double ring
+MOUTH_RI = 0.84 * MOUTH_R                  # inner edge of the rim (38.5)
+SLEEVE_H = 30.0                            # dark 12-sided sleeve above the rim
+COLLAR_R = 61.06
 
 
-def collar(m, x, R=COLLAR_R, tall=25.6, band='asc_band', band_in='asc_band_in', groove='asc_groove', wall='asc_wall', n=N):
-    """the ascent tube's collar, underside at X = x: light band, groove, inner band, dark inner wall"""
+def collar(m, x, R=COLLAR_R, tall=42.0, band='asc_band', band_in='asc_band_in', groove='asc_groove', wall='asc_wall', n=N):
+    """a collar of the ascent tube, underside at X = x: light band (0.78-1 R), groove, inner band (0.68-0.74 R) and
+    the dark inside wall the camera sees just after passing it"""
     r_in = 0.68 * R
     ring_x(m, x, 0.78 * R, R, band, n=n)
-    ring_x(m, x + 1.2, 0.74 * R, 0.78 * R, groove, n=n)
-    wall_x(m, x, 0.78 * R, x + 1.2, 0.78 * R, groove, n=n, inward=True)
+    ring_x(m, x + 2.0, 0.74 * R, 0.78 * R, groove, n=n)
+    wall_x(m, x, 0.78 * R, x + 2.0, 0.78 * R, groove, n=n, inward=True)
     ring_x(m, x, r_in, 0.74 * R, band_in, n=n)
-    wall_x(m, x, 0.74 * R, x + 1.2, 0.74 * R, groove, n=n, inward=False)
+    wall_x(m, x, 0.74 * R, x + 2.0, 0.74 * R, groove, n=n, inward=False)
     w = Mesh(); wall_x(w, x, r_in, x + tall, r_in, wall, n=n, inward=True)
-    w.shade(wall, levels=4, light=(0.0, 0.3, -0.95))
+    w.shade(wall, levels=4, light=(0.0, -1.0, 0.0))
     m.add(w)
     wall_x(m, x, R, x + tall, R, 'asc_black', n=n, inward=False)                   # outside
     ring_x(m, x + tall, r_in, R, 'asc_black', n=n, down=False)                     # top
@@ -122,12 +129,28 @@ def frame():
     ring_x(m, 0.0, FRAME_R0, FRAME_R1, 'irisf_ring')
     ring_x(m, 0.0, FRAME_R0 - 1.6, FRAME_R0, 'irisf_ring_in')
     wall_x(m, 0.0, FRAME_R1, 6.0, FRAME_R1, 'irisf_black', inward=False)
-    # dark intake: a wall from the ring's inner edge up to the first collar, lit a little on the side facing the room
-    w = Mesh(); wall_x(w, 0.0, FRAME_R0 - 1.6, MOUTH_X, COLLAR_R + 0.5, 'irisf_wall', inward=True)
-    w.shade('irisf_wall', levels=4, light=(-0.25, -0.9, 0.1))
+    # dark intake between the ring and the tube mouth: black, with a little light on the side away from the bed (model +Y)
+    r0 = FRAME_R0 - 1.6
+    w = Mesh(); wall_x(w, 0.0, r0, MOUTH_X, MOUTH_R + 0.6, 'irisf_cav', inward=True)
+    w.shade('irisf_cav', levels=8, light=(0.0, -1.0, 0.0))      # an inward wall on the +Y side has its normal toward -Y
     m.add(w)
-    collar(m, MOUTH_X)
+    wall_x(m, 0.0, r0 + 1.0, MOUTH_X + SLEEVE_H, MOUTH_R + 1.6, 'irisf_black', inward=False)      # its outside, seen from the shaft
+    # the tube's lower rim: light band, dark line, thin light line, then the dark 12-sided sleeve
+    ring_x(m, MOUTH_X, 0.89 * MOUTH_R, MOUTH_R, 'asc_band')
+    ring_x(m, MOUTH_X + 0.8, 0.86 * MOUTH_R, 0.89 * MOUTH_R, 'asc_groove')
+    ring_x(m, MOUTH_X, MOUTH_RI, 0.86 * MOUTH_R, 'asc_band')
+    w = Mesh(); wall_x(w, MOUTH_X, MOUTH_RI, MOUTH_X + SLEEVE_H, MOUTH_RI, 'asc_wall', n=12, inward=True)
+    w.shade('asc_wall', levels=4, light=(0.0, -1.0, 0.0))
+    m.add(w)
+    ring_x(m, MOUTH_X + SLEEVE_H, MOUTH_RI, MOUTH_R + 1.6, 'irisf_black', down=False)
+    # the four rails come down from the tube through the intake to the petals' hubs (thin dark rods on the diagonals)
+    for k in range(4):
+        a = math.radians(45 + 90 * k); y, z = RAIL_RHO * math.cos(a), RAIL_RHO * math.sin(a)
+        m.box((-20.0, y - 0.9, z - 0.9), (MOUTH_X + SLEEVE_H, y + 0.9, z + 0.9), 'asc_rail')
     return m
+
+
+RAIL_RHO = 34.0
 
 
 def cap():
