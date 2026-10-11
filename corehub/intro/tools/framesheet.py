@@ -1,7 +1,9 @@
 # usage: framesheet.py PREFIX OUTNAME t1 t2 ... -> r10/sheets/OUTNAME.jpg (original | rebuild pairs from raw movie frames)
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import sys, os
 from PIL import Image, ImageDraw
-R = os.path.expanduser('~/mnt/revision9/r10'); M = os.path.expanduser('~/mnt/revision9/runtime/game/corehub_intro/movies')
+R = (_ROOT + '/r10'); M = (_ROOT + '/runtime/game/corehub_intro/movies')
 P, name = sys.argv[1], sys.argv[2]; times = [float(a) for a in sys.argv[3:]]
 w, h = 480, 300; cols = 2; rows = (len(times) + 1) // 2
 im = Image.new('RGB', (cols * (2 * w + 6), rows * (h + 14)), (0, 0, 0)); d = ImageDraw.Draw(im)

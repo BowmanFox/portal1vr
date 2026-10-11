@@ -5,10 +5,12 @@ copies the BSP, editable VMF and director, and rewrites Rebuild-verification.jso
 Rebuild-source.txt / Rebuild-status.md so Stage-verified-map.ps1 accepts the new package.
 usage: publish_r10.py <build name> <director name> <movie prefix>
 """
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import hashlib, json, shutil, sys, os, datetime
 from pathlib import Path
 HOME = Path(os.path.expanduser('~'))
-R10 = HOME / 'mnt/revision9/r10'
+R10 = Path(_ROOT) / 'r10'
 OUT = HOME / 'mnt/outputs/Corehub-Intro'
 build, director, movie = sys.argv[1:4]
 sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()

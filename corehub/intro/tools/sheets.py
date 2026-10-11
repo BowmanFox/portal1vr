@@ -1,7 +1,9 @@
 # usage: sheets.py PREFIX [t0 t1 step] -> r10/sheets/PREFIX/NN.jpg  (ref | map pairs, 2 cols x 4 rows)
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import sys,os
 from PIL import Image,ImageDraw
-R=os.path.expanduser('~/mnt/revision9/r10')
+R=(_ROOT + '/r10')
 P=sys.argv[1]
 t0,t1,st=(float(a) for a in sys.argv[2:5]) if len(sys.argv)>4 else (0,134,1)
 out=f'{R}/sheets/'+(sys.argv[5] if len(sys.argv)>5 else P);os.makedirs(out,exist_ok=True)

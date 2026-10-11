@@ -1,0 +1,9 @@
+{
+ "models/corehub_intro/tube_glass": {"color": [0.8, 0.8, 0.8], "alpha": 0.15, "nocull": true},
+ "models/corehub_intro/tube_pglass": {"color": [0.9, 0.9, 0.9], "alpha": 0.3, "nocull": true},
+ "models/corehub_intro/tube_glass_none": {"color": [0, 0, 0], "alpha": 0.0, "nocull": true},
+ "models/corehub_intro/glass": {"color": [0.8, 0.8, 0.8], "alpha": 0.15, "nocull": true},
+ "corehub_intro/clear_glass": {"color": [0.8, 0.8, 0.8], "alpha": 0.1, "nocull": true},
+ "corehub_intro/ending_tubeglass_u": {"color": [0.8, 0.8, 0.8], "alpha": 0.15, "nocull": true},
+ "corehub_intro/p9_exterior_v2/chamber_glass": {"color": [0.47, 0.47, 0.47], "alpha": 0.34, "nocull": true}
+}

@@ -44,7 +44,12 @@ if [[ -n $wip[1] && -f $R10/build/$wip[1].vmf ]]; then
   print "Newest test build: $wip[1] + $wip[2]. Published build (map\\): $pub[1] + $pub[2]." > $D/wip/BUILD.txt
 fi
 for f in $R10/*.py $R10/tools/*.py; do cp $f $D/tools/; done
-for f in $R/mac/*.sh $R/mac/*.py $R/mac/*.json $R/mac/*.md; do cp $f $D/tools/mac/; done
+# Offline preview renderer + director simulator, and the generator sources of the rebuilt models.
+for sub in offline; do
+  [[ -d $R10/tools/$sub ]] && /usr/bin/rsync -a --exclude '__pycache__' --exclude '*.pkl' --exclude '*.pyc' --exclude '*.jpg' --exclude '*.png' $R10/tools/$sub/ $D/tools/$sub/
+done
+[[ -d $R10/gen ]] && /usr/bin/rsync -a --exclude '__pycache__' --exclude '*.pyc' --exclude '*.pkl' $R10/gen/ $D/gen/
+for f in $R/mac/*.sh $R/mac/*.py $R/mac/*.json $R/mac/*.md $R/mac/*.txt; do cp $f $D/tools/mac/; done
 for f in $R/mac/handlers/*.sh; do cp $f $D/tools/mac/handlers/; done
 for f in $R10/models/*.(qc|smd|py); do cp $f $D/models/; done
 for f in $R/transport-models/*.(qc|smd|py); do cp $f $D/models/transport/; done

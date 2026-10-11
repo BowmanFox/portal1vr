@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+"$basetexture" "concrete/concrete_modular_wall001a"
+"$color" "[0.88 0.89 0.88]"
+"$nocull" "1"
+"$model" "1"
+}

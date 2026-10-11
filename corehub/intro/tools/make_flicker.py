@@ -4,12 +4,14 @@ Measured from the bik (column means against the lit frame at 8.0 s): the room li
 (6.85-6.95 s and again 7.2-7.6 s: x 0.36-0.78 lit, the sides at ~0.65), and in between and after they are on except
 for dim edges (7.0-7.15 s and 7.7 s: x < 0.23 and x > 0.89 at ~0.85). Each overlay is black with a per-column alpha.
 """
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import os
 from pathlib import Path
 import numpy as np
 from srctools.vtf import VTF, ImageFormats, VTFFlags
 
-MOD = Path(os.path.expanduser('~/mnt/revision9/runtime/game/corehub_intro'))
+MOD = Path((_ROOT + '/runtime/game/corehub_intro'))
 W, H = 64, 4
 def smooth(e0, e1, x):
     x = np.clip((x - e0) / (e1 - e0), 0, 1); return x * x * (3 - 2 * x)

@@ -5,12 +5,14 @@ The video's glare frame is a flat grey veil (wall sd 3-5, mean ~107) with a red 
 overlay sequence (env_screenoverlay, ten 0.2 s steps) draws a translucent grey veil with a soft red glow centred below
 the turret's eye; the eye track is the one the camera is aimed by (see patch_director.py, r10bv).
 """
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import math, os, sys
 from pathlib import Path
 import numpy as np
 from srctools.vtf import VTF, ImageFormats, VTFFlags
 
-MOD = Path(os.path.expanduser('~/mnt/revision9/runtime/game/corehub_intro'))
+MOD = Path((_ROOT + '/runtime/game/corehub_intro'))
 # turret eye in the video, degrees (right of centre, above centre), measured from the bik
 EYE = [(69.25, 18.0, 10.9), (69.75, 12.7, 12.7), (70.0, 11.8, 8.5), (70.25, 11.3, 2.4), (70.5, 11.8, -1.9),
        (70.75, 10.4, -1.4), (71.0, 8.5, 1.4), (71.2, 7.6, 1.4), (71.4, 7.6, 1.4)]

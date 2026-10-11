@@ -1,10 +1,12 @@
 # usage: similarity.py PREFIX [PREFIX2 ...] -> per-0.5s structural similarity (SSIM on blurred 128x80 greyscale) between
 # the 2009 video and each run, plus per-scene means; worst moments first. Higher is better (1 = identical).
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import os, sys, json
 import numpy as np
 from PIL import Image, ImageFilter
 from scipy.ndimage import uniform_filter
-R = os.path.expanduser('~/mnt/revision9/r10'); M = os.path.expanduser('~/mnt/revision9/runtime/game/corehub_intro/movies')
+R = (_ROOT + '/r10'); M = (_ROOT + '/runtime/game/corehub_intro/movies')
 SCENES = [('Opening', 3, 22), ('Iris+ascent', 22, 32.5), ('Rust room', 32.5, 39), ('Pod rise', 39.5, 47.5), ('Cube passage', 48, 53.8),
           ('Tower', 55.5, 65), ('Turret/16', 65, 74), ('Scanners', 74, 82.5), ('Copper/sludge', 84.5, 95.3), ('Factory', 96.6, 99.8),
           ('Lab', 100, 109.4), ('Incinerator', 110.6, 118.3), ('Capsule', 118.5, 131)]

@@ -6,18 +6,20 @@ the tube's own ring props and the camera path), turns the turret backdrop to
 face the camera the way the video frames it, and adds a few unfinished/WIP
 dev-textured surfaces. Writes r10/build/<name>.vmf; the input is never changed.
 """
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import json, math, os, sys
 from pathlib import Path
 from srctools import VMF, Vec
 
 HOME = Path(os.path.expanduser('~'))
 OUT = HOME / 'mnt/outputs/Corehub-Intro'
-R10 = HOME / 'mnt/revision9/r10'
+R10 = Path(_ROOT) / 'r10'
 # Always patch the untouched v50 VMF (outputs/ holds the published r10 build once publish_r10.py has run);
 # argv[1] is kept for compatibility and ignored.
 BASE = R10 / 'base' / 'corehub_intro_v50.vmf'
 NAME = sys.argv[2] if len(sys.argv) > 2 else 'corehub_r10a'
-MOD = HOME / 'mnt/revision9/runtime/game/corehub_intro'
+MOD = Path(_ROOT) / 'runtime/game/corehub_intro'
 v = VMF.parse(str(BASE))
 tl = json.loads((OUT / 'intro-timeline.json').read_text())
 

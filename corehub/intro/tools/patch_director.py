@@ -1,7 +1,9 @@
 """Adds/overrides camera reference-angle knots in the v50 director (writes a copy)."""
+import os as _os
+_ROOT = next(p for p in (_os.environ.get('COREHUB_ROOT') or '', _os.path.expanduser('~/mnt/Games/revision9'), _os.path.expanduser('~/Games/revision9'), _os.path.expanduser('~/mnt/revision9')) if p and _os.path.isdir(p))   # PC, Mac VM or native Mac
 import re, sys, os
 from pathlib import Path
-src = Path(os.path.expanduser('~/mnt/revision9/r10/base/director_v50.nut'))   # untouched v50 director
+src = Path((_ROOT + '/r10/base/director_v50.nut'))   # untouched v50 director
 dst = Path(sys.argv[1])
 edits = {  # time: (pitch, yaw, roll)
     # "16" wall: aimed so the sign sits where the video has it (top centre at 72.5-73.25 s, frame centre at 73.5 s);

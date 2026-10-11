@@ -1,0 +1,920 @@
+{
+"models/corehub_intro/tube_glass": {
+"color": [
+0.41,
+0.43,
+0.435
+],
+"alpha": 0.15,
+"nocull": true
+},
+"models/corehub_intro/glass": {
+"color": [
+0.41,
+0.43,
+0.435
+],
+"alpha": 0.15,
+"nocull": true
+},
+"models/corehub_intro/tube_glass_none": {
+"color": [
+0,
+0,
+0
+],
+"alpha": 0.0,
+"nocull": true
+},
+"corehub_intro/p9_exterior_v2/chamber_glass": {
+"color": [
+0.47,
+0.47,
+0.47
+],
+"alpha": 0.34,
+"nocull": true
+},
+"corehub_intro/p9_room_metric_v13/rail_light": {
+"color": [
+0.2053,
+0.2053,
+0.2124
+]
+},
+"corehub_intro/p9_ceiling_exposure_v2": {
+"color": [
+0.7673,
+0.7673,
+0.7594
+]
+},
+"corehub_intro/p9_joined_v12/plaster": {
+"color": [
+0.3103,
+0.314,
+0.3066
+]
+},
+"corehub_intro/p9_joined_v14/border": {
+"color": [
+0.3696,
+0.3808,
+0.377
+]
+},
+"corehub_intro/void_black": {
+"color": [
+0.0345,
+0.0345,
+0.0415
+]
+},
+"corehub_intro/iris_dark_u": {
+"color": [
+0.3472,
+0.3621,
+0.3584
+]
+},
+"corehub_intro/p9_ascent_wall_v1": {
+"color": [
+0.0415,
+0.0415,
+0.0345
+]
+},
+"corehub_intro/p9_stock_shaft_006b_v3": {
+"color": [
+0.132,
+0.1082,
+0.0981
+]
+},
+"corehub_intro/p9_ascent_rail_v2": {
+"color": [
+0.0717,
+0.0717,
+0.0717
+]
+},
+"corehub_intro/steel_u": {
+"color": [
+0.2089,
+0.1841,
+0.1746
+]
+},
+"models/corehub_intro/tube_rail2": {
+"color": [
+0.0523,
+0.0473,
+0.0473
+]
+},
+"models/corehub_intro/tube_m3": {
+"color": [
+0.0,
+0.0,
+0.0
+]
+},
+"models/corehub_intro/tube_mh3": {
+"color": [
+0.0,
+0.0,
+0.0
+]
+},
+"models/corehub_intro/tube_mlip": {
+"color": [
+0.2079,
+0.2165,
+0.2162
+]
+},
+"models/corehub_intro/tube_m2": {
+"color": [
+0.0865,
+0.1183,
+0.1229
+]
+},
+"models/corehub_intro/tube_mh2": {
+"color": [
+0.1451,
+0.1576,
+0.1527
+]
+},
+"models/corehub_intro/tube_m1": {
+"color": [
+0.1269,
+0.1385,
+0.1356
+]
+},
+"models/corehub_intro/tube_mh1": {
+"color": [
+0.1079,
+0.1101,
+0.1168
+]
+},
+"models/corehub_intro/tube_m0": {
+"color": [
+0.1501,
+0.156,
+0.1447
+]
+},
+"models/corehub_intro/tube_mh0": {
+"color": [
+0.1443,
+0.148,
+0.1363
+]
+},
+"models/corehub_intro/tube_dlip": {
+"color": [
+0.1735,
+0.1806,
+0.1771
+]
+},
+"models/corehub_intro/tube_d1": {
+"color": [
+0.0482,
+0.0404,
+0.0
+]
+},
+"models/corehub_intro/tube_dh1": {
+"color": [
+0.0482,
+0.0404,
+0.0
+]
+},
+"models/corehub_intro/tube_d0": {
+"color": [
+0.0647,
+0.0404,
+0.0
+]
+},
+"models/corehub_intro/tube_dh0": {
+"color": [
+0.0775,
+0.0746,
+0.0498
+]
+},
+"corehub_intro/steel_ud": {
+"color": [
+0.0775,
+0.0447,
+0.0182
+]
+},
+"models/corehub_intro/podwall_back": {
+"color": [
+0.144,
+0.1643,
+0.1848
+]
+},
+"models/corehub_intro/podwall_s4": {
+"color": [
+0.2822,
+0.287,
+0.295
+]
+},
+"models/corehub_intro/podwall_s5": {
+"color": [
+0.4691,
+0.47,
+0.4811
+]
+},
+"models/corehub_intro/podwall_s6": {
+"color": [
+0.4857,
+0.4897,
+0.5001
+]
+},
+"models/corehub_intro/podwall_s2": {
+"color": [
+0.2505,
+0.2538,
+0.2632
+]
+},
+"models/corehub_intro/podwall_s3": {
+"color": [
+0.287,
+0.2891,
+0.2962
+]
+},
+"models/corehub_intro/tube_bh3": {
+"color": [
+0.3163,
+0.3393,
+0.3381
+]
+},
+"models/corehub_intro/tube_bh2": {
+"color": [
+0.2977,
+0.316,
+0.3147
+]
+},
+"models/corehub_intro/tube_bh1": {
+"color": [
+0.1811,
+0.1947,
+0.1981
+]
+},
+"models/corehub_intro/tube_bh0": {
+"color": [
+0.107,
+0.1063,
+0.0914
+]
+},
+"models/corehub_intro/tube_d3": {
+"color": [
+0.0482,
+0.0603,
+0.0182
+]
+},
+"models/corehub_intro/tube_dh3": {
+"color": [
+0.0482,
+0.0404,
+0.0
+]
+},
+"models/corehub_intro/tube_d2": {
+"color": [
+0.0647,
+0.0603,
+0.0182
+]
+},
+"models/corehub_intro/tube_dh2": {
+"color": [
+0.0482,
+0.0404,
+0.0
+]
+},
+"corehub_intro/white_u": {
+"color": [
+0.3845,
+0.3958,
+0.3883
+]
+},
+"models/corehub_intro/tube_b3": {
+"color": [
+0.3209,
+0.3439,
+0.3427
+]
+},
+"models/corehub_intro/tube_b1": {
+"color": [
+0.107,
+0.1231,
+0.127
+]
+},
+"models/corehub_intro/tube_b0": {
+"color": [
+0.0482,
+0.0404,
+0.0
+]
+},
+"models/corehub_intro/drop_s0": {
+"color": [
+0.0981,
+0.1048,
+0.1014
+]
+},
+"models/corehub_intro/tube_blip": {
+"color": [
+0.1735,
+0.1806,
+0.1771
+]
+},
+"models/corehub_intro/tube_b2": {
+"color": [
+0.2087,
+0.2274,
+0.2255
+]
+},
+"models/corehub_intro/tube_w3": {
+"color": [
+0.5404,
+0.5397,
+0.5404
+]
+},
+"models/corehub_intro/tube_wh3": {
+"color": [
+0.7377,
+0.7447,
+0.7398
+]
+},
+"models/corehub_intro/tube_wlip": {
+"color": [
+0.1771,
+0.1771,
+0.1735
+]
+},
+"models/corehub_intro/tube_w2": {
+"color": [
+0.3621,
+0.3584,
+0.3547
+]
+},
+"models/corehub_intro/tube_wh2": {
+"color": [
+0.5118,
+0.5178,
+0.5171
+]
+},
+"models/corehub_intro/tube_w1": {
+"color": [
+0.2231,
+0.2196,
+0.2196
+]
+},
+"models/corehub_intro/tube_wh1": {
+"color": [
+0.3347,
+0.3393,
+0.3334
+]
+},
+"models/corehub_intro/tube_w0": {
+"color": [
+0.1423,
+0.1308,
+0.119
+]
+},
+"models/corehub_intro/tube_wh0": {
+"color": [
+0.1979,
+0.1947,
+0.1924
+]
+},
+"models/corehub_intro/towerg_s3": {
+"color": [
+0.1841,
+0.1876,
+0.1841
+]
+},
+"models/corehub_intro/towerg_h3": {
+"color": [
+0.2555,
+0.2737,
+0.2628
+]
+},
+"models/corehub_intro/towerg_s2": {
+"color": [
+0.1526,
+0.1526,
+0.1492
+]
+},
+"models/corehub_intro/towerg_h2": {
+"color": [
+0.2196,
+0.2196,
+0.2124
+]
+},
+"models/corehub_intro/towerg_s1": {
+"color": [
+0.1251,
+0.1285,
+0.1251
+]
+},
+"models/corehub_intro/towerg_h1": {
+"color": [
+0.1423,
+0.1457,
+0.144
+]
+},
+"models/corehub_intro/disc_dark": {
+"color": [
+0.2737,
+0.2411,
+0.2231
+]
+},
+"models/corehub_intro/disc_white": {
+"color": [
+0.2303,
+0.2375,
+0.2267
+]
+},
+"models/corehub_intro/r10_column": {
+"color": [
+0.0684,
+0.0717,
+0.0782
+]
+},
+"models/corehub_intro/r10_flange": {
+"color": [
+0.0345,
+0.0345,
+0.0345
+]
+},
+"models/corehub_intro/towerg_lip": {
+"color": [
+0.1251,
+0.1251,
+0.1217
+]
+},
+"models/corehub_intro/towerg_s0": {
+"color": [
+0.1082,
+0.1082,
+0.1082
+]
+},
+"models/corehub_intro/towerg_h0": {
+"color": [
+0.1082,
+0.1115,
+0.1082
+]
+},
+"models/corehub_intro/shell": {
+"color": [
+0.4108,
+0.4146,
+0.4033
+]
+},
+"corehub_intro/grey_u": {
+"color": [
+0.1354,
+0.1457,
+0.1457
+]
+},
+"corehub_intro/black_u": {
+"color": [
+0.0815,
+0.0848,
+0.0914
+]
+},
+"models/corehub_intro/dark": {
+"color": [
+0.2497,
+0.2481,
+0.1746
+]
+},
+"models/corehub_intro/board_white": {
+"color": [
+0.7495,
+0.7396,
+0.7415
+]
+},
+"models/corehub_intro/board_grey": {
+"color": [
+0.4943,
+0.4905,
+0.4905
+]
+},
+"corehub_intro/drum_s": {
+"color": [
+0.5031,
+0.509,
+0.5039
+]
+},
+"corehub_intro/drum_u": {
+"color": [
+0.5901,
+0.5965,
+0.5653
+]
+},
+"corehub_intro/lamp": {
+"color": [
+0.2836,
+0.2556,
+0.1866
+]
+},
+"models/corehub_intro/tube_o3": {
+"color": [
+0.3347,
+0.2531,
+0.1684
+]
+},
+"models/corehub_intro/tube_oh3": {
+"color": [
+0.3529,
+0.2481,
+0.2053
+]
+},
+"models/corehub_intro/tube_o2": {
+"color": [
+0.2335,
+0.1501,
+0.0801
+]
+},
+"models/corehub_intro/tube_olip": {
+"color": [
+0.2447,
+0.2483,
+0.2483
+]
+},
+"models/corehub_intro/tube_oh2": {
+"color": [
+0.3278,
+0.2581,
+0.2093
+]
+},
+"models/corehub_intro/tube_o1": {
+"color": [
+0.0775,
+0.0746,
+0.0498
+]
+},
+"models/corehub_intro/tube_oh1": {
+"color": [
+0.1735,
+0.1231,
+0.0914
+]
+},
+"models/corehub_intro/tube_o0": {
+"color": [
+0.0775,
+0.0603,
+0.0498
+]
+},
+"models/corehub_intro/tube_oh0": {
+"color": [
+0.0981,
+0.0746,
+0.0498
+]
+},
+"models/corehub_intro/tube_klip": {
+"color": [
+0.216,
+0.2053,
+0.1982
+]
+},
+"models/corehub_intro/tube_k1": {
+"color": [
+0.4725,
+0.3622,
+0.3147
+]
+},
+"models/corehub_intro/tube_kh1": {
+"color": [
+0.1694,
+0.1308,
+0.1105
+]
+},
+"models/corehub_intro/tube_k0": {
+"color": [
+0.3347,
+0.2581,
+0.2308
+]
+},
+"models/corehub_intro/tube_kh0": {
+"color": [
+0.1508,
+0.1063,
+0.0914
+]
+},
+"models/corehub_intro/r10_hole_black": {
+"color": [
+0.2339,
+0.2231,
+0.2196
+]
+},
+"models/corehub_intro/r10_hole_box": {
+"color": [
+0.0,
+0.0,
+0.0
+]
+},
+"models/corehub_intro/r10_debris": {
+"color": [
+0.0,
+0.0,
+0.0
+]
+},
+"corehub_intro/p9_factory_v4_wall": {
+"color": [
+0.2846,
+0.2267,
+0.1806
+]
+},
+"corehub_intro/p9_factory_v4_floor": {
+"color": [
+0.1183,
+0.1115,
+0.0948
+]
+},
+"corehub_intro/p9_factory_v4_grey": {
+"color": [
+0.17,
+0.1526,
+0.1285
+]
+},
+"corehub_intro/p9_factory_v4_orange": {
+"color": [
+0.441,
+0.314,
+0.1666
+]
+},
+"corehub_intro/p9_factory_v4_dark": {
+"color": [
+0.0815,
+0.0629,
+0.0523
+]
+},
+"corehub_intro/p9_factory_v4_white": {
+"color": [
+0.1048,
+0.0881,
+0.0782
+]
+},
+"corehub_intro/p9_factory_v7_plate": {
+"color": [
+0.4752,
+0.479,
+0.4562
+]
+},
+"corehub_intro/labblue_u": {
+"color": [
+0.4752,
+0.6374,
+0.6844
+]
+},
+"models/corehub_intro/r10_post_grey": {
+"color": [
+0.3958,
+0.4108,
+0.4221
+]
+},
+"models/corehub_intro/r10_post_dark": {
+"color": [
+0.1596,
+0.1596,
+0.1735
+]
+},
+"corehub_intro/wfloor_u": {
+"color": [
+0.5481,
+0.5674,
+0.5288
+]
+},
+"corehub_intro/ending_floor_u": {
+"color": [
+0.4867,
+0.4981,
+0.502
+]
+},
+"corehub_intro/ending_collar_u": {
+"color": [
+0.2018,
+0.2053,
+0.2089
+]
+},
+"corehub_intro/ending_black_u": {
+"color": [
+0.061,
+0.0415,
+0.0473
+]
+},
+"corehub_intro/ending_recess_u": {
+"color": [
+0.1082,
+0.0568,
+0.0415
+]
+},
+"corehub_intro/ending_flange_u": {
+"color": [
+0.2628,
+0.281,
+0.2956
+]
+},
+"corehub_intro/ending_mouth_u": {
+"color": [
+0.2124,
+0.2089,
+0.2196
+]
+},
+"corehub_intro/ending_green_u": {
+"color": [
+0.2393,
+0.325,
+0.2053
+]
+},
+"corehub_intro/ending_gold_u": {
+"color": [
+0.3213,
+0.2267,
+0.1115
+]
+},
+"corehub_intro/ending_redwall_u": {
+"color": [
+0.4752,
+0.2339,
+0.1631
+]
+},
+"corehub_intro/ending_ringhi_u": {
+"color": [
+0.6374,
+0.5829,
+0.5481
+]
+},
+"corehub_intro/ending_strut_u": {
+"color": [
+0.1806,
+0.1115,
+0.075
+]
+},
+"corehub_intro/ending_hub_u": {
+"color": [
+0.2303,
+0.132,
+0.0848
+]
+},
+"corehub_intro/ending_hubring_u": {
+"color": [
+0.3398,
+0.3213,
+0.2483
+]
+},
+"corehub_intro/ending_recess_top_u": {
+"color": [
+0.3176,
+0.2267,
+0.1082
+]
+},
+"corehub_intro/ending_white_u": {
+"color": [
+0.6335,
+0.6413,
+0.6296
+]
+},
+"corehub_intro/ending_petalb_u": {
+"color": [
+0.4752,
+0.3029,
+0.1631
+]
+},
+"corehub_intro/ending_ringb_u": {
+"color": [
+0.3621,
+0.2701,
+0.1841
+]
+},
+"corehub_intro/ending_border_u": {
+"color": [
+0.479,
+0.4033,
+0.2919
+]
+},
+"corehub_intro/ending_lampring_u": {
+"color": [
+0.0717,
+0.0523,
+0.0345
+]
+},
+"corehub_intro/ending_bulb_u": {
+"color": [
+0.6628,
+0.5635,
+0.4259
+]
+}
+}
