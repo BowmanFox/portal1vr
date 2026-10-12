@@ -382,16 +382,16 @@ def moving_ring(v, d, rd):
         c = p + f * D + r * (-10.0 / 461.88 * D) + u * (5.0 / 461.88 * D)
         a = tube.axis_angles(f)
         rows.append('[%.4f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f]' % ((t,) + tuple(c) + tuple(a)))
-    E.add_prop(v, 'models/corehub_intro/r11_sg_ring.mdl', (0, 0, -3000), (0, 0, 0), name='r11_sg_ring')
+    E.add_prop(v, 'models/corehub_intro/r11_sg_ring.mdl', (11800, 9600, 4800), (0, 0, 0), name='r11_sg_ring')     # parked in an empty corner of the sealed cell (a prop in the void makes the map leak)
     d.append('SgRingTab <- [' + ','.join(rows) + '];\n' + '''
 function SgRing(t) {
     local e=Entities.FindByName(null,"r11_sg_ring"); if(e==null) return;
     local T=SgRingTab;
-    if(t<T[0][0] || t>T[T.len()-1][0]) { e.SetOrigin(Vector(0,0,-3000)); return; }
+    if(t<T[0][0] || t>T[T.len()-1][0]) { e.SetOrigin(Vector(11800,9600,4800)); return; }
     local i=0; while(i<T.len()-2 && t>=T[i+1][0]) i++;
     local a=T[i]; local b=T[i+1]; local f=(t-a[0])/(b[0]-a[0]); if(f<0)f=0; if(f>1)f=1;
     e.SetOrigin(Vector(a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f, a[3]+(b[3]-a[3])*f));
-    e.SetAngles(a[4]+(b[4]-a[4])*f, a[5]+(b[5]-a[5])*f, a[6]+(b[6]-a[6])*f);
+    e.__KeyValueFromString("angles",(a[4]+(b[4]-a[4])*f)+" "+(a[5]+(b[5]-a[5])*f)+" "+(a[6]+(b[6]-a[6])*f));
 }
 ''')
     d.hook('SgRing(t);')

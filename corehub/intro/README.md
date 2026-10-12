@@ -1,77 +1,53 @@
-# Corehub intro rebuild: r10 status
+# Corehub intro rebuild: status (film-scale rebuild, Oct 12 2026)
 
-r10 is built on top of the newest pursuit9 map (capsule-follow v50: walkable opening, measured factory passage, capsule follow).
-`patch_r10.py` patches the v50 editable VMF, and `patch_director.py` patches the v50 director. The v50 files themselves are never edited.
+Published build: **corehub_r10ga + director_r10ga**, test run **r10m_ga2** (60 fps, automatic camera, the Mac
+pipeline). It replaces the r10 series (last published r10dj). Not every scene is at 9/10 yet; work continues.
 
-## What r10 changes
+## What changed: the film measured, every ride scene rebuilt at the film's scale
 
-- **Separate rooms.** The old shared middle hall is split by full-height partition walls at x = 1528, 2840 (dark tunnel), 3400 (cube passage | tower), 4364 (tower | turret room), 4980 ("16" wall), 6000, 6780, 7300 and 7960.
-  - Each wall only opens where the tube (or a side tube) passes through.
-  - The openings are computed from the tube's own ring props and the camera path. A collar ring frames each opening.
-  - A clearance check confirms the camera never enters a wall.
-- **Walls at the video's angles.** The turret backdrop was rebuilt to face the camera squarely, as in the 66–71 s shots. Partitions are frontal to the tube.
-- **WIP / unfinished content.**
-  - Pale `dev_measuregeneric` panels on the cube-passage wall (50–53 s), on an upper corner of the "16" wall, and on the back of the lab partition.
-  - A hazard-striped bulkhead edge, and an unfinished floor patch under the pod rise.
-- **Materials matched to the video.**
-  - Copper collars on the low tube (84–110 s).
-  - Cream-white lattice towers and gallery truss (85–93 s).
-  - Dark-tile sludge test room (87–90 s), black-tile lab walls (100–104 s), and a white tiled wall behind the hanging turrets (104–105 s).
-  - Dimmed pod-room skylights (41–43 s).
-- **Cuts dissolve like the video** at 38.7, 53.8, 82.6, 84.6, 95.3, 105.0 and 109.4 s. The timings were measured from the video's frame luminance.
-- **"16" wall framing.** Camera knots at 73–73.5 s keep the "16" wall framed like the video.
-- **Opening iris cover.** The closed iris now uses the ceiling's own material and texture alignment, so it disappears into the ceiling until it opens (5–11 s), as in the video.
-- **Custom scanner model.** `models/corehub_intro/scanner_board.mdl` (built by `models/build_board.py`, compiled with studiomdl) replaces the round scanner heads in the transfer shaft (74–80 s) with flat boards on arms.
-- **Tower entrance (55.5–58 s).** A centred collar ring, horizontal pipes and a pale concrete block frame the tube entrance; the camera knots at 56–58 s keep it centred.
-- **Lab (100–109.5 s).** A cube rides ahead in the tube (100–101.9 s), the camera turns right at 103 s and looks down into the opened test chamber at 107–109.5 s.
-- **Director patches are tested by packing them.** A controlled run (r10m_v: r10u BSP + loose r10v director) matched r10u frame for frame, so the director packed in the BSP is what runs. Every test BSP is packed with the director under test; `-Director` additionally keeps the loose copy in step.
+- **The film's camera is fov 60 everywhere** (vanishing points of tiles and panels: f = 457-468 px at 640 wide). The r10
+  series used fov 90 for 32.5-118 s, which is why its ride scenes never lined up.
+- **The reference is 1280x720 at 29.97 fps, rendered 16:10, and every video frame blends two moments 1/60 s apart.**
+  The two moments are separated (tools/offline/fieldsplit.py) and used for measuring; the scorers compare the game's
+  60 fps frames blended the same way.
+- **True scale.** The tube collars' light band has radius 61.06 and the four rails sit 34 from the tube axis; the camera
+  moves 1500-6000 units per second, so the rooms are thousands of units across.
+- **Measured rides** (tools/offline): COLMAP structure-from-motion per shot (`run_sfm.py`); orientation from the room
+  lines plus a feature gyro with one turn angle per moment in bends (`orient.py`, `gyro.py`, `ride.py`); speeds from the
+  collars passing the camera; bends by bundle adjustment with the orientations held (`bendba.py`); the path as a curve
+  (`ride_export.py` -> `gen/data/*_ride.json`); rail overlays on the film to check it (`railfit.py`).
+- **Every scene from 32.6 s on is rebuilt in its own sealed cell** north of the old map (y > 3000) with the film's camera
+  at 60 samples per second (`Director.override_camera`, fov 60). The opening keeps its room with 17 rebuilt models; the
+  iris/ascent is unchanged. The old middle hall's detail brushes are removed (the 2009 vbsp ran out of brush sides).
+- **Generators** (`gen/`): one module per scene (`scenes/*.py`) and per model group (`models/*.py`), shared libraries
+  (`lib/ride.py`, `lib/tube.py`, `lib/director.py`, `lib/vmfedit.py`, `lib/mesh.py`); `make.py NAME` builds the map,
+  the director and the offline preview. `gen/AGENT_GUIDE.md` explains the method.
 
-## Test runs
+## Scores (1-10, strict, against the 2009 video; ending blink and black not scored)
 
-- The watcher handles `requests\movie-<name>.req`, for example:
-  ```
-  -Prefix r10m_x -Fps 60 -Quality 90 -Bsp <path to bsp> -Director <path to director.nut>
-  ```
-  - It runs `r10\record_movie.ps1`: the game records a 60 fps fixed-step movie with the automatic reference camera (no input needed) and the in-game soundtrack.
-  - It then runs `r10\assemble_movie.ps1`, which writes `r10\videos\<name>_map.mp4` (rebuild) and `<name>_side.mp4` (original | rebuild), plus 1 s stills for scoring sheets (`r10\tools\sheets.py`).
-- The normal Play.cmd setup (`mapspawn.nut` / `autoexec.cfg`) is restored after every run.
+Objective columns: score.py means over 0.25 s samples (ssim = the similarity.py metric; edge = outline agreement; tone =
+brightness layout; 1 = identical). "Before" is the r10-era test run r10m_ea measured the same way (0.5 s samples).
 
-## Scores (1–10, against the 2009 video; ending blink/black not scored)
+| # | Scene | Time (s) | Before ssim/edge/tone | r10m_ga2 ssim/edge/tone | Score | Main remaining differences |
+|---|---|---|---|---|---|---|
+| 1 | Opening room | 5-21.7 | 0.45 / 0.54 / 0.53 | 0.63 / 0.64 / 0.76 | 6.5 | tones of the far room and wall tops, slab face, dome shape, cable flash |
+| 2 | Iris and ascent | 21.7-32.6 | 0.68 / 0.67 / 0.78 | 0.74 / 0.72 / 0.81 | 9 | petal shading, small debris |
+| 3 | Rust room | 32.7-38.9 | 0.35 / 0.51 / 0.61 | 0.46 / 0.49 / 0.76 | 5 | collar translucency and passing, junction rails, panels round the tube mouth, shot B devices |
+| 4 | Pod | 39.3-48 | 0.41 / 0.41 / 0.67 | 0.47 / 0.37 / 0.69 | 5 | room backgrounds (tanks, scaffolds, textures), the cross tube at 46.8-48.3 |
+| 5 | Cube | 48-54 | 0.42 / 0.34 / 0.63 | 0.47 / 0.32 / 0.67 | 5 | pale collar structures, the whip at 50 s, structures outside the rings |
+| 6 | Tower | 54.9-64 | 0.33 / 0.53 / 0.60 | 0.47 / 0.54 / 0.71 | 4 | the glass tower interior (turrets, arms, discs, lasers, diagonal tubes) |
+| 7 | Turret and "16" | 64-74 | 0.44 / 0.37 / 0.61 | 0.51 / 0.47 / 0.73 | 4 | the stock turret renders black in the unlit cell; second turret, scanner head, final rise |
+| 8 | Scanners | 74-83.1 | 0.37 / 0.47 / 0.61 | 0.43 / 0.54 / 0.64 | 5 | the split cake picture at 74 s, ring density, the turn to the iris (80-81 s) |
+| 9 | Sludge and gallery | 84.6-95.7 | 0.32 / 0.46 / 0.54 | 0.40 / 0.51 / 0.57 | 5.5 | copper truss towers, the gallery's dark glass, window grid, plank wall details |
+| 10 | Factory | 96.6-99.8 | 0.19 / 0.34 / 0.37 | 0.28 / 0.63 / 0.68 | 6 | grey machinery on the +y side, conveyor machinery, collar insides |
+| 11 | Lab | 100-109.6 | 0.35 / 0.40 / 0.34 | 0.39 / 0.41 / 0.43 | 4.5 | translucent glass collars, the sphere room walls, lab 2's fast move (107-109.5 s) |
+| 12 | Incinerator | 109.9-118.4 | 0.36 / 0.43 / 0.54 | 0.49 / 0.43 / 0.69 | 5.5 | stock turret black and too small, scanner fans, iris checker pattern |
+| 13 | Capsule | 119.3-132.3 | 0.45 / 0.32 / 0.56 | 0.52 / 0.33 / 0.65 | 6 | collar bands, pod lid glass, lamp shading |
 
-Published build: `corehub_r10dj` + `director_r10dj` (outputs/Corehub-Intro). Test run: `videos/r10m_dj_side.mp4`.
+All scenes together: before 0.41 / 0.46 / 0.58, now 0.51 / 0.50 / 0.68.
 
-| # | Scene | Time (s) | v50 base | r10 now | Main remaining differences |
-|---|---|---|---|---|---|
-| 1 | Opening room | 0–22 | 7.5 | 8.8 | r10cf: the flicker's darkening matches the video's frame means (6.85-7.85 s); the chamber glass is darker, so the band above the far tile wall reads 74-90 like the video's 69-73 (was 98-111); r10ce: the lights flicker on in a central band (6.85-7.6 s, screen overlay measured from the video's column means); the ceiling exposure follows the video's top strip (132/108/76/58/36 at 10-10.75 s, near black at 10.9-11.1 s); r10bz: the ceiling stays lit to 10.3 s and goes dark (39-45 like the video) as the camera tilts down to the room; ceiling bright/neutral looking up; 7 s light shafts and the dark upper wall band still missing |
-| 2 | Iris and ascent | 22–32.5 | 7.5 | 9 | matches shot for shot; iris petal edge shading, small falling debris at 26 s |
-| 3 | Rust room | 32.5–39 | 4 | 8.7 | r10da: the first entry ring of the lower run reads dark as the camera passes it like the video (36.33-36.7 s; SSIM 0.17 -> 0.30); r10cu: going down the shaft the right side is black like the video (34.0-35.4 s; we looked across the room at the lower run's lit end wall); r10cb: fades in from black like the video (32.6-33.1 s); rust tile 20 % darker and less red (warm median 61-69 vs the video's 50-70); the lower run passes a panel at junction E and looks at an end wall that fills the frame above a pale band and a dark floor (37.4-38.1 s), level through the drop (no tilt down the branch); r10ca: the lower run (36.12–38.94 s) is shot upright like the video (it rode upside down): floor below, the panel at mid height, black above; r10bs: the panel behind junction A is taller and wider like the video (33.0–33.2 s), junction A has only its left pipe, the rust tile is brighter and more neutral; r10bi/bk: junction rings carry thick grey posts and side pipes with flanges (32.75–33.25 s, the shaft rings 34–34.5 s, the lower run 36.25–37 s where the camera rides upside down); the lower down-branch appears only from 37.3 s like the video; 33.75–34.0 s and 35 s bends still differ |
-| 4 | Pod rise | 39.5–49 | 4 | 8.8 | r10dj: past the crossing the tube runs on dark (47-48.1 s) and its pale end shows only from 48.2 s, like the video (48.0 s frame mean 91 -> 66 against the video's 53; SSIM 0.31 -> 0.36); r10cv/cw: on the tube ride after the rise (43.75-47 s) the camera looks 10 degrees higher so the tube runs off to the lower left like the video (rings' centre (-0.21, +0.5)f as measured); the rails are thick black wedges, the rings darker, and a dark screen hides the lit south wall so the right side is dark like the video (SSIM 0.34-0.40 -> 0.37-0.50); r10ch/ci: a translucent sleeve veils the rise like the video's frosted tube (39.2-41.8 s), lighter toward the frame's top and right and near black at the left and bottom as measured (82/72/42/33); SSIM up at every 0.5 s sample; r10bx: pod shelves lighter; the pale tube end fills the frame at 48.5 s; the video's tube walls read grey/translucent at 40-41 s where ours are clear |
-| 5 | Cube passage | 48–55 | 4.5 | 8.9 | r10co: the tube runs on past the wall collar with frosted grey walls until the fade, like the video (52.5-53.9 s; it opened onto the lit tower room before; SSIM 0.35 -> 0.43 at 53.5 s); r10bx: a dark sleeve hides the cube room until 50.6 s, so the run from the pale wall is the video's dark tube (49.25-50.5 s); cube hidden until 51.5 s |
-| 6 | Processing tower | 55.3–65 | 4.5 | 9 | r10cn/co: the bend's glossy dome leaves the approach (55-57.3 s) so the collar ring frames the tube's far end against lit rust like the video; r10bn/bp: the camera's own climb tube is hidden during the climb (58.6–63.9 s) so the scanning column, rings, lasers and rust wall read clear like the video; the view stays on the column until ~63.85 s |
-| 7 | Turret and "16" inlet | 65–74 | 5 | 9 | r10cm: the lift descent is as dim as the video (64-65.4 s) and the tubes hanging from the collar are dark grey rather than black; r10cb-cd: the inlet iris shot works again (its first knots had slipped behind a comment, so 71.34-71.8 s swept from the turret yaw); the iris reads as the video's (flat petals in a square round a grey frame); r10bv-by: the glare is a screen-space lens veil with a red glow that follows the turret (wall sd 3 like the video, legs R +60); the camera sits 56 units from the turret and follows the video's eye track; the descent comes in beside the lift collar and looks down past the tubes hanging from it into the floor ring (64-66.5 s); the cut to the inlet iris (71.34 s) is in |
-| 8 | Transfer and scanners | 74–83 | 5 | 9 | r10cq-ct: the transfer shaft (75.4-80.75 s) is the video's stack of flat grey 12-sided rings, measured from its radial luminance profiles every 0.1 s (ring edges tracked, its 16:10 render stretch undone): ring A z 649 (dark chamfer 123-134, grey 134-152), ring B 605 (grey 95-175, dark rust to 226, grey beyond), ring C 563 (grey 51-81), a white target at 515, the tube's four rails as thick black spokes, two long and two short scanner boards between them; the camera descends on the video's measured timing with its vanishing point at the video's (-0.02, +0.10)f, and a grey veil (alpha 0.43-0.73) dims the contrast 77.4-79.8 s like the video; SSIM 0.29 -> 0.39 (76.5-79.5 s: 0.19-0.32 -> 0.30-0.57); r10cj: the cake sits on the closed flat-petal iris until the camera drops through it in the dark like the video (74-75.5 s; SSIM 0.18 -> 0.30 at 74.5 s, 0.33 -> 0.63 at 75 s); r10cc/cd: the iris view looks straight down at the iris set in a flat rust floor with black beams and a darker right panel like the video (81-82.3 s), the iris opens at 82.3 s and the camera passes through by 82.6 s; r10ca: both arms' white links and mounts leave the 81.1–82.5 s iris view; r10bs-bz: the scanner head and cones pass under the lens inside the white ring (80-80.75 s); the second arm and the exit collar leave the 81-82.4 s iris view, the camera holds lower |
-| 9 | Copper tube, sludge room, gallery | 84.5–95.7 | 4 | 8.8 | r10dh: the breach in the gallery wall sits nearer the run with smaller cream blocks, right of centre inside the copper ring at 93.75-94.1 s and sweeping left past the lens at 94.25-94.4 s like the video (94.0/94.5 s 0.25/0.24 -> 0.29/0.33); r10dc: a rust ceiling ring round the sludge funnel closes the top of the drop like the video (86.5 s SSIM 0.32 -> 0.42); r10db: the drop into the sludge funnel runs through a rust-walled shaft like the video (86.2-87.1 s) instead of showing the room's white tiles; r10bz: the sludge room is framed wider (camera 40 higher, 40 back) like the video; the gallery lattice is taller and nearer under the tube so it fills the lower third (91-93.75 s) |
-| 10 | Factory passage | 96.6–99.8 | 6 | 8.7 | r10cl: the walkway under the tube is lighter and warmer like the video (97 s 70 vs 75, 99.25 s 81 vs 83; was 53-60 and 68); r10ck: the 98 s ring dims like the video (98.0-98.45 s); r10cg: the collar that filled the 98 s frame as a dark block leaves the shot (97.95-98.08 s); r10bj/bm: floor and benches beyond the walkway darkened to the video's near-black (the walkway stays mid grey); 98 s collar darkened for its frame |
-| 11 | Lab and test chamber | 100–109.5 | 4 | 9 | r10cz: a tall white tiled wall and a white floor stand beside the hanging turrets so the turn fills the left half with white like the video (103-105.3 s; frame mean 63-78 -> 87-109 against the video's 108-143); r10cj: the lab tube opens as dark as the video (106-107.25 s) and goes dark inside the tube from 108.6 s like the video (SSIM 0.13 -> 0.47 at 109.5 s); r10bl: from the tube the video sees black tiles with a grey pipe and a small white sign on the right (a screen hides the test chamber until the 102.8 s turn); chamber view matches |
-| 12 | Incinerator and final probes | 110–118.4 | 5.5 | 9 | r10dd-df: the descent is re-timed to the video's ring tracks (it falls steadily, 113 -> 160 u/s, where ours ran ahead and stalled at 113.5-114 s) and the ring stack re-spaced to the video's 124/107/112 units down to the furnace collar; the long capsule probes are replaced by the video's short glowing white tubes (blob tracks 112-113.9 s: a pair each side at the top level, top and bottom below, four lower down) with pink fans from the axis, the bottom one's narrow red beam and grey fans lower down; the camera looks straight down from 112.05 s with the rails at the video's angle; the cube falls beside the lens at the lower right (112.25-112.75 s); the core glow shows from 114.6 s (SSIM 0.39 -> 0.49; 112.5 s 0.15 -> 0.47, 113.5 s 0.22 -> 0.63, 114.5 s 0.35 -> 0.62); r10cx/cy: a translucent grey ring at the probe level (z 1301-1305, measured from the video's ring edges 112.6-113.4 s) gives the video's middle ring between the two collars; the probes' red cones are dimmed; r10ck: the descent past the light tubes is as dim as the video (111.35-114.1 s, frame-mean ratio 0.6-0.8 before); r10ch: the dark frame over the furnace leaves at 111.9 s, so the shaft reads orange round the light tubes like the video (113 s SSIM 0.19 -> 0.39); r10bb: rust floor round the top collar and a dark plate round the iris hide the orange annulus (110–111.3 s); chamber orange toned down; the video's ball passes closer (115 s) |
-| 13 | Capsule and ending | 118.4–134 | 6 | 8.7 | r10dg-di: the approach is re-timed to the video's far ring (it grows at a steady rate; ours ran 25-80% closer from 119.75 s; 120.5 s SSIM 0.20 -> 0.31); the capsule-shell strip beside the lens reads as the video's dark curved wall and slides off the right edge by 126.8 s (125.5-128 s: 0.42/0.49/0.38/0.57 -> 0.49/0.52/0.49/0.70); r10cy: at the vault doorway the camera looks 4.5 degrees lower so the tube's centre sits where the video's does (124.25-125.5 s); r10cg: the square frames on the capsule approach have salmon-red sides like the video's strips (119.4-120.8 s); the capsule glass is neutral grey (was teal); r10bg: rings frame the capsule until ~120.9 s; the turn holds on the close concrete wall (123.35–123.65 s) before the dip to the vault doorway; tube walls still grey where the video shows red-orange strips |
+## Test runs on the Mac
 
-## Objective check
-
-`tools/similarity.py <run>` scores every half second against the video (SSIM on blurred 128x80 greyscale; 1 = identical) and
-prints per-scene means and the worst moments. It is a regression guard, not the score: the factory looks close but scores
-low because its fine detail never lines up. r10m_q 0.453 -> r10m_z 0.471 -> r10m_co 0.491 -> r10m_ct 0.497 -> r10m_cu 0.498 -> r10m_cw 0.499 -> r10m_db 0.499 -> r10m_dc 0.500 -> r10m_df 0.505 -> r10m_di 0.508 -> r10m_dj 0.508 mean.
-
-## Not at 9 yet (next work, in order)
-
-1. **Gallery (90.5–95.7 s).** The video climbs out of the chamber up a copper tube, runs above a white truss along a rust
-   wall to a broken pipe opening (93–94.25 s) and passes a white collar (94.75–95.25 s); the rebuild runs straight through rings.
-2. **Tower and turret lift (62.8–66 s).** In test (r10ah/ai): the camera crosses over the turret-lift collar, looks down on
-   it with the tubes hanging under it, drops through it to the floor ring and watches the turret rise. Still to match: the
-   dark collar overhead at 62.8 s, the tower interior with lasers and the "16" sign at 63.4–64 s.
-3. **Rust room (33.5–36.5 s).** 33.5 s turn along the wall, 35–36 s ring/bend views.
-4. **Pod rise (39.5–42 s).** The video's pod walls are dim vertical panels; the rebuild's read as bright round pods.
-5. **Incinerator (114–116.75 s).** Glowing ball in test (r10ai); 116.75 s view.
-6. **Lab (106–106.6 s).** The chamber floor shows at the bottom of the tube view; the video is dark there.
-7. **Factory (98 s).** The camera passes the white collar's inside during a fast turn (97.93–98.07 s); its inside is now dark copper instead of black (r10av).
-8. **Turret (71.5 s).** The video dissolves through a top view of a ring with the turret before the "16" wall.
+Requests are files in `revision9/requests/` (see `tools/mac/watcher.sh`): `stage <build> <director>` copies a generated
+build and compiles its models, `cycle <build> <director> <movie prefix>` compiles the map, packs the director, records
+the 60 fps run and assembles `r10/videos/<prefix>_side.mp4` (original | rebuild). Film frames never go to GitHub.

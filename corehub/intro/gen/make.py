@@ -15,8 +15,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument('name'); ap.add_argument('--scenes'); ap.add_argument('--models'); ap.add_argument('--no-models', action='store_true'); ap.add_argument('--no-sim', action='store_true'); ap.add_argument('--range')
 a = ap.parse_args()
 ORDER = ['opening', 'iris', 'rust', 'pod', 'cube', 'tower', 'turret', 'scanners', 'sludge', 'factory', 'lab', 'incinerator', 'capsule']
+LAST = ['cleanup']          # applied after every other scene
 have = sorted(f[:-3] for f in os.listdir(os.path.join(HERE, 'scenes')) if f.endswith('.py') and not f.startswith('_'))
-scenes = a.scenes.split(',') if a.scenes else [s for s in ORDER if s in have] + [s for s in have if s not in ORDER]
+scenes = a.scenes.split(',') if a.scenes else [s for s in ORDER if s in have] + [s for s in have if s not in ORDER and s not in LAST] + [s for s in LAST if s in have]
 t0 = time.time()
 if not a.no_models:
     groups = a.models.split(',') if a.models else sorted(f[:-3] for f in os.listdir(os.path.join(HERE, 'models')) if f.endswith('.py') and not f.startswith('_'))

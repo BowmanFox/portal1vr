@@ -14,7 +14,7 @@ from lib.ride import qangle
 from models import scanners as SM
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CELL = ((-9000.0, 3200.0, 6000.0), (5000.0, 9750.0, 15500.0))
+CELL = ((-9000.0, 3200.0, 6000.0), (7200.0, 9750.0, 15500.0))   # above C2-C3, reaching over C4 to x 7200 (free at this height) so shot D's far collars and floor are sealed
 BLACK = 'corehub_intro/void_black'
 FT = 1001.0 / 30000.0
 
@@ -112,7 +112,7 @@ def shot_a(v, d):
     for px in (150.0, 470.0):
         c = img_pt(px, 200.0, 300.0); gd.box(c + np.array([-10.0, -18.0, -400.0]), c + np.array([10.0, 18.0, 400.0]), 'r11_sc_mech')
     c = img_pt(320.0, 120.0, 300.0); gd.box(c + np.array([-10.0, -500.0, -14.0]), c + np.array([10.0, 500.0, 14.0]), 'r11_sc_mech')
-    prop(v, model('r11_sc_a_dark', gd), o + np.array([0.0, 0.0, -3000.0]), (0, 0, 0), 'r11_sc_a_dark')
+    prop(v, model('r11_sc_a_dark', gd), o + np.array([0.0, 0.0, -700.0]), (0, 0, 0), 'r11_sc_a_dark')     # starts inside the shell (a prop outside it makes the map leak); the hook moves it
     d.append('''function Sc_ShotA(t) {
     if(t<73.9 || t>75.2) return;
     local hid=Vector(0,0,-3000);
@@ -184,7 +184,8 @@ def shot_d(v, d):
         prop(v, col, o + np.array([x, 0.0, 0.0]), (0, 0, 0), 'r11_sc_d_collar%d' % k)
     # dark floor beyond the port wall
     E.add_box(v, o + np.array([D_PORT_X, -2000.0, D_FLOOR - 16]), o + np.array([D_FLOOR_END + 1000.0, 2000.0, D_FLOOR]), 'corehub_intro/r11_sc_floor', ent=det)
-    shell(v, o + np.array([-800.0, -1700.0, -1700.0]), o + np.array([D_FLOOR_END + 1200.0, 1700.0, 1700.0]))
+    # the shell must enclose every prop (a prop outside it makes the map leak): reach past the last collar
+    shell(v, o + np.array([-800.0, -1700.0, -1700.0]), o + np.array([max(D_FLOOR_END + 1200.0, max(xs) + 400.0), 1700.0, 1700.0]))
 
 
 # ------------------------------------------------------------------------------------------------ shot C

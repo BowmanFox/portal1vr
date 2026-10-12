@@ -34,8 +34,8 @@ class SimEnt {
     function ValidateScriptScope() { return true; }
     function GetScriptScope() { return ::getroottable(); }
     function GetForwardVector() { return ::Vector(1, 0, 0); }
-    function GetAngles() { return ::Vector(0, 0, 0); }
-    function SetAngles(a, b, c) { kv["angles"] <- a + " " + b + " " + c; touched = true; }
+    // no SetAngles / GetAngles: the 2009 engine has neither (a call stops the director with a script error);
+    // turn props with __KeyValueFromString("angles", "p y r")
     function GetName() { return name; }
     function GetClassname() { return cls; }
     function IsValid() { return true; }

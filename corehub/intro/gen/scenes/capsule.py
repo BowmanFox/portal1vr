@@ -213,7 +213,8 @@ def apply(v, d):
     off = xe - lam[0][1][0]
     for t, q in lam: shk.append((t, np.array([q[0] + off - SH_L, y0, Z_SHUT]), None))
     shk = [(T0, shk[0][1] + np.array([-900.0, 0, 0]), None), (ex[0][0] - 0.3, shk[0][1] + np.array([-400.0, 0, 0]), None)] + shk + [(T1, shk[-1][1], None)]
-    prop(v, 'r11_cp_shutter', shk[0][1], (0, 0, 0), 'r11_cp_shutter')
+    # placed inside the sealed shell at first (a prop outside it makes the map leak); the hook moves it along its keys
+    prop(v, 'r11_cp_shutter', np.array([HUB[0], HUB[1], Z_SHUT]), (0, 0, 0), 'r11_cp_shutter')
     tracks.append(dict(name='r11_cp_shutter', keys=shk, t_on=127.0))
     i0 = [i for i, k in enumerate(shk) if abs(k[0] - lam[0][0]) < 1e-6][0]
     rel = lam[0][1] - shk[i0][1]
