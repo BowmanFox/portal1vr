@@ -5,7 +5,7 @@ Prints ssim / edge / tone means per scene (see score.py) and writes /home/claude
 import argparse, json, os, math
 import numpy as np
 from score import scores
-from preview import ref_frame, run_frame
+from preview import ref_frame, run_frame, film_time
 
 SCENES = [('Opening room', 5.0, 21.7), ('Iris and ascent', 21.75, 32.65), ('Rust room', 32.75, 38.85),
           ('Pod', 39.35, 47.95), ('Cube', 48.0, 54.05), ('Tower', 54.9, 63.95), ('Turret and 16', 64.0, 73.95),
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     for name, t0, t1 in SCENES:
         vals = []; t = round(math.ceil(t0 / a.step - 1e-9) * a.step, 4)        # on the run's sample grid
         while t <= t1 + 1e-6:
-            im = P.render(t, blend=True) if P else run_frame(a.run, t)
+            im = P.render(film_time(t), blend=True) if P else run_frame(a.run, t)
             if im is not None:
                 s = scores(ref_frame(t), im); vals.append((t,) + s)
             t = round(t + a.step, 4)

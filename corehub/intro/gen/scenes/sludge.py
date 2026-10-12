@@ -17,6 +17,13 @@ rotated to the room axes with the line-measured orientations (they agree to 1.4 
 gallery collars then match the film's apparent sizes and the shaft-side wall plane of the export (X 2060) lands on the
 COLMAP entrance wall (X 1906..2085); an earlier guess of 1240 (equal collar spacing) made every gallery collar 2.3x
 too small. The whole scene is built at unit K = 0.6 (the ride is 8000 long at true scale; rails rho 34K, collars K).
+Round 3: beyond the bulkhead (COLMAP x > XB = 1.12) the rust room, its camera path and catwalk use S_RUST = 300 map
+units per COLMAP unit (the film's exit collars approach at ~10-13 u/frame, COLMAP at S 545 gave 23: the collars were 2x
+too small and the turn too wide); the first exit collar sits on that seam and is built 1.6x. Collars: exit collars with
+the film's pink-white band shaded by angle, thin (depth 0.3R) with dark copper inside; copper collars in the turn (2819)
+and the last straight (2846), pink-white at 2855, lit at 2877. Wall hole = ragged model with shards, a white beam and a
+pipe. Shaft: copper truss towers and pipes on the +y side, darker grey walls. Static models are prop_static
+(make_static), fades re-fitted for the game's gamma-space fades.
 Build the camera data with:  python3 -c "import sys; sys.path.insert(0,'.'); from scenes import sludge; sludge.build_camera()"
 """
 import json, math, os
@@ -28,7 +35,13 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = 'sg'                                   # data/sg_ride.json (camera + tube centre line, map axes, true scale)
 K = 0.6                                       # build scale (cell C4 is too small for true scale)
 ORIGIN = (5950.0, 7300.0, -1700.0)            # map position of the camera at frame 2536 (shaft bottom)
-S_COLMAP = 545.0                              # map units per COLMAP unit (gallery and later)
+S_COLMAP = 545.0                              # map units per COLMAP unit (gallery)
+XB = 1.12                                     # COLMAP x of the bulkhead between the gallery and the rust room
+S_RUST = 300.0                                # map units per COLMAP unit beyond the bulkhead (round 3): the film's exit
+                                              # collars (R 61.06) approach at 9.8-13.5 u/frame (2712-2744: outer band
+                                              # radius 127 px at 2712, 247 at 2720, 115 at 2732, 220 at 2744; passes 2729,
+                                              # 2757), COLMAP's 0.042 units/frame there -> 235 (545 gave 23 u/frame: the
+                                              # turn 2.3x too wide for the rails, the collars 2x too small)
 BLACK = 'corehub_intro/void_black'
 F0, F1 = 2536, 2867
 
@@ -103,7 +116,12 @@ def build_camera():
     G0 = curve[-1][1].copy()                          # start of the gallery line (map, true scale, shaft origin)
     sG = s
     # --- gallery, turn and final line: COLMAP positions (scaled), snapped onto the straight lines, smoothed in the turn
-    to_map = lambda q: G0 + S_COLMAP * np.array([q[0] - cpos[J][0], q[1] - yg, q[2] - zg])
+    ref = np.array([cpos[J][0], yg, zg])
+    def to_map(q):
+        q = np.asarray(q, dtype=float)
+        if q[0] <= XB: return G0 + S_COLMAP * (q - ref)
+        qb = np.array([XB, yg, zg])
+        return G0 + S_COLMAP * (qb - ref) + S_RUST * (q - qb)
     Xf = to_map(np.array([xf, yg, zg]))[0]
     fr = np.arange(J, F1 + 1)
     raw = np.array([to_map(cpos[n]) for n in fr])
@@ -167,16 +185,22 @@ def build_camera():
     out = dict(db='sludge', first=F0, last=F1, unit=1.0, moments=moments, sections=sections, planes=[], rings=rings, frames=frames,
                curve=curve_out, s={}, speed={}, info=dict(S=S_COLMAP, G0=G0.tolist(), Xf=float(Xf), turn_radius=float(rt), gallery_len=float(L1),
                                                           v_g=v_g, theta_fit=c.tolist(), colmap_ref=cpos[J].tolist(), yg=yg, zg=zg, xf=xf,
-                                                          A=A.tolist()))
+                                                          A=A.tolist(), XB=XB, S2=S_RUST))
     json.dump(out, open(os.path.join(HERE, 'data', NAME + '_ride.json'), 'w'))
     print('gallery line from', np.round(G0, 1), 'length %.0f, turn radius %.0f at X %.0f, v_g %.1f' % (L1, rt, Xf, v_g))
     for row in moments[::40]: print(row[:6], np.round(row[6:9], 2))
 
 
-def colmap_to_map(q, info, origin=ORIGIN, unit=K):
-    """COLMAP-aligned point (as in align: A @ X) -> map position"""
-    G0 = np.array(info['G0']); c = info['colmap_ref']
-    p = G0 + info['S'] * np.array([q[0] - c[0], q[1] - info['yg'], q[2] - info['zg']])
+def colmap_to_map(q, info, origin=ORIGIN, unit=K, rust=True):
+    """COLMAP-aligned point (as in align: A @ X) -> map position. Beyond the bulkhead (x > XB) the rust room's scale
+    S2 applies (rust=False: the gallery's scale everywhere, for the test chamber below the bulkhead)"""
+    G0 = np.array(info['G0']); c = info['colmap_ref']; q = np.asarray(q, dtype=float)
+    ref = np.array([c[0], info['yg'], info['zg']])
+    if not rust or 'XB' not in info or q[0] <= info['XB']:
+        p = G0 + info['S'] * (q - ref)
+    else:
+        qb = np.array([info['XB'], info['yg'], info['zg']])
+        p = G0 + info['S'] * (qb - ref) + info['S2'] * (q - qb)
     return np.asarray(origin) + unit * p
 
 
@@ -207,7 +231,9 @@ class Geo:
         self.v = v; self.info = info; self.det = v.create_ent(classname='func_detail')
         self.lo = np.full(3, 1e9); self.hi = np.full(3, -1e9)
 
-    def q(self, p): return colmap_to_map(p, self.info)
+    rust = True                                   # False: the gallery's scale (test chamber, gallery walls)
+
+    def q(self, p): return colmap_to_map(p, self.info, rust=self.rust)
 
     def t(self, p): return np.asarray(ORIGIN) + K * np.asarray(p, dtype=float)
 
@@ -247,18 +273,23 @@ def gallery(g, yg, zg):
     # wall between the shaft and the gallery (brown rust, hole for the tube)
     g.wall_with_hole('x', -3.87, -3.83, (-3.4, -4.0), (3.6, 0.65), (yg, zg), 0.13, BROWN, 220.0)
     # gallery side walls and ceiling (black tiles / dark)
-    g.box((-3.85, 3.5, -4.0), (2.55, 3.5 + T, 0.65), TILE, tile)
-    g.box((-3.85, -3.3 - T, -4.0), (2.55, -3.3, 0.65), TILE, tile)
+    # (above the bulkhead floor they end at the bulkhead: the rust room beyond is built at its own scale)
+    for y0, y1 in ((3.5, 3.5 + T), (-3.3 - T, -3.3)):
+        g.box((-3.85, y0, -4.0), (2.55, y1, -0.78), TILE, tile)
+        g.box((-3.85, y0, -0.78), (1.14, y1, 0.65), TILE, tile)
     g.box((-3.85, -3.3, 0.6), (1.14, 3.5, 0.6 + T), FLAT)
     # sludge pit
     g.box((-3.85, -3.3, -3.73 - T), (1.40, 3.5, -3.73), SLUDGE, 260.0, 256)
     # upper level: white face toward the pit, black floor
-    g.box((1.40, -3.3, -3.73), (2.5, 3.5, -2.95), WHITE, 120.0, mats={'+z': TILE})
+    # (film 2665-2690: the white band of the far ledge is ~60% of the face's height; its upper part is dark trim)
+    g.box((1.40, -3.3, -3.73), (2.5, 3.5, -3.26), WHITE, 120.0, mats={'+z': TILE})
+    g.box((1.40, -3.3, -3.26), (2.5, 3.5, -2.95), TILE, 150.0)
     # side ledges
-    g.box((-1.2, 2.55, -3.73), (1.40, 2.95, -2.95), WHITE, 120.0)
-    g.box((-1.2, -2.5, -3.73), (1.40, -2.1, -2.95), WHITE, 120.0)
-    g.box((-1.2, 2.95, -3.73), (1.40, 3.5, -2.0), TILE, 150.0)
-    g.box((-1.2, -3.3, -3.73), (1.40, -2.5, -2.0), TILE, 150.0)
+    # (round 3: shorter toward the camera - in the film the frame's bottom corners show sludge, film 2640-2700)
+    g.box((-0.3, 2.78, -3.73), (1.40, 2.95, -2.95), WHITE, 120.0)        # narrow strips (film 2660-2700)
+    g.box((-0.3, -2.5, -3.73), (1.40, -2.33, -2.95), WHITE, 120.0)
+    g.box((-0.3, 2.95, -3.73), (1.40, 3.5, -2.0), TILE, 150.0)
+    g.box((-0.3, -3.3, -3.73), (1.40, -2.5, -2.0), TILE, 150.0)
     # white walkway to the vat on the upper floor
     g.box((1.40, 1.45, -2.95), (2.3, 1.98, -2.93), WHITE, 120.0)
     g.box((1.40, 0.95, -2.95), (1.75, 2.6, -2.93), WHITE, 120.0)
@@ -266,14 +297,14 @@ def gallery(g, yg, zg):
     g.box((2.5, -3.3, -2.95), (2.55, 3.5, -0.75), TILE, tile)
     g.box((1.14, -3.3, -0.78), (2.55, 3.5, -0.75), TILE, tile)
     # bulkhead with the tube's collar (the camera leaves the gallery through it)
-    g.wall_with_hole('x', 1.10, 1.14, (-3.3, -0.78), (3.5, 0.65), (yg, zg), 0.11, TILE, tile)
+    g.wall_with_hole('x', 1.10, 1.14, (-3.3, -0.78), (3.5, 0.65), (yg, zg), 0.27, TILE, tile)    # hole fits the big exit collar
 
 
 def chamber_props(v, info):
     """objects of the test chamber as one model (built in map units around the chamber's centre)"""
     from lib.gen import save, Mesh, V
     from models import sludge as M
-    q = lambda p: colmap_to_map(p, info)
+    q = lambda p: colmap_to_map(p, info, rust=False)
     org = q((1.4, 0.3, -2.95)); m = Mesh(); s = info['S'] * K
     L = lambda p: q(p) - org
     # the pole (horizontal, toward the camera) and the turret on its end
@@ -313,30 +344,59 @@ def rust_room(g, yg, zg, xf):
     """the room after the gallery: plank wall at x 4.5 (COLMAP plane, 11000 points) with a white truss catwalk in
     front (x 4.33-4.45, top at the camera's height), a hole in the wall at y -1.96; the final tube runs along -y at x 3.90"""
     T = 0.03
-    g.box((4.50, -12.0, -1.5), (4.50 + T, 1.6, 1.5), PLANK, 330.0, 256)
+    g.box((4.50, -21.5, -1.5), (4.50 + T, 1.6, 1.5), PLANK, 330.0, 256)
     g.box((1.14, 1.6, -1.5), (4.53, 1.6 + T, 1.5), PLANK, 330.0, 256)
-    g.box((1.14, -12.0, 1.5), (4.53, 1.6, 1.5 + T), FLAT)
-    g.box((1.14, -12.0, -1.5 - T), (4.53, 1.6, -1.5), FLAT)
-    g.box((1.14 - T, -12.0, -1.5), (1.14, -3.3, 1.5), PLANK, 330.0, 256)
-    g.box((1.14, -12.0 - T, -1.5), (4.53, -12.0, 1.5), PLANK, 330.0, 256)
-    # wall hole (dark ragged opening) and a block of debris in it
-    for dy, dz, h in ((0.0, 0.0, 0.17), (0.12, -0.06, 0.10), (-0.13, 0.05, 0.09), (0.05, 0.15, 0.08), (-0.04, -0.16, 0.09)):
-        g.box((4.485, -1.96 + dy - h, zg + dz - h), (4.50, -1.96 + dy + h, zg + dz + h), FLAT)
-    g.box((4.40, -1.98, zg - 0.05), (4.49, -1.86, zg + 0.02), 'corehub_intro/r11_sg_debris')
+    g.box((1.14, -21.5, 1.5), (4.53, 1.6, 1.5 + T), FLAT)
+    g.box((1.14, -21.5, -1.5 - T), (4.53, 1.6, -1.5), FLAT)
+    g.box((1.13, -21.5, -1.45), (1.13 + T, -3.3, 1.5), PLANK, 330.0, 256)      # all beyond the seam (XB)
+    g.box((1.14, -21.5 - T, -1.5), (4.53, -21.5, 1.5), PLANK, 330.0, 256)
+    # the wall hole is a model (wall_hole: ragged dark opening, broken plank fragments, a white beam)
+
+
+def wall_hole(v, info, yg, zg):
+    """the hole in the plank wall (film 2816-2831, 93.9-94.4 s): a ragged black opening about 90 units across (true
+    scale) in front of the wall plane, broken plank fragments around its rim, a white beam sticking out of it toward
+    the tube (film 2824: beam left of the centre, slightly below), a pipe running into the hole from the left"""
+    from lib.gen import save, Mesh, V
+    c = colmap_to_map((4.484, -2.06, zg - 0.054), info)           # hole centre on the wall's face (map)
+    k = K; m = Mesh(); rng = np.random.default_rng(5)
+    n = 22; R0 = 52.0 * k
+    ang = np.linspace(0, 2 * np.pi, n, endpoint=False) + rng.uniform(-0.08, 0.08, n)
+    rad = R0 * (0.62 + 0.38 * rng.uniform(0, 1, n)) * np.where(np.arange(n) % 2 == 0, 1.0, 0.72)
+    # opening in the (y, z) plane, x = 0 (facing -x, toward the tube); slightly wider than tall
+    P = [V(0.0, r * math.cos(a) * 1.15, r * math.sin(a)) for a, r in zip(ang, rad)]
+    for i in range(n):
+        m.tri('r11_sg_dark', V(0.0, 0, 0), P[i], P[(i + 1) % n])
+    # broken plank fragments on the rim (lighter / darker grey-brown shards, a little in front of the wall)
+    for i in range(0, n, 2):
+        a0, a1 = ang[i], ang[(i + 1) % n]; r = rad[i]
+        o = V(-1.5 * k, 0, 0)
+        q0 = V(0, r * math.cos(a0) * 1.15, r * math.sin(a0)); q1 = V(0, rad[(i + 1) % n] * math.cos(a1) * 1.15, rad[(i + 1) % n] * math.sin(a1))
+        out = V(0, math.cos((a0 + a1) / 2) * 1.15, math.sin((a0 + a1) / 2)) * (6.0 + 7.0 * rng.uniform()) * k
+        m.tri('r11_sg_shard%d' % (i // 2 % 3), q0 + o, q1 + o, (q0 + q1) / 2 + out + o)
+    # the white beam: a square bar from inside the hole toward the tube, left of the centre
+    b0 = V(10.0 * k, 8.0 * k, -6.0 * k); b1 = V(-38.0 * k, 22.0 * k, -2.0 * k)
+    m.tube(b0, b1, 7.0 * k, 'r11_sg_beam', n=4)
+    m.tube(b0 + V(0, -22.0 * k, 4.0 * k), b0 + V(-26.0 * k, -8.0 * k, 4.0 * k), 6.0 * k, 'r11_sg_beam', n=4)
+    # a dark pipe entering the hole from the left
+    m.tube(V(-6.0 * k, 160.0 * k, 6.0 * k), V(-6.0 * k, 20.0 * k, 6.0 * k), 5.0 * k, 'r11_sg_dark', n=8)
+    m.shade('r11_sg_beam', levels=4, light=(-0.4, 0.2, 0.9))
+    save(m, 'r11_sg_hole')
+    E.add_prop(v, 'models/corehub_intro/r11_sg_hole.mdl', c, (0, 0, 0), name='r11_sg_hole')
 
 
 def truss_props(v, info, yg, zg):
     """white truss catwalk along the plank wall (models, one per bay group)"""
     from lib.gen import save
     from models import sludge as M
-    s = info['S'] * K
+    s = info.get('S2', info['S']) * K
     L = 1.2; H = 0.5; D = 0.14
     mesh = M.truss(L * s, H * s, D * s, 0.02 * s, bays=2)
     save(mesh, 'r11_sg_truss')
     mdl = 'models/corehub_intro/r11_sg_truss.mdl'
     k = 0
     for row_top in (zg - 0.36, zg - 0.36 - H):
-        for y0 in np.arange(1.5, -11.9, -L):
+        for y0 in np.arange(1.5, -21.0, -L):
             p = colmap_to_map((4.33, y0, row_top - H), info)
             E.add_prop(v, mdl, p, (0, -90, 0), name='r11_sg_truss%d' % k); k += 1
 
@@ -352,20 +412,33 @@ def shaft(g):
 
 
 def shaft_trusses(v):
-    """truss towers in the shaft (true-scale frame): a white truss frame on the -y wall (image right).
-    (The film's copper towers on the +y side are still missing: truss models placed there did not show in the
-    offline preview, so they are left out until that is understood.)"""
+    """truss towers in the shaft (true-scale frame): a white truss frame on the -y wall (image right), copper truss
+    towers and copper pipes on the +y side (image left)"""
     from lib.gen import save
     from models import sludge as M
     k = K
-    save(M.truss(6900 * k, 160 * k, 80 * k, 22 * k, bays=36, flat=True), 'r11_sg_tw_white')
-    save(M.truss(1000 * k, 140 * k, 80 * k, 20 * k, bays=6, flat=True), 'r11_sg_tw_whiteh')
+    # (bars 13 / 12 thick: the film's white truss is thin members with dark gaps, region mean 92 against our 143)
+    save(M.truss(6900 * k, 160 * k, 80 * k, 13 * k, bays=36, flat=True), 'r11_sg_tw_white')
+    save(M.truss(1000 * k, 140 * k, 80 * k, 12 * k, bays=6, flat=True), 'r11_sg_tw_whiteh')
     t = lambda p: np.asarray(ORIGIN) + k * np.asarray(p, dtype=float)
     n = 0
     for x0 in (-500.0, 640.0):
         E.add_prop(v, 'models/corehub_intro/r11_sg_tw_white.mdl', t((x0, -690.0, -1500.0)), (-90, 0, 0), name='r11_sg_tw%d' % n); n += 1
     for z0 in np.arange(-1200.0, 5000.0, 1100.0):
         E.add_prop(v, 'models/corehub_intro/r11_sg_tw_whiteh.mdl', t((-500.0, -690.0, z0)), (0, 0, 0), name='r11_sg_tw%d' % n); n += 1
+    # copper truss towers and pipes on the +y side (image left; film 2541-2563: copper lattice fanning out to the left
+    # third of the frame, thick copper pipes among them)
+    from lib.gen import Mesh, V
+    ct = M.truss(6900 * k, 200 * k, 90 * k, 20 * k, mt='r11_sg_ctruss', bays=30)
+    save(ct, 'r11_sg_tw_cu')
+    for x0, y0 in ((-380.0, 520.0), (160.0, 560.0), (700.0, 520.0)):
+        E.add_prop(v, 'models/corehub_intro/r11_sg_tw_cu.mdl', t((x0, y0, -1500.0)), (-90, 0, 0), name='r11_sg_tw%d' % n); n += 1
+    pm = Mesh()
+    for x0, y0, r in ((-120.0, 600.0, 26.0), (420.0, 640.0, 22.0), (-640.0, 660.0, 20.0)):
+        pm.tube(V(x0 * k, y0 * k, 0.0), V(x0 * k, y0 * k, 7400.0 * k), r * k, 'r11_sg_ctruss', n=10, caps=False)
+    pm.shade('r11_sg_ctruss', levels=4, light=(0.6, -0.7, 0.2))
+    save(pm, 'r11_sg_tw_pipes')
+    E.add_prop(v, 'models/corehub_intro/r11_sg_tw_pipes.mdl', t((0.0, 0.0, -1500.0)), (0, 0, 0), name='r11_sg_tw%d' % n); n += 1
 
 
 def moving_ring(v, d, rd):
@@ -403,38 +476,72 @@ def apply(v, d):
     rd = Ride(NAME, origin=ORIGIN, unit=K)
     info = rd.raw['info']
     d.override_camera(rd.camera(), fov=60.0)
-    # fade in / out as the film's brightness (frames 2534-2547, 2860-2868), in the preview's linear-light blend
+    # fade in / out as the film's brightness, re-fitted for the game's gamma-space fades (round 3): alpha = 255 * (1 -
+    # film / film level after the fade-in (51, frames 2546-2548) or before the fade-out (55, frames 2858-2859)), at the
+    # middle of each film frame's two moments
     d.append('''
-SgFadeIn <- [[84.50,255],[84.585,254],[84.651,249],[84.718,217],[84.785,184],[84.851,166],[84.918,59],[84.951,28],[84.99,0]];
-SgFadeOut <- [[95.40,0],[95.462,66],[95.495,107],[95.529,145],[95.562,178],[95.595,209],[95.629,233],[95.662,248],[95.696,254],[95.74,255]];
+SgFadeIn <- [[84.493,255],[84.526,255],[84.559,245],[84.593,231],[84.626,217],[84.660,198],[84.693,169],[84.726,132],[84.760,113],[84.793,100],[84.826,89],[84.860,79],[84.893,46],[84.927,8],[84.960,0]];
+SgFadeOut <- [[95.404,0],[95.437,8],[95.470,32],[95.504,57],[95.537,83],[95.570,112],[95.604,146],[95.637,179],[95.671,213],[95.704,242],[95.737,255]];
 function SgFade(t) {
-    if(t>=84.50 && t<84.99) SetScreenBlack(Lerp1(SgFadeIn,t));
-    else if(t>=95.40 && t<95.74) SetScreenBlack(Lerp1(SgFadeOut,t));
+    if(t>=84.493 && t<=84.970) SetScreenBlack(Lerp1(SgFadeIn,t));
+    else if(t>=95.404 && t<95.787) SetScreenBlack(Lerp1(SgFadeOut,t));
 }
 ''')
     d.hook('SgFade(t);')
     g = Geo(v, info)
     yg, zg = info['yg'], info['zg']
-    gallery(g, yg, zg); rust_room(g, yg, zg, info['xf']); shaft(g); chamber_props(v, info); truss_props(v, info, yg, zg); shaft_trusses(v)
+    g.rust = False; gallery(g, yg, zg); g.rust = True
+    rust_room(g, yg, zg, info['xf']); shaft(g); chamber_props(v, info); truss_props(v, info, yg, zg); shaft_trusses(v)
+    wall_hole(v, info, yg, zg)
     tube.add_straight_rails(v, rd, rho=34.0 * K, width=1.8 * K, ent=g.det)
     tube.add_bend_rails(v, rd, 'r11_sg', rho=34.0 * K, width=1.8 * K)
     # collars: shaft (export ring times), gallery (COLMAP clusters at x -4.04, -2.7, 1.14), final straight
     from lib.gen import save
-    save(M.collar(K), 'r11_sg_collar')
+    save(M.collar(K, band='sectors'), 'r11_sg_collar')
     save(M.sleeve(K), 'r11_sg_sleeve')
     save(M.collar(K, band='r11_sg_lit'), 'r11_sg_collar_lit')
     lit = 'models/corehub_intro/r11_sg_collar_lit.mdl'
     mdl = 'models/corehub_intro/r11_sg_collar.mdl'
     cu = 'models/corehub_intro/r11_sg_sleeve.mdl'
     moving_ring(v, d, rd)
-    for k, x in enumerate((-3.87, -2.53, -1.20, 0.13, 1.12, 2.10)):
+    # the first exit collar sits at the scale seam (bulkhead): the camera reaches it at the gallery's speed, so it is
+    # built 1.6x (film 2720: band outer radius 216 px with our camera 207 units away -> R 97)
+    save(M.collar(K * 1.6, band='sectors'), 'r11_sg_collar_big')
+    big = 'models/corehub_intro/r11_sg_collar_big.mdl'
+    for k, x in enumerate((-3.87, -2.53, -1.20, 0.13, 1.12, 2.20)):        # 2.20: passed at 2758 like the film
         p = colmap_to_map((x, yg, zg), info)
-        E.add_prop(v, cu if x < 1.0 else mdl, p, tube.axis_angles((1, 0, 0)), name='r11_sg_gal_collar%d' % k)
-    tube.add_collars(v, rd, model=cu, frames=[2812.0], prefix='r11_sg_turn')
-    tube.add_collars(v, rd, model=lit, frames=[2841.0, 2855.0, 2869.0], prefix='r11_sg_fin')
+        # (the film's last gallery collar, passed at 2704-2707, is pink-white; built 1.6x pink it filled the frame at
+        # 90.25 s, so it stays a copper sleeve)
+        E.add_prop(v, cu if x < 1.0 else (big if x < 1.5 else mdl), p, tube.axis_angles((1, 0, 0)), name='r11_sg_gal_collar%d' % k)
+    # turn and final collars (film: a copper collar slides past at 2808-2816 and 2838-2844, the pink-white collar at
+    # 2852-2856, the lit one ahead at 2858-2867)
+    save(M.collar(K, band='copper'), 'r11_sg_collar_cu')
+    cuc = 'models/corehub_intro/r11_sg_collar_cu.mdl'
+    tube.add_collars(v, rd, model=cuc, frames=[2819.0, 2846.0], prefix='r11_sg_turn')
+    tube.add_collars(v, rd, model=mdl, frames=[2855.0], prefix='r11_sg_fin')
+    tube.add_collars(v, rd, model=lit, frames=[2877.0], prefix='r11_sg_lit')
     lo = np.array([5000.0, 3200.0, -3000.0]); hi = np.array([12000.0, 9750.0, 5000.0])
     shell(v, lo + 40, hi - 40)
+    make_static(v)
     return rd
+
+
+MOVING = ('models/corehub_intro/r11_sg_ring.mdl',)
+
+
+def make_static(v):
+    """every model of this scene that does not move (all but the travelling ring) -> prop_static without a targetname
+    (collars, trusses, chamber objects, and the rail bends that lib/tube.py adds as named dynamic props)"""
+    n = 0
+    for e in v.entities:
+        mdl = e['model', ''].lower()
+        if e['classname'] in ('prop_dynamic_override', 'prop_dynamic') and mdl.startswith('models/corehub_intro/r11_sg') and mdl not in MOVING:
+            e['classname'] = 'prop_static'
+            for k in ('targetname', 'solid', 'disableshadows'):
+                if k in e: del e[k]
+            e['solid'] = '0'; e['disableshadows'] = '1'
+            n += 1
+    return n
 
 
 if __name__ == '__main__':

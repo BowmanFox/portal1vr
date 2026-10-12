@@ -12,7 +12,10 @@ S1 = 139 (free: the picture does not depend on it; the shaft rails, 0.25-0.35 fr
 34), model 0 by S0 = 148.5 (ic_a's collar-measured speed against model 0's steps).
 Geometry is placed relative to it. Cell C7: x -2000..5000, y 9850..16300, z -3000..5000, sealed by a black shell.
 Animated props (iris petals, the falling turret, debris, glow, laser beams, scan cones, the optical head) are moved by
-my own Squirrel function IC_Update(t) (Director.append + hook); the old incinerator's entities stay unused."""
+my own Squirrel function IC_Update(t) (Director.append + hook); the old incinerator's entities stay unused.
+Round 3: own unlit turret / open turret / cubes / cans / dark debris (the stock ones render black in the game), every
+model that does not move is a prop_static, hidden props are parked inside the shell at (-1900, 13000, 0), the base
+fades of this range are re-fitted for the game's gamma-space fades (FADE_KEYS, FADE_IN_KEYS)."""
 import json, math, os
 import numpy as np
 from lib import vmfedit as E
@@ -32,6 +35,37 @@ RAIL_MAT = 'corehub_intro/p9_ascent_rail_v2'
 COLLAR_MDL = 'models/corehub_intro/r11_ic_tcollar.mdl'          # own 12-sided collar, axis model +X
 PFX = 'r11_ic'
 RAIL_TURN = 45.0                                   # shaft rails: measured cluster angles + this (checked on the film)
+RIM_DX = float(os.environ.get('IC_RIMDX', 75.0))     # the opening's rim behind the rust wall: radial profiles of 110.75 / 110.85
+                                                     # agree only with it 75 beyond x 1474 (light band R 109-126, dark 88-109)
+PD_SHIFT = float(os.environ.get('IC_PDSHIFT', 60.0))  # exit iris + its wall moved along +x: the film's camera passes it at 3517-3518,
+                                                     # the track at 117.32 (and the iris looked 1.4 x too big at 117.15)
+RUST_K = float(os.environ.get('IC_RUSTK', 1.0))    # rust walls: map units per texel of the rust texture
+FAN_A = float(os.environ.get('IC_FANA', 0.0))
+RED_R = float(os.environ.get('IC_REDR', 0.09))       # red laser cones: end radius / S1 (was 0.09: too narrow)
+FAN_R = float(os.environ.get('IC_FANR', 0.55))      # pale scan fans: end radius / S1, length / S1, outward lean, alpha
+FAN_L = float(os.environ.get('IC_FANL', 1.9))
+FAN_OUT = float(os.environ.get('IC_FANO', 0.9))
+FAN_T = (111.85, 113.75)
+TOP_POS = np.array([-40.0, 0.0, 320.0])            # own turret held above the white disc (relative to the disc centre;
+TOP_ANG = (0.0, 180.0, 0.0)                        # film 3330: white body z 198-366, 70 wide at x 2460)
+# base darkening fades 111.35-114.12 (black screen fade, alpha 0-255). The old alphas were tuned on the linear-light
+# preview; the game draws fades in gamma space: a_gamma = 255 (1 - (1 - a_lin / 255) ** (1 / 2.2)), then re-fitted
+# against the film's mean brightness (alpha = 255 (1 - film / unfaded)).
+OLD_FADES = ('[111.35,111.5,0,60],[111.5,111.7,60,95],[111.7,111.85,95,115],[111.85,112.05,115,65],[112.05,112.95,65,50],'
+             '[112.95,113.15,50,5],[113.15,113.35,5,20],[113.35,113.55,20,58],[113.55,113.95,58,38],[113.95,114.12,38,0]')
+# re-fitted by score on the gamma-space preview (offline/out/ic/r3/fadefit.py: the unfaded picture x (1 - a / 255) against
+# the film, best ssim + tone per time; 111.4-111.9 the film is darker than ours where our turret / walls are lit)
+FADE_KEYS = [(111.35, 0), (111.5, 50), (111.6, 80), (111.7, 100), (111.85, 115), (112.0, 80), (112.15, 55), (112.3, 50),
+             (112.5, 45), (112.7, 55), (112.9, 30), (113.1, 10), (113.3, 20), (113.5, 25), (113.7, 12), (113.9, 15),
+             (114.05, 8), (114.12, 0)]
+OLD_FADE_IN = '[109.8428,110.6,255,0]'
+# the fade-in from black: alpha = 255 (1 - film / unfaded) from the mean brightness (film 7.5 / 16.6 / 27.1 / 35.4 / 49.6
+# at 109.9 / 110.0 / 110.1 / 110.25 / 110.4 against unfaded 55-74; the old ramp to 110.6 left the game 4-7 levels dark)
+FADE_IN_KEYS = [(109.8428, 255), (109.9, 238), (110.0, 186), (110.1, 160), (110.25, 90), (110.4, 25), (110.47, 0)]
+
+
+def fade_table(keys):
+    return ','.join('[%.4f,%.4f,%d,%d]' % (ta, tb, aa, ab) for (ta, aa), (tb, ab) in zip(keys, keys[1:]))
 
 
 def frame_time(n): return n * 1001 / 30000.0
@@ -66,17 +100,17 @@ def wall_with_hole(v, ent, x, cam_side, c, half, hole, mat, t=32.0, hole_c=None,
     xa, xb = (x - t, x) if cam_side > 0 else (x, x + t)
     if hole_r:
         yc, zc = hole_c; h = hole_r; q = h * math.tan(math.radians(22.5))
-        box(v, (xa, y0 - hy, z0 - hz), (xb, y0 + hy, zc - h), mat, ent=ent, k=1.0)
-        box(v, (xa, y0 - hy, zc + h), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=1.0)
-        box(v, (xa, y0 - hy, zc - h), (xb, yc - h, zc + h), mat, ent=ent, k=1.0)
-        box(v, (xa, yc + h, zc - h), (xb, y0 + hy, zc + h), mat, ent=ent, k=1.0)
+        box(v, (xa, y0 - hy, z0 - hz), (xb, y0 + hy, zc - h), mat, ent=ent, k=RUST_K)
+        box(v, (xa, y0 - hy, zc + h), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=RUST_K)
+        box(v, (xa, y0 - hy, zc - h), (xb, yc - h, zc + h), mat, ent=ent, k=RUST_K)
+        box(v, (xa, yc + h, zc - h), (xb, y0 + hy, zc + h), mat, ent=ent, k=RUST_K)
         return
     if hole <= 0:
-        box(v, (xa, y0 - hy, z0 - hz), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=1.0); return
-    box(v, (xa, y0 - hy, z0 - hz), (xb, y0 - hole, z0 + hz), mat, ent=ent, k=1.0)
-    box(v, (xa, y0 + hole, z0 - hz), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=1.0)
-    box(v, (xa, y0 - hole, z0 - hz), (xb, y0 + hole, z0 - hole), mat, ent=ent, k=1.0)
-    box(v, (xa, y0 - hole, z0 + hole), (xb, y0 + hole, z0 + hz), mat, ent=ent, k=1.0)
+        box(v, (xa, y0 - hy, z0 - hz), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=RUST_K); return
+    box(v, (xa, y0 - hy, z0 - hz), (xb, y0 - hole, z0 + hz), mat, ent=ent, k=RUST_K)
+    box(v, (xa, y0 + hole, z0 - hz), (xb, y0 + hy, z0 + hz), mat, ent=ent, k=RUST_K)
+    box(v, (xa, y0 - hole, z0 - hz), (xb, y0 + hole, z0 - hole), mat, ent=ent, k=RUST_K)
+    box(v, (xa, y0 - hole, z0 + hole), (xb, y0 + hole, z0 + hz), mat, ent=ent, k=RUST_K)
 
 
 def _qangle_x(d):
@@ -110,7 +144,7 @@ IC_CODE = '''function IC_Update(t) {
     if(t<109.5||t>118.6)return;
     foreach(tr in icTracks){
         local e=Entities.FindByName(null,tr.name); if(e==null)continue;
-        if(t<tr.on||t>tr.off){e.SetOrigin(Vector(0,13000,-2900));continue;}
+        if(t<tr.on||t>tr.off){e.SetOrigin(Vector(-1900,13000,0));continue;}
         local k=tr.k; local n=k.len(); local a=k[0]; local b=k[0]; local f=0.0;
         if(t<=k[0][0]){a=k[0];b=k[0];}
         else if(t>=k[n-1][0]){a=k[n-1];b=k[n-1];}
@@ -123,6 +157,19 @@ IC_CODE = '''function IC_Update(t) {
 '''
 
 
+def unwrap_keys(keys):
+    """keep keyed angles continuous (no 360 jumps between keys: IC_Update interpolates them linearly)"""
+    out = []; prev = None
+    for t, p, a in keys:
+        a = [float(x) for x in a]
+        if prev is not None:
+            for k in range(3):
+                while a[k] - prev[k] > 180: a[k] -= 360
+                while a[k] - prev[k] < -180: a[k] += 360
+        prev = a; out.append((t, p, tuple(a)))
+    return out
+
+
 def rails_x(v, ent, x0, x1, y, z, rho=34.0, w=1.8):
     for sy in (1, -1):
         for sz in (1, -1):
@@ -133,12 +180,15 @@ def rails_x(v, ent, x0, x1, y, z, rho=34.0, w=1.8):
 def apply(v, d):
     cam = json.load(open(os.path.join(HERE, 'data', 'ic_cam_ride.json')))
     S1 = cam['S1']; K = {k: np.array(p) for k, p in cam['keys'].items()}
+    K['PD'] = K['PD'] + np.array([PD_SHIFT, 0.0, 0.0])
     samples = []
     for m in cam['moments']:
         t = m[0]; p = np.array(m[3:6]) + O; f = np.array(m[6:9]); u = np.array(m[9:12])
         from lib.ride import qangle
         samples.append((t, tuple(float(x) for x in p), qangle(f, u)))
     d.override_camera(samples, fov=60.0)
+    d.replace(OLD_FADES, fade_table(FADE_KEYS))
+    d.replace(OLD_FADE_IN, fade_table(FADE_IN_KEYS))
     # (the base director's screen fades in this range stay: the film's shaft is darker and greyer than its orange walls
     #  where the pale scan fans cross it, and those fades bring the luminance to the film's: checked with the mean colours)
     M.materials(); tk_materials()
@@ -152,20 +202,20 @@ def apply(v, d):
     XF = 3300.0                                   # far rust wall (ride ic_a points beyond the opening, median 3278)
     rails_x(v, det, O[0] - 250, O[0] + XP, O[1], O[2])
     for k, x in enumerate((455.0, 1216.0)):          # collars: passed at 3303 (film) and Hough of the film (x 1216, R 74)
-        E.add_prop(v, COLLAR_MDL.replace('tcollar', 'tcollar_b'), (O[0] + x, O[1], O[2]), (0, 0, 0), name='%s_c1_collar%d' % (PFX, k))
+        E.add_prop(v, COLLAR_MDL.replace('tcollar', 'tcollar_b'), (O[0] + x, O[1], O[2]), (0, 0, 0), cls='prop_static')
     wall_with_hole(v, det, O[0] + XW, -1, (O[1], O[2] - 600), (2600, 2200), 0.0, RUST, hole_c=(O[1], O[2]), hole_r=118.0)
-    E.add_prop(v, 'models/corehub_intro/r11_ic_rim.mdl', (O[0] + XW - 1, O[1], O[2]), (0, 0, 0), name='%s_rim' % PFX)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_rim.mdl', (O[0] + XW + RIM_DX, O[1], O[2]), (0, 0, 0), cls='prop_static')
     wall_with_hole(v, det, O[0] + XF, -1, (O[1], O[2] + 300), (2600, 1200), 0, RUST)
-    E.add_prop(v, 'models/corehub_intro/r11_ic_disc.mdl', (O[0] + XDISC - 2, O[1], O[2]), (0, 0, 0), name='%s_disc' % PFX)
-    box(v, (O[0] + XDISC, O[1] - 90, O[2] - 90), (O[0] + XF, O[1] + 90, O[2] + 90), RUST, ent=det, k=1.0)
-    E.add_prop(v, 'models/props_backstage/vacum_turret.mdl', (O[0] + XDISC - 40, O[1], O[2] + 150), (0, 180, 180), name='%s_turret_top' % PFX)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_disc.mdl', (O[0] + XDISC - 2, O[1], O[2]), (0, 0, 0), cls='prop_static')
+    box(v, (O[0] + XDISC, O[1] - 90, O[2] - 90), (O[0] + XF, O[1] + 90, O[2] + 90), RUST, ent=det, k=RUST_K)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_turret_top.mdl', TOP_POS + np.array([O[0] + XDISC, O[1], O[2]]), TOP_ANG, cls='prop_static')
     for sy in (-1, 1):                            # dark pillars in front of the far wall (film 3332: bands at +-173 px, 51 px wide)
         box(v, (O[0] + XDISC - 60, O[1] + sy * 320 - 48, O[2] - 890), (O[0] + XDISC, O[1] + sy * 320 + 48, O[2] + 1500), DARK, ent=det)
 
     # ------------------------------------------------------------ shaft
     sh = cam['shaft']; axy = np.array(sh['axis_xy']) + O[:2]; z0 = sh['z0'] + O[2]
     zmap = lambda zz: z0 - S1 * zz
-    parts = Mesh(); beams = Mesh()
+    parts = Mesh(); beams = Mesh(); fans = Mesh()
     # rings measured on the film (radial brightness about the shaft's vanishing point over 127 frames, Hough over depth
     # Z and radius R in COLMAP model-1 units, x S1 = map units; tools in offline/out/ic/tools/ringhough.py):
     #   collars: light band 0.69-0.86 (the top one 0.76-0.86), dark edge, at Z -3.80 / -0.82 / 1.92 (down the shaft)
@@ -185,7 +235,11 @@ def apply(v, d):
             parts.tube((cs * 0.86 * S1, sn * 0.86 * S1, zl), (cs * 2.6 * S1, sn * 2.6 * S1, zl), 0.028 * S1, 'r11_ic_pipe', n=8, caps=False)
             # red scan beam from the probe tip up toward the camera (film 3355-3392), slightly outward
             tip = np.array([cs * 0.37 * S1, sn * 0.37 * S1, zl]); top = tip + np.array([cs * 0.25 * S1, sn * 0.25 * S1, 1.7 * S1])
-            beams.add(M.cone(float(np.linalg.norm(top - tip)), 1.0, 0.09 * S1, 'r11_ic_red'), R=_frame_to(top - tip), offset=tip)
+            beams.add(M.cone(float(np.linalg.norm(top - tip)), 1.0, RED_R * S1, 'r11_ic_red'), R=_frame_to(top - tip), offset=tip)
+            # pale scan fans from every probe tip, up toward the camera and outward (film 3354-3410: wide grey wedges
+            # from near the centre to the frame edges)
+            dfan = np.array([cs * FAN_OUT, sn * FAN_OUT, 1.0]); dfan = dfan / np.linalg.norm(dfan)
+            fans.add(M.cone(FAN_L * S1, 2.0, FAN_R * S1, 'r11_ic_fan'), R=_frame_to(dfan), offset=tip)
     parts.add(M.band_ring(0.77 * S1, 0.86 * S1, edge=0.69 * S1), offset=(0, 0, zmap(4.66) - z0 + 2))
     parts.add(M.funnel(0.69 * S1, 0.31 * S1, 0.6 * S1), offset=(0, 0, zmap(4.66) - z0))
     parts.add(M.bowl([(zmap(4.66) - z0, 0.86 * S1), (zmap(3.75) - z0, 2.4 * S1), (zmap(1.0) - z0, 3.6 * S1), (zmap(-1.5) - z0, 6.0 * S1)]))
@@ -195,8 +249,11 @@ def apply(v, d):
     parts.tris = [t for t in parts.tris if (t.p[0][0] + t.p[1][0] + t.p[2][0]) / 3.0 < xcut]
     save(parts, '%s_shaft' % PFX)
     save(beams, '%s_beams' % PFX)
+    if FAN_A > 0:          # (pale fans at alpha 0.2 from every probe scored lower in 111.9-113.65: ssim 0.40 / tone 0.59 against 0.44 / 0.68)
+        save(fans, '%s_fans' % PFX)
+        E.add_prop(v, 'models/corehub_intro/%s_fans.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), name='%s_fans' % PFX)
     E.add_prop(v, 'models/corehub_intro/%s_beams.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), name='%s_beams' % PFX)
-    E.add_prop(v, 'models/corehub_intro/%s_shaft.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), name='%s_shaft' % PFX)
+    E.add_prop(v, 'models/corehub_intro/%s_shaft.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), cls='prop_static')
     # shaft rails (measured angles, not on the map diagonals)
     rm = Mesh(); top = zmap(-7.5) - z0; bot = zmap(4.5) - z0
     for ang in sh['rails_deg']:
@@ -204,7 +261,7 @@ def apply(v, d):
         w = 0.9; tdir = np.array([-math.sin(a), math.cos(a), 0.0])
         rm.obox((c[0], c[1], (top + bot) / 2), (w, w, (top - bot) / 2), np.array([c / 34.0, tdir, [0, 0, 1.0]]).T, 'r11_rail')
     save(rm, '%s_shaft_rails' % PFX)
-    E.add_prop(v, 'models/corehub_intro/%s_shaft_rails.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), name='%s_shaft_rails' % PFX)
+    E.add_prop(v, 'models/corehub_intro/%s_shaft_rails.mdl' % PFX, (axy[0], axy[1], z0), (0, 0, 0), cls='prop_static')
     # the incinerator room: orange walls round the bowl, a dark ceiling above
     R_room = 1600.0
     PD = K['PD'] + O
@@ -216,17 +273,24 @@ def apply(v, d):
         E.add_box(v, (x_lo, min(ya, ya + sy * 32), zr0), (O[0] + XF, max(ya, ya + sy * 32), zr1), ORANGE, ent=det)
     # the side of the bowl the camera exits through (iris at PD), up to the bowl's rim
     wall_with_hole(v, det, PD[0], -1, (PD[1], (zr0 + zr1) / 2), (R_room, (zr1 - zr0) / 2), 0.0, ORANGE_DK, hole_c=(PD[1], PD[2]), hole_r=70.0)   # film 3500: (97 52 39)
-    # far wall continues down to the bowl rim
-    box(v, (O[0] + XF, O[1] - 2600, zr1 - 20), (O[0] + XF + 32, O[1] + 2600, O[2] - 900), RUST, ent=det, k=1.0)
+    # far wall continues down past the bowl rim (111.5-111.8 the camera looked under it into the black shell; the film shows
+    # the rust wall continuing below the shaft's dark rim)
+    # (with an opening of half size 400 round the final tube, which passes x XF at the height of the exit iris: its edges
+    #  stay outside the picture once the camera is within ~580 of it)
+    xa, xb = O[0] + XF, O[0] + XF + 32; hw = 400.0
+    box(v, (xa, O[1] - 2600, PD[2] + hw), (xb, O[1] + 2600, O[2] - 900), RUST, ent=det, k=RUST_K)
+    box(v, (xa, O[1] - 2600, zr0 - 560), (xb, O[1] + 2600, PD[2] - hw), RUST, ent=det, k=RUST_K)
+    box(v, (xa, O[1] - 2600, PD[2] - hw), (xb, PD[1] - hw, PD[2] + hw), RUST, ent=det, k=RUST_K)
+    box(v, (xa, PD[1] + hw, PD[2] - hw), (xb, O[1] + 2600, PD[2] + hw), RUST, ent=det, k=RUST_K)
 
     # ------------------------------------------------------------ seg 4-5: the wall iris and the final tube
     t5 = [m[0] for m in cam['moments']]
     XE = float(np.interp(frame_time(3547.5), t5, P[:, 0]))                 # end wall: the film's black mouth (r 60) is 478 ahead at 3541
     rails_x(v, det, PD[0] - 10, XE, PD[1], PD[2])
     for k, x in enumerate((2762.0, 3027.0, 3347.0, 3592.0)):    # collars (Hough of the film, frames 3517-3546; none visible at 3541 but the mouth)
-        E.add_prop(v, COLLAR_MDL, (O[0] + x, PD[1], PD[2]), (0, 0, 0), name='%s_c5_collar%d' % (PFX, k))
+        E.add_prop(v, COLLAR_MDL, (O[0] + x, PD[1], PD[2]), (0, 0, 0), cls='prop_static')
     wall_with_hole(v, det, XE, -1, (PD[1], PD[2]), (2200, 1500), 0.0, RUST, hole_c=(PD[1], PD[2]), hole_r=60.0)
-    E.add_prop(v, COLLAR_MDL.replace('tcollar', 'tcollar_m'), (XE - 1, PD[1], PD[2]), (0, 0, 0), name='%s_mouth' % PFX)   # black mouth r ~58 (film 3541-3546)
+    E.add_prop(v, COLLAR_MDL.replace('tcollar', 'tcollar_m'), (XE - 1, PD[1], PD[2]), (0, 0, 0), cls='prop_static')   # black mouth r ~58 (film 3541-3546)
     E.add_box(v, (XE + 32, PD[1] - 160, PD[2] - 160), (XE + 400, PD[1] + 160, PD[2] + 160), BLACK, ent=det)
 
     # ------------------------------------------------------------ animated props (own hook: IC_Update)
@@ -239,10 +303,11 @@ def apply(v, d):
             E.add_prop(v, 'models/corehub_intro/%s.mdl' % mdl, c, (0, 0, i * 90), name=nm)
             tracks.append(dict(name=nm, keys=[(t0, c, None), (t1, c + dirv * dmax, None)], smooth=True))
     petals('w1', 'r11_ic_petal_s', np.array([O[0] + XP, O[1], O[2]]), 110.90, 111.06, 27.0)
-    E.add_prop(v, 'models/corehub_intro/r11_ic_frame_s.mdl', (O[0] + XP - 3, O[1], O[2]), (0, 0, 0), name='%s_w1_frame' % PFX)
-    petals('w2', 'r11_ic_petal', np.array([PD[0] - 4, PD[1], PD[2]]), 117.00, 117.32, 46.0)
-    E.add_prop(v, 'models/corehub_intro/ending_iris_frame.mdl', (PD[0] - 7, PD[1], PD[2]), (0, 0, 0), name='%s_w2_frame' % PFX)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_frame_s.mdl', (O[0] + XP - 3, O[1], O[2]), (0, 0, 0), cls='prop_static')
+    petals('w2', 'r11_ic_petal', np.array([PD[0] - 4, PD[1], PD[2]]), 117.10, 117.38, 46.0)     # (film: 3511 starts, 3515 ~55 %, 3517 open)
+    E.add_prop(v, 'models/corehub_intro/ending_iris_frame.mdl', (PD[0] - 7, PD[1], PD[2]), (0, 0, 0), cls='prop_static')
 
+    from lib.ride import qangle
     tm = np.array([m[0] for m in cam['moments']]); Fw = np.array([m[6:9] for m in cam['moments']]); Up = np.array([m[9:12] for m in cam['moments']])
 
     def rel(t, dist, up=0.0, right=0.0):
@@ -252,17 +317,61 @@ def apply(v, d):
         return P[i] + f * dist + u * up * dist + r * right * dist
 
     # the turret the camera follows out of the tube and down the shaft (film 3340-3420): ahead of the camera, tumbling
-    tk = [(111.40, 120, 0.30, -0.05), (111.50, 70, 0.18, -0.12), (111.58, 48, 0.0, -0.25), (111.66, 46, -0.36, -0.22),
-          (111.75, 58, -0.28, -0.15), (111.85, 80, -0.15, -0.08), (112.00, 140, -0.04, 0.0), (112.30, 300, 0.0, 0.03)]
-    keys = [(t, rel(t, dd, uu, rr), (t * 83 % 360, t * 57 % 360, t * 31 % 360)) for t, dd, uu, rr in tk]
-    keys.append((113.6, np.array([axy[0] + 10, axy[1] + 12, zmap(4.4)]), (40, 300, 80)))
-    E.add_prop(v, 'models/props_backstage/vacum_turret.mdl', keys[0][1], keys[0][2], name='%s_turret' % PFX)
+    # film-measured picture position (x, y of 640 x 400) and size of the falling turret (3339-3368): distance = f * L / size
+    # for the own model (L = 71.5 * TURRET_K); pose: its back to the camera, its top toward the picture's top, tumbling
+    tk = [(111.38, 412, 360, 50, 0), (111.48, 110, 307, 112, 25), (111.58, 70, 312, 260, 10), (111.68, 120, 297, 330, 0),
+          (111.78, 150, 282, 320, -8), (111.88, 270, 285, 230, -20), (112.13, 330, 300, 160, -40), (112.30, 380, 315, 200, -55)]
+    keys = []
+    for t, dd, x, y, roll in tk:
+        i = int(np.clip(np.searchsorted(tm, t), 0, len(tm) - 1)); pa = qangle(-Fw[i], Up[i])
+        # (sizes measured on the own model at k 0.5 came out 2.7 x too small in the picture: distances / 2.7 at k 1;
+        #  the model's visual centre lies 15 k below its origin: lift the origin by that along the picture's up)
+        keys.append((t, rel(t, dd * M.TURRET_K / 0.5 / 2.7, (200.0 - y) / 461.88, (x - 320.0) / 461.88) + Up[i] * 15.0 * M.TURRET_K,
+                     (pa[0], pa[1], pa[2] + roll)))
+    keys.append((113.6, np.array([axy[0] + 10, axy[1] + 12, zmap(4.4)]), (keys[-1][2][0] + 40, keys[-1][2][1] + 60, keys[-1][2][2] - 80)))
+    keys = unwrap_keys(keys)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_turret_open.mdl', keys[0][1], keys[0][2], name='%s_turret' % PFX)   # (film: panels spread)
     tracks.append(dict(name='%s_turret' % PFX, keys=keys, t_on=111.38, t_off=113.6))
+    # the turret again, wings spread, tumbling near the camera in the funnel (film 3432-3462: picture x, y, size of the
+    # longest extent; own model ~60 long -> distance = f * 60 / size)
+    tk2 = [(114.45, 300, 333, 215, 0), (114.53, 277, 333, 208, 10), (114.66, 208, 360, 192, 25), (114.79, 166, 370, 183, 45),
+           (114.93, 151, 347, 142, 70), (115.06, 119, 300, 142, 95), (115.19, 151, 268, 142, 120), (115.32, 370, 295, 192, 150),
+           (115.52, 520, 330, 230, 180), (115.70, 700, 340, 250, 200)]
+    keys2 = []
+    for t, dd, x, y, roll in tk2:
+        i = int(np.clip(np.searchsorted(tm, t), 0, len(tm) - 1)); pa = qangle(-Fw[i], Up[i])
+        keys2.append((t, rel(t, dd, (200.0 - y) / 461.88, (x - 320.0) / 461.88) + Up[i] * 12.0, (pa[0] + 30, pa[1], pa[2] + roll)))
+    keys2 = unwrap_keys(keys2)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_turret_open.mdl', keys2[0][1], keys2[0][2], name='%s_turret2' % PFX)
+    tracks.append(dict(name='%s_turret2' % PFX, keys=keys2, t_on=114.45, t_off=115.70))
+    # the three yellow fans converging on it (film 3452-3490: apex fixed in the picture at (320, 142)): camera-attached
+    fk = []
+    for t in np.arange(115.30, 116.46, 0.05):
+        i = int(np.clip(np.searchsorted(tm, t), 0, len(tm) - 1)); pa = qangle(Fw[i], Up[i])
+        fk.append((float(t), rel(float(t), 80.0, (200.0 - 142.0) / 461.88, 0.0), pa))      # (at 300 the funnel walls clipped them)
+    fk = unwrap_keys(fk)
+    E.add_prop(v, 'models/corehub_intro/r11_ic_yfans.mdl', fk[0][1], fk[0][2], name='%s_yfans' % PFX)
+    tracks.append(dict(name='%s_yfans' % PFX, keys=fk, t_on=115.33, t_off=116.42))
+    # dark boxes and cans falling just ahead of the camera at the top of the shaft (film 3354-3384: picture x, y, size)
+    def screen_track(name, mdl, L, samples, spin):
+        ks = []
+        for t, x, y, size in samples:
+            ks.append((t, rel(t, 461.88 * L / size, (200.0 - y) / 461.88, (x - 320.0) / 461.88),
+                       (t * spin[0] % 360, t * spin[1] % 360, t * spin[2] % 360)))
+        ks = unwrap_keys(ks)
+        E.add_prop(v, 'models/corehub_intro/%s.mdl' % mdl, ks[0][1], ks[0][2], name='%s_%s' % (PFX, name))
+        tracks.append(dict(name='%s_%s' % (PFX, name), keys=ks, t_on=samples[0][0], t_off=samples[-1][0]))
+    screen_track('dboxa', 'r11_ic_dbox', 44.0, [(111.86, 90, 175, 160), (111.90, 110, 160, 140), (112.13, 195, 115, 90),
+                 (112.40, 195, 125, 75), (112.63, 160, 112, 85), (112.75, 150, 100, 90)], (40, 25, 15))
+    screen_track('dcanb', 'r11_ic_dcan', 32.0, [(111.86, 550, 240, 100), (111.90, 535, 225, 90), (112.13, 460, 137, 50),
+                 (112.40, 452, 172, 45), (112.63, 505, 115, 50), (112.75, 515, 105, 55)], (-30, 45, 20))
+    screen_track('dballc', 'r11_ic_dcan', 32.0, [(112.30, 335, 140, 22), (112.40, 330, 145, 25), (112.63, 350, 140, 30),
+                 (112.90, 340, 130, 40), (113.05, 345, 120, 45)], (20, 60, 35))
     # debris falling into the funnel ahead of the camera (film 3380-3480: cube, cans, a dark carton)
-    deb = [('models/props_backstage/vacum_cube.mdl', 112.3, 114.6, (-40, 25), 0.6),
-           ('models/props/food_can/food_can.mdl', 112.8, 115.4, (30, -20), 0.3),
-           ('models/props/food_can/food_can.mdl', 113.4, 116.2, (-15, -35), 0.2),
-           ('models/props_backstage/vacum_cube.mdl', 114.8, 116.6, (20, 10), 0.5)]
+    deb = [('models/corehub_intro/r11_ic_cube_s.mdl', 112.3, 114.6, (-40, 25), 0.6),
+           ('models/corehub_intro/r11_ic_can.mdl', 112.8, 115.4, (30, -20), 0.3),
+           ('models/corehub_intro/r11_ic_can.mdl', 113.4, 116.2, (-15, -35), 0.2),
+           ('models/corehub_intro/r11_ic_cube_s.mdl', 114.8, 116.6, (20, 10), 0.5)]
     for k, (mdl, ta, tb, (dx, dy), lead) in enumerate(deb):
         za = float(rel(ta, 400)[2]); zb = zmap(4.9)
         ka = (ta, np.array([axy[0] + dx, axy[1] + dy, za]), (ta * 61 % 360, ta * 47 % 360, 0)); kb = (tb, np.array([axy[0] + dx * 0.6, axy[1] + dy * 0.6, zb]), (tb * 61 % 360, tb * 47 % 360, 90))
@@ -274,28 +383,26 @@ def apply(v, d):
     E.add_prop(v, 'models/corehub_intro/r11_ic_glow.mdl', gk[0][1], (0, 0, 0), name='%s_glow' % PFX)
     tracks.append(dict(name='%s_glow' % PFX, keys=gk, t_on=114.70, t_off=115.15))
     tracks.append(dict(name='%s_beams' % PFX, keys=[(111.7, np.array([axy[0], axy[1], z0]), None)], t_on=111.70, t_off=113.35))
+    if FAN_A > 0: tracks.append(dict(name='%s_fans' % PFX, keys=[(111.7, np.array([axy[0], axy[1], z0]), None)], t_on=FAN_T[0], t_off=FAN_T[1]))
     # the storage cube tumbling close to the camera, low right in the picture (film 3366-3392)
-    ck = [(112.25, rel(112.25, 260, -0.25, 0.35), (10, 20, 30)), (112.55, rel(112.55, 150, -0.30, 0.38), (25, 40, 50)),
-          (112.85, rel(112.85, 140, -0.38, 0.45), (40, 60, 70)), (113.05, rel(113.05, 170, -0.55, 0.60), (55, 80, 90))]
-    E.add_prop(v, 'models/props_backstage/vacum_cube.mdl', ck[0][1], ck[0][2], name='%s_nearcube' % PFX)
+    ck = [(112.25, rel(112.25, 260, -0.281, 0.433), (10, 20, 30)), (112.40, rel(112.40, 200, -0.29, 0.346), (18, 30, 40)),
+          (112.60, rel(112.60, 150, -0.368, 0.574), (28, 45, 55)), (112.90, rel(112.90, 140, -0.41, 0.52), (42, 64, 72)),
+          (113.05, rel(113.05, 170, -0.48, 0.65), (55, 80, 90))]
+    E.add_prop(v, 'models/corehub_intro/r11_ic_cube.mdl', ck[0][1], ck[0][2], name='%s_nearcube' % PFX)
     tracks.append(dict(name='%s_nearcube' % PFX, keys=ck, t_on=112.25, t_off=113.05))
-    # the final scanners' cones: three long yellow cones from beside the wall iris down into the funnel (115.32-116.65),
-    # then three short ones at the iris aimed at the camera (116.65-117.42)
-    goal = np.array([axy[0], axy[1], zmap(4.7)])
-    for k, (dy, dz) in enumerate(((-60.0, 5.0), (0.0, 72.0), (60.0, 5.0))):
-        a = np.array([PD[0] - 20, PD[1] + dy * 0.75, PD[2] - 40]); ang = _qangle_x(goal + np.array([0, dy * 0.9, 0]) - a)
-        nm = '%s_longcone%d' % (PFX, k)
-        E.add_prop(v, 'models/corehub_intro/r11_ic_longcone.mdl', a, ang, name=nm)
-        tracks.append(dict(name=nm, keys=[(115.20, a, None)], t_on=115.20, t_off=116.65))
-        camp = rel(117.05, 0.0)
-        b = np.array([PD[0] - 40, PD[1] + dy, PD[2] + dz]); ang2 = _qangle_x(camp - b)
-        nm2 = '%s_scancone%d' % (PFX, k)
-        E.add_prop(v, 'models/corehub_intro/r11_ic_scancone.mdl', b, ang2, name=nm2)
-        tracks.append(dict(name=nm2, keys=[(116.65, b, None)], t_on=116.65, t_off=117.42))
+    # (the three long yellow cones from beside the wall iris of round 2 are replaced by the camera-attached fans above)
     tracks.append(dict(name='%s_lowcollar' % PFX, keys=[(109.5, np.array([axy[0], axy[1], zmap(1.92)]), None)], t_on=109.5, t_off=116.45))
-    hp = np.array([PD[0] - 35, PD[1], PD[2] + 12])
-    E.add_prop(v, 'models/corehub_intro/r11_ic_head.mdl', hp, (0, 0, 0), name='%s_head' % PFX)
-    tracks.append(dict(name='%s_head' % PFX, keys=[(116.3, hp, None)], t_on=116.3, t_off=117.40))
+    # the lit head in front of the exit iris with its three yellow light lobes (film 3496-3516): it hangs in front of the
+    # closed iris, then backs into the opening iris and rises out of the picture (3513: small in the centre, 3515: only
+    # the lobes at the top edge, 3517 gone)
+    # (film head width 140 / 110 / 80 px at 117.05 / 117.15 / 117.25 -> 257 / 330 / 450 from the camera; it comes down
+    #  from above at 3500, hangs at the iris centre at 3504, then backs away through the opening and up)
+    hk = [(116.72, (-35.0, 0.0, 160.0)), (116.85, (-35.0, 0.0, 8.0)), (117.05, (-10.0, 0.0, 40.0)), (117.15, (140.0, 0.0, 57.0)),
+          (117.25, (350.0, 0.0, 136.0)), (117.33, (450.0, 0.0, 250.0))]
+    hkeys = [(t, PD + np.array(p), None) for t, p in hk]
+    for nm in ('head', 'lobes'):
+        E.add_prop(v, 'models/corehub_intro/r11_ic_%s.mdl' % nm, hkeys[0][1], (0, 0, 0), name='%s_%s' % (PFX, nm))
+        tracks.append(dict(name='%s_%s' % (PFX, nm), keys=hkeys, t_on=116.72, t_off=117.33, smooth=True))
     d.append(squirrel_tracks(tracks))
     d.hook('IC_Update(t);')
 

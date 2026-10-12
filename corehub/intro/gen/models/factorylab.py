@@ -23,6 +23,7 @@ N16 = 16
 def materials():
     mat('r11_fl_cwhite', (0.80, 0.78, 0.75))
     mat('r11_fl_cgrey', (0.36, 0.35, 0.34))
+    mat('r11_fl_ccream', (0.86, 0.81, 0.73))
     mat('r11_fl_cinner', (0.22, 0.21, 0.20))
     ramp('r11_fl_corange', (0.62, 0.36, 0.17), factors=(0.35, 0.55, 0.78, 1.0))
     ramp('r11_fl_arm', (0.70, 0.50, 0.16), factors=(0.25, 0.45, 0.7, 1.0))
@@ -43,6 +44,18 @@ def materials():
     ramp('r11_fl_tur', (0.90, 0.90, 0.90), factors=(0.45, 0.65, 0.85, 1.0))
     mat('r11_fl_turside', (0.30, 0.30, 0.31))
     mat('r11_fl_red', (0.85, 0.10, 0.08))
+    ramp('r11_fl_sph', (0.86, 0.86, 0.87), factors=(0.45, 0.62, 0.82, 1.0))
+    mat('r11_fl_sphseam', (0.45, 0.45, 0.47))
+    mat('r11_fl_reddark', (0.45, 0.06, 0.05))
+    mat('r11_fl_lpeach', (0.86, 0.62, 0.52))
+    mat('r11_fl_glass3', (0.78, 0.80, 0.82), alpha=0.5, translucent=True)
+    mat('r11_fl_ldark2', (0.025, 0.025, 0.025))
+    mat('r11_fl_lgrey0', (0.12, 0.12, 0.125))
+    mat('r11_fl_lwhite0', (0.78, 0.78, 0.79))
+    mat('r11_fl_lrim', (0.62, 0.64, 0.66), alpha=0.45, translucent=True)
+    mat('r11_fl_lout', (0.13, 0.13, 0.14))
+    mat('r11_fl_lin', (0.80, 0.78, 0.76), alpha=0.5, translucent=True)
+    mat('r11_fl_glass1', (0.50, 0.53, 0.56), alpha=0.14, translucent=True)
 
 
 def ring_z(m, z, r0, r1, material, n=N16, face=-1, phase=0.0):
@@ -75,8 +88,8 @@ def fcollar(s=1.0):
     ring_z(m, 1.0 * s, 40 * s, 61.06 * s, 'r11_fl_cinner', face=+1, phase=ph)
     h = Mesh()
     wall_z(h, 0.0, 30 * s, 82 * s, 'r11_fl_corange', inward=False, phase=ph)
-    ring_z(h, 0.0, 61.06 * s, 82 * s, 'r11_fl_corange', phase=ph)
-    wall_z(h, 0.0, 30 * s, 61.06 * s, 'r11_fl_cgrey', inward=True, phase=ph)
+    ring_z(h, 0.0, 61.06 * s, 82 * s, 'r11_fl_corange', phase=ph)         # (round 3: a cream face as at 97.0 lowered the tone at 97.5-97.75)
+    wall_z(h, 0.0, 30 * s, 61.06 * s, 'r11_fl_corange', inward=True, phase=ph)   # film 99.25-99.5: copper inside
     ring_z(h, 30 * s, 61.06 * s, 82 * s, 'r11_fl_corange', face=+1, phase=ph)
     h.shade('r11_fl_corange', light=(0.3, 0.5, -0.8))
     m.add(h)
@@ -140,6 +153,40 @@ def lcollar(s=1.0):
     return m
 
 
+def lcollar0(s=1.0):
+    """lab 1 collar in the dark tunnel (film 2998-3010: grey ring with a light inner band); axis +Z, depth 30"""
+    m = Mesh(); ph = 360.0 / 32
+    ring_z(m, -15 * s, 70 * s, 92 * s, 'r11_fl_lgrey0', phase=ph)
+    ring_z(m, -15 * s, 61.06 * s, 70 * s, 'r11_fl_lwhite0', phase=ph)
+    ring_z(m, 15 * s, 61.06 * s, 92 * s, 'r11_fl_lgrey0', face=+1, phase=ph)
+    wall_z(m, -15 * s, 15 * s, 92 * s, 'r11_fl_lout', inward=False, phase=ph)
+    wall_z(m, -15 * s, 15 * s, 61.06 * s, 'r11_fl_lgrey0', inward=True, phase=ph)
+    return m
+
+
+def lcollar1(s=1.0):
+    """lab 1 collar (film 101.9-104.2 s, frames 3058 / 3062 / 3112): broad peach ring r 61..92 on both faces (seen
+    from inside the tube), translucent grey rim r 92..104, dark grey outside (seen from outside the glass tube),
+    light translucent inner wall; axis +Z, centred at z = 0 (depth 30)"""
+    m = Mesh(); ph = 360.0 / 32
+    ring_z(m, -15 * s, 61.06 * s, 92 * s, 'r11_fl_lpeach', phase=ph)
+    ring_z(m, 15 * s, 61.06 * s, 92 * s, 'r11_fl_lpeach', face=+1, phase=ph)
+    ring_z(m, -15 * s, 92 * s, 104 * s, 'r11_fl_lrim', phase=ph)
+    ring_z(m, 15 * s, 92 * s, 104 * s, 'r11_fl_lrim', face=+1, phase=ph)
+    wall_z(m, -15 * s, 15 * s, 104 * s, 'r11_fl_lout', inward=False, phase=ph)
+    wall_z(m, -15 * s, 15 * s, 61.06 * s, 'r11_fl_lin', inward=True, phase=ph)
+    return m
+
+
+def lplate():
+    """lab 1: the dark wall the first tube comes out of (film 2998-3009: the room shows only through the ring around
+    the tube), a black disc r 600 with a hole r 62, both faces; axis +Z"""
+    m = Mesh()
+    ring_z(m, 0.0, 62.0, 600.0, 'r11_fl_ldark2', n=24)
+    ring_z(m, 0.5, 62.0, 600.0, 'r11_fl_ldark2', n=24, face=+1)
+    return m
+
+
 def cube(s=1.0):
     m = Mesh(); h = 20 * s
     m.box((-h, -h, -h), (h, h, h), 'r11_fl_cube')
@@ -166,7 +213,7 @@ def turret(s=1.0):
 def pedestal():
     """cube pedestal under the tube: grey cylinder, orange petals around its top (z = 0 at the top)"""
     m = Mesh()
-    m.lathe([(-260, 26), (0, 26)], 'r11_fl_lgrey', n=16, axis='z')
+    m.lathe([(-1330, 26), (0, 26)], 'r11_fl_lgrey', n=16, axis='z')
     m.shade('r11_fl_lgrey', light=(0.5, 0.3, 0.6))
     p = Mesh()
     for k in range(8):
@@ -178,13 +225,22 @@ def pedestal():
 
 
 def sphere():
-    """the hanging sphere of the lab (white shell, grey handles, red eye looking +X), about 170 across"""
+    """the hanging sphere of the lab (film 104-105 s: light grey metal shell r 68 with a dark seam, red eye ring looking
+    +X with a dark red iris, C-shaped grey handles on both sides ending in small feet)"""
     m = Mesh()
-    m.sphere((0, 0, 0), 80, 'r11_fl_tur', n=16, m=12)
-    m.shade('r11_fl_tur', light=(0.5, 0.3, 0.8))
-    m.sphere((74, 0, 0), 24, 'r11_fl_red', n=10, m=8, squash=(0.5, 1, 1))
-    for sg in (-1, 1):
-        m.box((-40, sg * 84 - 6, -50), (40, sg * 84 + 6, 50), 'r11_fl_turside')
+    m.sphere((0, 0, 0), 68, 'r11_fl_sph', n=18, m=12)
+    m.shade('r11_fl_sph', light=(0.5, 0.3, 0.8))
+    s = Mesh()
+    s.tube((0, 0, -3), (0, 0, 3), 69, 'r11_fl_sphseam', n=18, caps=False)
+    m.add(s)
+    m.sphere((60, 0, 0), 25, 'r11_fl_red', n=12, m=8, squash=(0.45, 1, 1))
+    m.sphere((66, 0, 0), 13, 'r11_fl_reddark', n=10, m=6, squash=(0.4, 1, 1))
+    for sg in (-1, 1):                                                     # handles: arcs outside the shell
+        pts = [(78 * math.cos(math.radians(a)) * 0.25, sg * 78 * math.cos(math.radians(a)), 78 * math.sin(math.radians(a)))
+               for a in range(-70, 71, 20)]
+        for p0, p1 in zip(pts, pts[1:]):
+            m.tube(p0, p1, 4.5, 'r11_fl_turside', n=6)
+        m.box((-14, sg * 30 - 5, -86), (14, sg * 30 + 5, -72), 'r11_fl_turside')
     return m
 
 
@@ -193,6 +249,7 @@ def ringstack():
     collars inside it every 80 (seen as concentric rings from above), an orange ring around its top"""
     m = Mesh()
     wall_z(m, 60.0, 100.0, 110.0, 'r11_fl_glass2', inward=False)
+    wall_z(m, 100.0, 470.0, 112.0, 'r11_fl_glass3', inward=False)     # round 3: light glass wall around the inner collars
     for z in np.arange(100.0, 500.0, 80.0):
         r = Mesh()
         ring_z(r, z + 10, 72.0, 108.0, 'r11_fl_lbrown', face=+1)
@@ -222,8 +279,12 @@ def build():
     save(box(), 'r11_fl_box')
     save(box().transform(scale=1.6), 'r11_fl_box_l')
     save(lcollar(), 'r11_fl_lcollar')
+    save(lcollar1(), 'r11_fl_lcollar1')
+    save(lcollar0(), 'r11_fl_lcollar0')
+    save(lplate(), 'r11_fl_lplate')
     save(cube(), 'r11_fl_cube')
     save(turret(), 'r11_fl_turret')
     save(pedestal(), 'r11_fl_pedestal')
     save(ringstack(), 'r11_fl_ringstack')
+    save(ringstack().transform(scale=2.3), 'r11_fl_ringstack2')
     save(sphere(), 'r11_fl_sphere')

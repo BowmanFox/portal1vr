@@ -1,6 +1,7 @@
 "UnlitGeneric"
 {
 "$basetexture" "lights/white002"
-"$color" "[0.62 0.62 0.63]"
+"$color" "[0.72 0.72 0.73]"
 "$model" "1"
+"$nocull" "1"
 }

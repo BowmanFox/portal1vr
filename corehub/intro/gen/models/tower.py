@@ -14,6 +14,9 @@ PFX = 'r11_tw'
 TEX = 512
 PANEL_W = 256.0           # rust texture: 2 x 4 panels of PANEL_W x PANEL_H world units per repeat
 PANEL_H = 128.0
+SLEEVE_SPLIT = 0.0        # (a mid-grey front half scored lower at 58.35-58.6 s)
+DARK_SLEEVE = True        # film 1755-1758: the passing collar's inside shows as a wide dark arc
+LWALL_GREY = 54           # film 1770-1870: the left third 48-56 (45 gave 42-45)
 TEX_PANELS = (2, 4)
 
 
@@ -98,6 +101,7 @@ def brush_materials():
     M['slab'] = bmat(PFX + '_slab', (sc(64),) * 3)
     M['black'] = bmat(PFX + '_black', (sc(14),) * 3)
     M['iris'] = bmat(PFX + '_iris_b', (sc(10),) * 3)
+    M['glassbase'] = bmat(PFX + '_glassbase', (0.62, 0.61, 0.60), base='corehub_intro/%s_concrete' % PFX)
     return M
 
 
@@ -113,7 +117,7 @@ def materials():
     mat(PFX + '_col_side', (sc(80),) * 3)
     mat(PFX + '_black', (sc(12),) * 3)
     mat(PFX + '_pole', (sc(16),) * 3)
-    mat(PFX + '_lwall', (sc(45),) * 3)
+    mat(PFX + '_lwall', (sc(LWALL_GREY),) * 3)
     ramp(PFX + '_band', (sc(34),) * 3, (0.45, 0.65, 0.85, 1.0))
     mat(PFX + '_glass', (0.55, 0.56, 0.58), alpha=0.06, translucent=True, nocull=True)
     mat(PFX + '_white', (0.86, 0.86, 0.85))
@@ -165,25 +169,28 @@ def collar(R=61.06, n=12, tall=20.0):
         poly_ring(z, 0.78 * R, 0.86 * R, PFX + '_col_mid', up)
         poly_ring(z, 0.73 * R, 0.78 * R, PFX + '_col_dark', up)
     sleeve(0.0, tall, R, PFX + '_col_side', True)
-    sleeve(0.0, tall, 0.73 * R, PFX + '_col_mid', False)
+    if DARK_SLEEVE:      # the inside: mid grey at the front, dark behind (film 1753: mid band ~15 px, dark ring ~15-20 px)
+        if SLEEVE_SPLIT > 0: sleeve(0.0, tall * SLEEVE_SPLIT, 0.73 * R, PFX + '_col_mid', False)
+        sleeve(tall * SLEEVE_SPLIT, tall, 0.73 * R, PFX + '_col_dark', False)
+    else: sleeve(0.0, tall, 0.73 * R, PFX + '_col_mid', False)
     return m
 
 
-def band(Ri, Ro, T, n=8, mt=None):
+def band(Ri, Ro, T, n=8, mt=None, rot=0.5):
     """dark octagonal ring band around the tower (axis model +Z, Z -T/2..T/2): flat annulus top and bottom, outer
     and inner walls (film 1800-1890: 12-20 grey)"""
     mt = mt or PFX + '_band'
     m = Mesh()
     def ring(z, r0, r1, up):
         for i in range(n):
-            a0 = 2 * math.pi * (i + 0.5) / n; a1 = 2 * math.pi * (i + 1.5) / n
+            a0 = 2 * math.pi * (i + rot) / n; a1 = 2 * math.pi * (i + 1 + rot) / n
             q = [V(r0 * math.cos(a0), r0 * math.sin(a0), z), V(r1 * math.cos(a0), r1 * math.sin(a0), z),
                  V(r1 * math.cos(a1), r1 * math.sin(a1), z), V(r0 * math.cos(a1), r0 * math.sin(a1), z)]
             if not up: q = q[::-1]
             m.quad(mt, *q)
     def wall(r, z0, z1, out):
         for i in range(n):
-            a0 = 2 * math.pi * (i + 0.5) / n; a1 = 2 * math.pi * (i + 1.5) / n
+            a0 = 2 * math.pi * (i + rot) / n; a1 = 2 * math.pi * (i + 1 + rot) / n
             q = [V(r * math.cos(a0), r * math.sin(a0), z0), V(r * math.cos(a1), r * math.sin(a1), z0),
                  V(r * math.cos(a1), r * math.sin(a1), z1), V(r * math.cos(a0), r * math.sin(a0), z1)]
             if not out: q = q[::-1]
@@ -223,7 +230,8 @@ def save_tower(P):
     # the column: dark grey with faint rust (film 1664: 72 69 68; 1757: 45-60) -> the concrete texture, darkened
     mat(PFX + '_colrust', (P.get('col_tint', 0.8),) * 3, base='corehub_intro/%s_concrete' % PFX)
     for k, (z, ro) in enumerate(P['bands']):
-        save(band(P['band_ri'], ro, P['band_t']), '%s_band%d' % (PFX, k))
+        ri, bt = P.get('band_dims', {}).get(k, (P['band_ri'], P['band_t']))
+        save(band(ri, ro, bt, rot=P.get('band_rot', {}).get(k, 0.5)), '%s_band%d' % (PFX, k))
     save(column(P['col_r'], P['col_z0'], P['col_z1']), PFX + '_column')
     save(disc(P['disc_r0'], P['disc_r1'], P['disc_t']), PFX + '_disc')
 

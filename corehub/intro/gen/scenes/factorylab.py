@@ -161,15 +161,13 @@ def build_factory(v, d):
     box(v, det, o, (X0, -22, -110), (X1, 22, -107), beige)
     for x0, x1 in ((-300, 440), (700, 1150), (1450, 1800), (2150, 2550)):  # grey machine slabs over the belts
         box(v, det, o, (x0, -125, -100), (x1, 125, -80), plat)
-    for x in np.arange(X0, X1, 160.0):                                  # cross beams under the ceiling
+    for x in np.arange(X0, X1, 320.0):                                  # cross beams under the ceiling (round 3: every 320, brush budget)
         box(v, det, o, (x, -700, 128), (x + 18, 350, 150), beam)
     for y in (-520, -300, -120, 120):                                    # long beams
         box(v, det, o, (X0, y - 10, 110), (X1, y + 10, 130), beam)
-    box(v, det, o, (X0, 96, 112), (X1, 104, 120), org)                    # orange beam above-left of the tube
     for z in (-60, -25):                                                 # railing along the -y conveyor
         box(v, det, o, (X0, -382, z - 2), (X1, -378, z + 2), side)
-    for x in np.arange(X0, X1, 120.0):
-        box(v, det, o, (x, -382, -100), (x + 4, -378, -20), post)
+    # (round 3: the railing posts, 35 brushes, were dropped to keep the scene within its brush budget)
     for x in np.arange(-700.0, X1, 230.0):                              # hanging arms
         for y in (-430, -610):
             E.add_prop(v, MDL % 'r11_fl_arm', o + (x + (y == -610) * 110, y, 150), (0, 90, 0), cls='prop_static')
@@ -207,10 +205,10 @@ def rails_path(v, P, o, name, rho=34.0, w=1.8, step=8.0):
     E.add_prop(v, MDL % name, np.asarray(o, dtype=float) + P[0], (0, 0, 0), cls='prop_static')
 
 
-def tube_body(v, P, o, name, R=66.0, n=16, material='r11_fl_glass'):
-    """dark tube wall (n-gon of radius R, faces outward) along a polyline P (room coords) as model <name>"""
-    from lib.gen import save, Mesh, mat as gmat
-    gmat(material, (0.17, 0.17, 0.18))
+def tube_body(v, P, o, name, R=66.0, n=16, material='r11_fl_glass1'):
+    """glass tube wall (n-gon of radius R, faces outward, translucent: models/factorylab.py r11_fl_glass1) along a
+    polyline P (room coords) as model <name>"""
+    from lib.gen import save, Mesh
     P = np.asarray(P, dtype=float)
     if len(P) > 2:
         keep = [0]
@@ -282,12 +280,25 @@ def build_lab1(v, d):
     C = json.load(open(os.path.join(HERE, 'data', 'fl_lab1c_ride.json')))
     t_split = 3050 * 1001 / 30000.0 + 1.5 / 60.0
     mom = [m for m in R['moments'] if m[0] <= t_split]
-    cm = [m for m in C['moments'] if 3051 <= m[1] <= 3145]
+    # COLMAP poses belong to the blended film frames (moments t_n and t_n + 1/60): place them at t_n + 1/120.
+    # Round 3: frames 3145 (jump of 142 units) and 3148-3150 are outliers; from 3144 the camera goes on along -y at the
+    # COLMAP speed of 3146-3147 (56 units per frame), turning as 3146-3147 say, and slows down short of the far wall
+    # while the film fades out (the film still shows the wall area up to 3154)
+    sh = 1 / 120.0
+    cm = [[m[0] + sh] + m[1:] for m in C['moments'] if 3051 <= m[1] <= 3144]
     mom += cm
-    a, b = np.array(cm[-6][3:6]), np.array(cm[-1][3:6]); vel = (b - a) / (cm[-1][0] - cm[-6][0])
-    for k in range(1, 22):
-        t = cm[-1][0] + k / 60.0
-        mom.append([t, 3145 + k / 2.0, 'X'] + list(b + vel * (t - cm[-1][0])) + list(cm[-1][6:12]))
+    a, b = np.array(cm[-6][3:6]), np.array(cm[-1][3:6]); vel = (b - a) / (cm[-1][0] - cm[-6][0]) * 0.8
+    ori = {m[1]: m[6:12] for m in C['moments'] if m[1] in (3144, 3146, 3147)}
+    for k in range(1, 24):
+        t = cm[-1][0] + k / 60.0; n = 3144 + k / 2.0
+        if n <= 3146: f = (n - 3144) / 2.0; ov = np.array(ori[3144]) * (1 - f) + np.array(ori[3146]) * f
+        elif n <= 3147: f = n - 3146; ov = np.array(ori[3146]) * (1 - f) + np.array(ori[3147]) * f
+        else: ov = np.array(ori[3147])
+        ov[:3] /= np.linalg.norm(ov[:3]); ov[3:] /= np.linalg.norm(ov[3:])
+        t47 = cm[-1][0] + 3 * 1001 / 30000.0                               # frame 3147: from here on (fading out) the camera
+        p = b + vel * (min(t, t47) - cm[-1][0]) + 0.25 * vel * max(0.0, t - t47)   # slows down short of the far wall
+        p[1] = max(p[1], -3700.0)
+        mom.append([t, n, 'X'] + list(p) + list(ov))
     cam = camera_of(mom, o)
     d.override_camera(cam, fov=60.0)
     det = v.create_ent(classname='func_detail')
@@ -296,16 +307,30 @@ def build_lab1(v, d):
     white = tmat('r11_fl_lwhite_tx', 'tiles', (222, 222, 224), (176, 176, 180), 32, 128, 0.02)
     red = bmat('r11_fl_lred', (0.80, 0.25, 0.20))
     XL, YW = 3650.0, 340.0
-    tbox(v, det, o, (-400, YW, -900), (XL, YW + 30, 160), tile)           # left wall (+y)
-    tbox(v, det, o, (XL, -4600, -900), (XL + 30, YW + 30, 160), tile)     # far wall (x 3650, behind the second tube)
-    tbox(v, det, o, (-400, -4600, -930), (XL, YW, -900), tile)            # floor
-    # sphere room (COLMAP points, top view): white wall y -3770 (x 1400..3450), dark wall x 1400, floor z -1300
-    tbox(v, det, o, (1400, -3800, -800), (XL, -3770, 300), white)         # white wall panel facing the camera path
-    tbox(v, det, o, (1400, -3800, -1300), (XL, -3770, -800), tile)        # dark tiles below it
-    tbox(v, det, o, (2400, -2400, -900), (XL, -150, -898), white)         # white floor below the start of the second straight
-    tbox(v, det, o, (1370, -3800, -1300), (1400, -1900, 160), tile)       # dark wall (-x side)
-    tbox(v, det, o, (1400, -3770, -1330), (XL, -1900, -1300), white)      # white floor
-    tbox(v, det, o, (3000, -4600, -1300), (3030, -3800, 160), tile)       # dark wall beyond
+    tbox(v, det, o, (-400, YW, -1380), (XL, YW + 30, 160), tile)          # left wall (+y)
+    tbox(v, det, o, (XL, -3775, -1380), (XL + 30, YW + 30, 150), tile)    # far wall (x 3650, behind the second tube)
+    # sphere room, measured round 3 (COLMAP clusters of sfm/lab1 + film pixels unprojected / triangulated with the
+    # camera, out/fl/r3/ptlab.py, unp.py, tri.py): far wall y -3745 (dark tiles, top z 145, sky above) with a white
+    # tiled panel x 1720..3215 z -840..135 (and x 3215..3650 above z -330); side wall x 1680 (-x) from the far wall to
+    # y -2945, then a wall x 1650 with a white-framed window (y -2935..-2470, z -830..-340); white floor z -1350 from the
+    # far wall to y -2300 (x 1650..3520, dark beyond x 3520); exit sign z -1141 and an octagon z -1264 on the far wall
+    lwhite = white; blk0 = bmat('r11_fl_lblack', (0.02, 0.02, 0.02))
+    tbox(v, det, o, (1650, -3775, -1380), (XL, -3745, 145), tile)         # far wall
+    tbox(v, det, o, (1720, -3745, -840), (3215, -3741, 135), lwhite)      # white panel
+    tbox(v, det, o, (3215, -3745, -330), (XL, -3741, 135), lwhite)        # its upper part beyond the notch
+    tbox(v, det, o, (1650, -3745, -1380), (1680, -2945, 130), tile)       # side wall (-x)
+    tbox(v, det, o, (1620, -2945, -1380), (1650, -2100, 130), tile)       # window wall
+    fr = bmat('r11_fl_lframe', (0.86, 0.86, 0.87))                        # the window: white frame
+    for lo, hi in (((1650, -2950, -845), (1662, -2455, -830)), ((1650, -2950, -340), (1662, -2455, -325)),
+                   ((1650, -2950, -830), (1662, -2935, -340)), ((1650, -2470, -830), (1662, -2455, -340))):
+        box(v, det, o, lo, hi, fr)
+    tbox(v, det, o, (1650, -3745, -1380), (3520, -1500, -1350), white)    # white floor
+    tbox(v, det, o, (3520, -3745, -1380), (XL, -1500, -1350), tile)       # dark floor under the tube
+    tbox(v, det, o, (1650, -1500, -1380), (XL, YW, -1350), tile)          # dark floor of the first chamber
+    tbox(v, det, o, (-400, -2100, -1380), (1650, YW, -1350), tile)
+    sgn = bmat('r11_fl_lsign', (0.75, 0.75, 0.74)); octm = bmat('r11_fl_loct', (0.55, 0.55, 0.56))
+    box(v, det, o, (3120, -3745, -1165), (3240, -3740, -1120), sgn)       # exit sign
+    box(v, det, o, (3000, -3745, -1305), (3085, -3735, -1222), octm)      # octagonal plate below it
     # tube: rails along the measured path (camera = tube axis)
     rails_x(v, det, o, -400, 2190)
     P = np.array([m[3:6] for m in cm if m[1] <= 3100]); P[:, 2] = 0.0
@@ -316,16 +341,15 @@ def build_lab1(v, d):
         for sz in (1, -1):
             c = np.array([sy, 0.0, sz]) * 34.0 / math.sqrt(2.0)
             box(v, det, o, (x2 + c[0] - 0.9, -4500, c[2] - 0.9), (x2 + c[0] + 0.9, y2, c[2] + 0.9), tube.RAIL_MAT)
-    for x in (660.0, 1134.0, 1600.0, 2199.0, 180.0, -300.0):
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x, 0, 0), tube.axis_angles((1, 0, 0)), cls='prop_static')
-    for y in np.arange(-290.0, -4400.0, -480.0):                          # (none where the film shows none near 3132-3140)
-        if -3300.0 < y < -2500.0: continue
+    for x in (660.0, 1134.0, 1600.0, 2199.0, 180.0, -300.0):              # dark rings in the first chamber, peach from 2199 on
+        E.add_prop(v, MDL % ('r11_fl_lcollar1' if x > 2000 else ('r11_fl_lcollar' if 600 < x < 700 else 'r11_fl_lcollar0')), o + (x, 0, 0), tube.axis_angles((1, 0, 0)), cls='prop_static')
+    for y in np.arange(-625.0, -3500.0, -470.0):                          # COLMAP: collar point clusters on the second tube (to -3445: film 3144)
         E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x2, y, 0), tube.axis_angles((0, 1, 0)), cls='prop_static')
     Pb = smooth_path(np.array([m[3:6] for m in cm if m[1] <= 3096]) * (1, 1, 0), 3)
     Sb = np.r_[0.0, np.cumsum(np.linalg.norm(np.diff(Pb, axis=0), axis=1))]
-    for sb in (380.0,):                                                    # a collar in the bend
+    for sb in (630.0,):                                                    # a collar in the bend (round 3: film 3058 / 3062 ring sizes)
         i = int(np.searchsorted(Sb, sb)); i = min(i, len(Pb) - 2)
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + Pb[i], tube.axis_angles(Pb[i + 1] - Pb[i]), cls='prop_static')
+        E.add_prop(v, MDL % 'r11_fl_lcollar1', o + Pb[i], tube.axis_angles(Pb[i + 1] - Pb[i]), cls='prop_static')
     # pedestal with the orange petals under the tube at the end of the first straight
     E.add_prop(v, MDL % 'r11_fl_pedestal', o + (2125.0, 0, -22), (0, 0, 0), cls='prop_static')
     # the cube ahead of the camera (from its size: x 871 at 3010, 1572 at 3030, 2125 at 3044)
@@ -337,65 +361,82 @@ def build_lab1(v, d):
     # dark enclosure the tube comes out of (2996-3005: black around, brown panels at the top left)
     dk = bmat('r11_fl_ldark', (0.03, 0.03, 0.03)); br = bmat('r11_fl_lbrown', (0.25, 0.17, 0.11))
     box(v, det, o, (-420, -150, 90), (560, 150, 120), dk)
+    box(v, det, o, (-420, -700, 88), (560, -150, 120), br)                # film 2998-3003: brown wood ceiling across the top
+    box(v, det, o, (-420, 150, 88), (560, 700, 120), br)
     box(v, det, o, (-420, 90, -150), (560, 120, 90), dk)
     box(v, det, o, (-420, -150, -120), (560, 150, -90), dk)
     box(v, det, o, (-420, -120, -90), (560, -90, 90), dk)
     box(v, det, o, (-420, -150, 120), (480, 400, 160), br)                # brown panels above / left of the mouth
     box(v, det, o, (-420, 150, -400), (480, 180, 120), br)
+    E.add_prop(v, MDL % 'r11_fl_lplate', o + (560.0, 0, 0), tube.axis_angles((1, 0, 0)), cls='prop_static')   # tunnel end: round hole
     # the glass tube seen from outside in the bend and along -y (dark, faces outward: invisible from inside)
     tube_body(v, smooth_path(np.array([m[3:6] for m in cm if m[1] <= 3100]) * (1, 1, 0), 3), o, 'r11_fl_lab1_glass1')
     tube_body(v, np.array([[x2, y2, 0.0], [x2, -4500.0, 0.0]]), o, 'r11_fl_lab1_glass2')
     track_hook(d, 'FL_Cube1', 'r11_fl_cube1', rows)
-    # spheres hanging on red cables (COLMAP clusters at z -150..-300; about 170 across from their size in the film)
-    for k, (x, y, z) in enumerate([(1950, -3180, -200), (2560, -3290, -250), (3230, -3260, -220), (1750, -2650, -180), (2250, -3500, -300)]):
+    # three spheres hanging on red cables (COLMAP clusters on them and two-frame triangulation of their centres at
+    # 104.25 / 104.5 s; radius 68 from their size in the film: 38 px at 862 units)
+    for k, (x, y, z) in enumerate([(3070, -3340, -245), (2575, -3425, -285), (1955, -3290, -245)]):
         E.add_prop(v, MDL % 'r11_fl_sphere', o + (x, y, z), (0, math.degrees(math.atan2(-2500 - y, 3480 - x)), 0), cls='prop_static')
-        for dy in (-25, 25):
-            box(v, det, o, (x - 2, y + dy - 2, z + 70), (x + 2, y + dy + 2, 160), red)
+        box(v, det, o, (x - 3, y - 3, z + 60), (x + 3, y + 3, 400), red)
     shell(v, o + (-500, -4700, -1450), o + (XL + 150, YW + 150, 1200), mat=sky)
     return cam
 
 
 # ---------------------------------------------------------------------------------------------- lab 2
-ORIGIN_LAB2 = (-12500.0, 14600.0, 3800.0)     # cell C5 (y 12000..16300): camera at frame 3167
+ORIGIN_LAB2 = (-10500.0, 12300.0, 3800.0)     # cell C5 (x -10800..-9300, y 11300..16100 with the chamber): camera at frame 3167
+
+
+def checker_mat(name, a, b, n=8, size=128):
+    """checker texture (n x n squares of the two grey levels a, b) -> brush material path"""
+    from lib.gen import write_texture
+    k = size // n; ij = (np.arange(size)[:, None] // k + np.arange(size)[None, :] // k) % 2
+    img = np.where(ij[..., None] == 1, np.asarray(a, np.float32), np.asarray(b, np.float32))
+    img[::k, :] *= 0.85; img[:, ::k] *= 0.85
+    write_texture(F + name + '_t', img.clip(0, 255).astype(np.uint8))
+    mat(name, 1.0, base=F + name + '_t', folder='corehub_intro/r11_fl', model=False)
+    return F + name
 
 
 def build_lab2(v, d):
-    """lab 2 (frames 3167-3286): the camera descends a dark vertical tube (-z, 40 units per frame), comes out of the
-    chamber's ceiling at ~3208 and looks down / across the white chamber, then flies fast past the glass cylinder and
-    down another tube. No frame looks exactly along the tube (ride_export's anchor check fails), so the camera is
-    COLMAP's (sfm/lab2): model 0 (3167-3211) with +z = up the tube, models 1, 3, 2 chained to it at the joins
-    (out/fl/lab2_align.py -> data/fl_lab2_ride.json)."""
+    """lab 2 (frames 3167-3286): the camera descends a dark vertical tube (-z, 40 units per frame; COLMAP model 0 of
+    sfm/lab2, +z = up the tube, 143 units per COLMAP unit: out/fl/lab2_align.py -> data/fl_lab2_ride.json), comes out of
+    the chamber's ceiling and flies over the white chamber, then dives into the glass cylinder and down below the floor.
+    Round 3: 3210-3239 are COLMAP model 1 in its own level frame: floor plane fitted to the checker pad points, +y along
+    the light strip, 91.2 units per COLMAP unit (camera height at 3210 = model 0's), out/fl/r3/l2floor.py, l2meas.py,
+    l2export.py -> data/fl_lab2b_ride.json: the camera flies level at ~2060 above the floor while it pitches from 37 to
+    80 deg down. The chamber is placed from the same frame: peach wall x -295, dark wall x 1174, light strip x 846..1157
+    (y -627..3204), checker pad x -30..480 y 1106..1654, glass cylinder axis (170, 1880), radius ~255, top ~1250 above
+    the floor. 3240-3286 (models 2/3 do not chain): set from the film, down the cylinder's axis."""
     o = np.array(ORIGIN_LAB2)
     J = json.load(open(os.path.join(HERE, 'data', 'fl_lab2_ride.json')))['models']
     mom = [m for m in J['0'] if m[1] <= 3209]
-    # 3210-3239: the chained COLMAP model 1 does not give a downward view (its floor fit is degenerate), so the camera is
-    # set by hand from the film: it leaves the tube mouth and looks straight down at the floor while the view turns
-    # (the light strip goes from 80 deg to 25 deg in the frame); 3240-3286: down the glass cylinder's ring stack
-    # 3221 / 3229.5 / 3237: solved from the stub's top and the light strip in the film (out/fl/lab2solve: exact fits)
-    keys = [(3211, (0, 8, -1745), 95.0), (3216, (-10, -8, -1850), 78.0), (3221, (-163, -143, -1840), 64.5), (3229.5, (-273, -309, -1890), 46.5),
-            (3237, (-326, -494, -1930), 31.6), (3239, (-340, -540, -1940), 28.0), (3247, (-290, 380, -2800), 10.0), (3256, (-280, 380, -3080), -15.0),
-            (3262, (-295, 380, -3600), -30.0), (3270, (-300, 380, -3900), -40.0), (3286, (-300, 380, -4000), -60.0)]
-    for (n0, p0, b0), (n1, p1, b1) in zip(keys, keys[1:]):
-        for k in range(int(round(2 * (n1 - n0)))):
-            f = k / (2.0 * (n1 - n0)); n = n0 + k / 2.0
-            p = np.array(p0) + (np.array(p1) - np.array(p0)) * f; b = math.radians(b0 + (b1 - b0) * f)
-            tilt = 0.10 if n < 3216 else (0.03 if n < 3258 else min(0.7, 0.03 + (n - 3258) * 0.06))
-            fw = np.array([tilt * math.cos(b), tilt * math.sin(b), -1.0]); fw /= np.linalg.norm(fw)
-            up = np.array([math.cos(b), math.sin(b), 0.0]); up -= fw * (up @ fw); up /= np.linalg.norm(up)
-            mom.append([n * 1001 / 30000.0, n, 'S'] + list(p) + list(fw) + list(up))
+    M1 = json.load(open(os.path.join(HERE, 'data', 'fl_lab2b_ride.json')))
+    m1 = [m for m in M1['moments'] if 3210 <= m[1] <= 3239]
+    mom += m1
+    CX, CY, ZF = 170.0, 1880.0, -3768.0
+    last = m1[-1]; up0 = np.array(last[9:12]); up0[2] = 0.0; up0 /= np.linalg.norm(up0)
+    keys = [(last[1], np.array(last[3:6]), np.array(last[6:9])),
+            (3251, np.array([CX, CY, ZF + 2050]), np.array([0.0, 0.0, -1.0])),        # film 3248-3252: high above the top ring
+            (3260, np.array([CX, CY, ZF + 1150]), np.array([0.0, 0.0, -1.0])),
+            (3266, np.array([CX, CY, ZF - 120]), np.array([0.0, 0.0, -1.0])),        # film 3268-3284: dark tube, copper rings
+            (3286, np.array([CX, CY, ZF - 450]), np.array([0.0, 0.0, -1.0]))]
+    for (n0, p0, f0), (n1, p1, f1) in zip(keys, keys[1:]):
+        for k in range(1 if n0 == last[1] else 0, int(round(2 * (n1 - n0)))):
+            f = k / (2.0 * (n1 - n0)); n = n0 + k / 2.0; g = 0.5 - 0.5 * math.cos(math.pi * f)
+            p = p0 + (p1 - p0) * g; fw = f0 + (f1 - f0) * g + np.array([1e-3, 0, 0]); fw /= np.linalg.norm(fw)
+            up = up0 - fw * (up0 @ fw); up /= np.linalg.norm(up)
+            mom.append([n * 1001 / 30000.0 + 1 / 120.0, n, 'S'] + list(p) + list(fw) + list(up))
     mom.sort(key=lambda m: m[0])
     cam = camera_of(mom, o)
     d.override_camera(cam, fov=60.0)
-    E.add_prop(v, MDL % 'r11_fl_ringstack', o + (-300, 380, -3768), (0, 0, 0), cls='prop_static')
+    E.add_prop(v, MDL % 'r11_fl_ringstack2', o + (CX, CY, ZF), (0, 0, 0), cls='prop_static')
     det = v.create_ent(classname='func_detail')
     shaft = bmat('r11_fl_l2shaft', (0.07, 0.07, 0.075))
     white = bmat('r11_fl_l2white', (0.80, 0.80, 0.80))
     floor = tmat('r11_fl_l2floor_tx', 'tiles', (208, 208, 210), (168, 168, 172), 32, 128, 0.02)
     peach = bmat('r11_fl_l2peach', (0.72, 0.60, 0.55))
-    blue = bmat('r11_fl_l2blue', (0.40, 0.35, 0.85))
     dark = tmat('r11_fl_l2dark_tx', 'tiles', (30, 30, 32), (62, 62, 66), 32, 128, 0.05)
-    ZC = -1830.0                                                          # chamber ceiling (tube mouth)
-    # the shaft around the tube (dark), open at the bottom
+    ZC = -1640.0                                                          # chamber ceiling (tube mouth): above the level flight
     shaft2 = bmat('r11_fl_l2shaft2', (0.20, 0.20, 0.21))                  # lit by the chamber near the mouth
     for z0, z1, m in ((-700, 700, shaft), (ZC, -700, shaft2)):
         for lo, hi in (((-170, -170, z0), (-150, 170, z1)), ((150, -170, z0), (170, 170, z1)),
@@ -407,29 +448,27 @@ def build_lab2(v, d):
             box(v, det, o, (c[0] - 0.9, c[1] - 0.9, ZC), (c[0] + 0.9, c[1] + 0.9, 700), tube.RAIL_MAT)
     for z in np.arange(300.0, -1600.0, -300.0):
         E.add_prop(v, MDL % 'r11_fl_lcollar', o + (0, 0, z), (0, 0, 0), cls='prop_static')
-    # the chamber: ceiling with the tube mouth, white floor; peach wall on the film's left (-x), dark walls right (+x)
-    box(v, det, o, (-700, -1300, ZC), (700, -170, ZC + 30), white)
-    box(v, det, o, (-700, 170, ZC), (700, 1300, ZC + 30), white)
-    box(v, det, o, (-700, -170, ZC), (-170, 170, ZC + 30), white)
-    box(v, det, o, (170, -170, ZC), (700, 170, ZC + 30), white)
-    for lo, hi in (((-700, -1300), (-410, 1300)), ((-190, -1300), (700, 1300)), ((-410, -1300), (-190, 270)), ((-410, 490), (-190, 1300))):
-        tbox(v, det, o, (lo[0], lo[1], -3798), (hi[0], hi[1], -3768), floor)  # floor, with a hole under the tube stub (the camera drops through it)
-    box(v, det, o, (-510, -1300, -3798), (-480, 1300, -2400), peach)       # peach wall (-x), dark above it
-    tbox(v, det, o, (-510, -1300, -2400), (-480, 1300, ZC), dark)
-    tbox(v, det, o, (400, -1300, -3798), (430, 1300, ZC), dark)            # dark wall (+x)
-    tbox(v, det, o, (-700, -1330, -3798), (400, -1300, ZC), dark)
-    tbox(v, det, o, (-700, 1300, -3798), (400, 1330, ZC), dark)
-    tbox(v, det, o, (150, -1300, -3768), (380, 1300, -3764), strip_mat(), 4.0)   # light strip on the floor (along y)
-    chk = bmat('r11_fl_l2check', (0.55, 0.55, 0.56))
-    for i in range(6):                                                       # checker pad by the cylinder
-        for j in range(6):
-            if (i + j) % 2: box(v, det, o, (-330 + 40 * i, 20 + 40 * j, -3768), (-290 + 40 * i, 60 + 40 * j, -3766), chk)
-    # below the floor: the shaft the camera drops into at the end (dark, brown collars)
-    for lo, hi in (((-430, 250), (-410, 510)), ((-190, 250), (-170, 510)), ((-410, 250), (-190, 270)), ((-410, 490), (-190, 510))):
-        tbox(v, det, o, (lo[0], lo[1], -4250), (hi[0], hi[1], -3798), dark)
-    for z in (-3900.0, -4020.0, -4140.0):
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (-300, 380, z), (0, 0, 0), cls='prop_static')
-    shell(v, o + (-3000, -1600, -4300), o + (900, 1600, 900))
+    X0, X1, Y0, Y1 = -295.0, 1174.0, -1000.0, 3760.0
+    # ceiling with the tube mouth
+    box(v, det, o, (X0, Y0, ZC), (X1, -170, ZC + 30), white)
+    box(v, det, o, (X0, 170, ZC), (X1, Y1, ZC + 30), white)
+    box(v, det, o, (X0, -170, ZC), (-170, 170, ZC + 30), white)
+    box(v, det, o, (170, -170, ZC), (X1, 170, ZC + 30), white)
+    # floor with a hole under the cylinder (the camera drops through it at the end)
+    HX0, HX1, HY0, HY1 = CX - 230, CX + 230, CY - 230, CY + 230
+    for lo, hi in (((X0, Y0), (HX0, Y1)), ((HX1, Y0), (X1, Y1)), ((HX0, Y0), (HX1, HY0)), ((HX0, HY1), (HX1, Y1))):
+        tbox(v, det, o, (lo[0], lo[1], ZF - 30), (hi[0], hi[1], ZF), floor)
+    box(v, det, o, (X0 - 30, Y0, ZF - 30), (X0, Y1, -2400), peach)        # peach wall (-x), dark above it
+    tbox(v, det, o, (X0 - 30, Y0, -2400), (X0, Y1, ZC), dark)
+    tbox(v, det, o, (X1, Y0, ZF - 30), (X1 + 30, Y1, ZC), dark)           # dark wall (+x)
+    tbox(v, det, o, (X0, Y0 - 30, ZF - 30), (X1, Y0, ZC), dark)
+    tbox(v, det, o, (X0, Y1, ZF - 30), (X1, Y1 + 30, ZC), dark)
+    tbox(v, det, o, (846, -627, ZF), (1157, 3204, ZF + 4), strip_mat(), 6.0)   # light strip on the floor (along y)
+    tbox(v, det, o, (-30, 1106, ZF), (480, 1654, ZF + 2), checker_mat('r11_fl_l2check_tx', (150, 150, 152), (205, 205, 207)), 4.0)
+    # below the floor: the black shaft the camera drops into at the end (the shell's black, brown collars)
+    for z in (ZF - 130.0, ZF - 250.0, ZF - 370.0):
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (CX, CY, z), (0, 0, 0), cls='prop_static')
+    shell(v, o + (X0 - 150, Y0 - 150, ZF - 760), o + (X1 + 150, Y1 + 150, 900))
     return cam
 
 
@@ -447,7 +486,8 @@ def apply(v, d):
              (3146, 1.0), (3147, 0.88), (3148, 0.74), (3149, 0.58), (3150, 0.44), (3151, 0.31), (3152, 0.145), (3153, 0.094),
              (3154, 0.065), (3155, 0.02), (3156, 0.0), (3166, 0.0), (3167, 0.37), (3168, 0.6), (3169, 0.85), (3170, 0.95), (3171, 1.0),
              (3283, 1.0), (3284, 0.72), (3285, 0.38), (3286, 0.06), (3287, 0.0)]
-    rows = [(96.55, 0.0)] + [(n * 1001 / 30000.0 + 1 / 120.0, 255.0 * (1.0 - r ** 2.2)) for n, r in fades] + [(109.9, 255.0)]
+    # the game (and since Oct 12 the preview) draws the fade over the finished frame in gamma space: alpha = 255 (1 - r)
+    rows = [(96.55, 0.0)] + [(n * 1001 / 30000.0 + 1 / 120.0, 255.0 * (1.0 - r)) for n, r in fades] + [(109.9, 255.0)]
     d.append(SQ_FADE % ','.join('[%.4f,%.1f]' % r for r in rows))
     d.hook('FL_Fade(t);')
 

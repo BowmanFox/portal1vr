@@ -129,11 +129,15 @@ def squirrel_tracks(tracks, fades):
             ks.append('[%.4f,Vector(%.2f,%.2f,%.2f),Vector(%.3f,%.3f,%.3f),%d]' % (t, p[0], p[1], p[2], aa[0], aa[1], aa[2], 0 if a is None else 1))
         rows.append('{name="%s",on=%.4f,off=%.4f,k=[%s]}' % (tr['name'], tr.get('on', -1.0), tr.get('off', 1e6), ','.join(ks)))
     black = ','.join('[%.4f,%.1f]' % r for r in fades['black']); grey = ','.join('[%.4f,%.1f]' % r for r in fades['grey'])
-    return ('tuTracks <- [\n' + ',\n'.join(rows) + '];\ntuBlack <- [%s];\ntuGrey <- [%s];\n' % (black, grey) + TU_CODE
+    return ('tuTracks <- [\n' + ',\n'.join(rows) + '];\ntuBlack <- [%s];\ntuGrey <- [%s];\ntuGlareOff <- false;\n' % (black, grey) + TU_CODE
             .replace('T_LO', '%.4f' % (T0 - 0.002)).replace('T_HI', '%.4f' % (T1 + 0.008))
             .replace('HIDE', 'Vector(%.1f,%.1f,%.1f)' % HIDE))
 
 
+# The old r10 director starts an env_screenoverlay (r10_glare_ov: a grey veil of alpha 0.82 with a wide red glow, 10
+# animated textures) for 69.4-71.34 (SetLensGlow). The preview does not draw screen overlays, the game does: in the gb run
+# it hid the turret and the wall under that veil (edge score 0 at 69.5-71.25). Tu_Update stops it in the tick it starts
+# and keeps r10GlowOn in step, so that SetLensGlow does not start it again (own haze veil + glow sprite instead).
 TU_CODE = '''function Tu_Update(t) {
     if(t<T_LO||t>T_HI)return;
     foreach(tr in tuTracks){
@@ -146,6 +150,9 @@ TU_CODE = '''function Tu_Update(t) {
         if(a[3]==1){local g=a[2]+(b[2]-a[2])*f;e.__KeyValueFromString("angles",g.x+" "+g.y+" "+g.z);}
     }
     SetScreenBlack(Lerp1(tuBlack,t));
+    local gl=(t>=69.4&&t<71.34);
+    if(gl&&r10GlowOn&&!tuGlareOff){EntFire("r10_glare_ov","StopOverlays","",0);tuGlareOff=true;}
+    r10GlowOn=gl;
     local ga=Lerp1(tuGrey,t).tointeger();
     if(ga!=r10RedAlpha){local fe=Entities.FindByName(null,"r10_red_fade");if(fe!=null){fe.__KeyValueFromString("renderamt",""+ga);EntFire("r10_red_fade","Fade","",0);r10RedAlpha=ga;}}
 }
@@ -167,7 +174,7 @@ BAND['z1'] = BAND['z0'] + float(os.environ.get('TU_BANDH', 35.4))
 A5_WALL_X = 410.0                          # a5: rust wall (s1b cloud, scale 21)
 A5_SLAB = dict(x=258.0, z0=-5.0, z1=94.0)  # a5: grey floor slab front face (band edges 2024-2080)
 LIFT = (195.0, float(os.environ.get('TU_LIFTY', -26.5)), float(os.environ.get('TU_LIFTO', 23.5)))                # a1: axis (x, y) and rail offset of the vertical lift tube
-RING2 = (180.0, -4.0, -255.0)
+RING2 = tuple(float(x) for x in os.environ.get('TU_R2', '180,-13,-241.6').split(','))   # a1: the small collar (glint 1978-1990: y -13, z -241.6 at x 192)
 USE_WEDGE = os.environ.get('TU_WEDGE', '0') == '1'       # tried: the score drops a little with it
 WEDGE = (13.0, 3.0, 110.0)                 # a1: top of the near dark rail relative to the camera (the film's central wedge)             # a1: the small collar the turret is lifted out of (1980-1996)
 BEAM_DIR = [(2021, 1.0, 0.35), (2028, 1.0, 0.55), (2032, 0.6, 1.0), (2036, 0.3, 1.0), (2040, -0.4, 1.0), (2046, -0.75, 1.0),
@@ -198,6 +205,26 @@ def cam_tube(r, J, org, tracks, name='r11_tu_a_camtube', rho=34.0, width=2.6, f0
     tracks.append(dict(name=name, keys=[(T0 - 0.1, r.m(org0), None)], on=T0 - 0.1, off=off * FRAME_T))
 
 
+CAM_WEDGE = os.environ.get('TU_CWEDGE', '1') == '1'
+RING1_NEW = os.environ.get('TU_RING1', '0') == '1'       # (round 3: the inner-edge fit scored lower at 65.5-66.0)
+GLOW_BAND = os.environ.get('TU_GLOWB', '1') == '1'
+HAZE2_X = float(os.environ.get('TU_HAZE2X', 125.0))
+LIFT_TOP = float(os.environ.get('TU_LIFTTOP', -160.0))    # top of the lift rails (round 3: below the slab, film 2008-2015: the bars end under it)
+
+
+def cam_wedges(r, J, org, tracks):
+    """the film's black wedge in the middle of the picture (1918-1946) keeps its place while the camera descends: two
+    plates that ride with the camera (models/turret.py cam_wedge: shapes measured on the moments), keyed at every
+    moment with the camera's own position and angles"""
+    t_b = 1933 * FRAME_T - 0.003
+    for nm, f0, f1 in (('a', 1918, 1932), ('b', 1933, 1946)):
+        ks = [(m[0], org[m[12]] + np.array(m[3:6]), qangle(m[6:9], m[9:12])) for m in J['moments'] if f0 <= m[1] <= f1]
+        ks = [(ks[0][0] - 0.02, ks[0][1], ks[0][2])] + ks
+        name = 'r11_tu_a_camwedge_' + nm
+        tracks.append(dict(name=name, keys=ks, on=(T0 - 0.01) if nm == 'a' else t_b, off=t_b if nm == 'a' else ks[-1][0] + 0.012))
+        r.prop('r11_tu_camwedge_' + nm, ks[1][1] - org['a1'], ks[1][2], name=name)
+
+
 def shot_a(v, d, tracks):
     J = load_cam('tu_a')
     org = {'a1': np.asarray(ORIGIN_A1), 'a5': np.asarray(ORIGIN_A5)}
@@ -205,7 +232,9 @@ def shot_a(v, d, tracks):
     d.override_camera(sharp_cuts(cam, lead=0.002), fov=60.0)
     # ---------------- room a1: tower base, grey band, wall, the moving tube end
     r = Room(v, ORIGIN_A1, 'a1', tex=0.35)
-    cam_tube(r, J, org, tracks)
+    cam_tube(r, J, org, tracks, x_end=float(os.environ.get('TU_CTEND', 232.0)))
+    if CAM_WEDGE:
+        cam_wedges(r, J, org, tracks)
     r.slab('x', A_WALL_X, (-700, -1500), (A1_LIT_Y, 500), -1, TM.WALL)             # lit right part (1986: boundary 200 px)
     r.slab('x', A_WALL_X, (A1_LIT_Y, -1500), (700, 500), -1, TM.WALL_A1)           # dark left part (1960 / 1990: p50 31-33)
     r.prop('r11_tu_tower', (TOWER['x'], TOWER['y'], TOWER['z']), (0, 0, 0), name='r11_tu_a_tower')
@@ -228,6 +257,12 @@ def shot_a(v, d, tracks):
     r.slab('z', -300.0, (-200, -700), (A_WALL_X, 700), +1, TM.FLOOR)            # floor (1980-1992: dark floor)
     P = J['props']
     ring_keys = [(t, org['a1'] + np.array(p), (0.0, 0.0, 0.0)) for t, p in P['ring']]
+    if RING1_NEW:       # round 3: inner edge of the light band (0.8 R) fitted on the E moments 1958-1976 (out/tu/r3/tools/ringfit.py)
+        R1 = json.load(open(os.path.join(HERE, 'data', 'tu_ring1.json')))
+        rk = [(t, np.array(p)) for t, p in R1['ring'] if abs(t / FRAME_T - round(t / FRAME_T)) < 1e-3]      # E moments (L ~ E here)
+        vel = (rk[-1][1] - rk[-3][1]) / (rk[-1][0] - rk[-3][0])
+        rk.append((2000 * FRAME_T, rk[-1][1] + vel * (2000 * FRAME_T - rk[-1][0])))
+        ring_keys = [(t, org['a1'] + p, (0.0, 0.0, 0.0)) for t, p in rk]
     if os.environ.get('TU_RINGX', '0') == '1':      # (scored lower: held is better) past the last fit (65.94) the ring keeps coming: at 66.0 its inner edge
         lp = np.array(P['ring'][-1][1])               # frames the picture (d ~ 88), by 66.1 it has passed the camera
         rx = [float(v) for v in os.environ.get('TU_RINGXS', '144,130,110').split(',')]
@@ -244,7 +279,7 @@ def shot_a(v, d, tracks):
     for sy in (-1, 1):
         for sx in (-1,):
             cx, cy = LIFT[0] + sx * LIFT[2], LIFT[1] + sy * LIFT[2]
-            r.box((cx - 3.5, cy - 3.5, -262.0), (cx + 3.5, cy + 3.5, -40.0), TM.BLACK)
+            r.box((cx - 3.5, cy - 3.5, -262.0), (cx + 3.5, cy + 3.5, LIFT_TOP), TM.BLACK)
     r.seal((-600, -800, -1700), (800, 800, 700))
     # ---------------- room a5: wall, slab, the rising turret
     r5 = Room(v, ORIGIN_A5, 'a5', tex=0.35)
@@ -314,7 +349,10 @@ def shot_b(v, d, tracks):
     r.slab('z', -41.0, (-200, -400), (B_WALL_X, 300), +1, TM.FLOOR)                 # floor (2084-2100: dark strip at the bottom)
     # sign and the small tube below / above it
     r.static('r11_tu_sign16', B_SIGN)
-    r.static('r11_tu_smalltube', (128.0, -100.0, float(os.environ.get('TU_STZ', 67.0))), tuple(float(v) for v in os.environ.get('TU_STA', '0,0,0').split(',')))
+    # round 3: the film's collars are seen nearly face-on (2188: width/height ~0.87) and grow toward the bottom: the tube
+    # comes out of the wall toward the camera, ~30 deg below the horizontal (ring centres 2188: x 165/137/104, z +3/-17/-32
+    # relative to the camera, ~35 apart): the vertical model pitched 62 deg, top collar just in front of the wall
+    r.static('r11_tu_smalltube', (float(os.environ.get('TU_STX', 146.0)), -100.0, float(os.environ.get('TU_STZ', 69.0))), tuple(float(v) for v in os.environ.get('TU_STA', '62,0,0').split(',')))
     r.static('r11_tu_htube', (100.0, -84.0, 278.0))           # the end: rings at x 100-102, z 277-280 (2214/2215 fits)
     if os.environ.get('TU_HT2', '118,-84,246') != 'off':        # a second camera-facing tube end lower down (2211: ring r 105 px at row 90)
         r.static('r11_tu_htube', tuple(float(v) for v in os.environ.get('TU_HT2', '118,-84,246').split(',')))
@@ -371,12 +409,20 @@ def shot_b(v, d, tracks):
     tracks.append(dict(name='r11_tu_b_turret_open', keys=[(t, p, a) for t, p, a in tk], on=2096 * FRAME_T, off=T_CUT_B - 0.001))
     r.prop('r11_tu_turret_open', np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG, name='r11_tu_b_turret_open')
     # red glow over the lower body: a soft sprite just in front of the turret
-    gk = [(t, p + EYE_OFF + np.array([-14.0, 0.0, -30.0]), None) for t, p, a in tk]
+    if GLOW_BAND:       # round 3: the film's red (R-G of 2083-2141): none above the waist, glow round the lower body, broad below
+        go = np.array([-14.0, 0.0, 0.0]); gm = 'r11_tu_glowband'
+    else:
+        go = np.array([-14.0, 0.0, -30.0]); gm = 'r11_tu_glow2'
+    gk = [(t, p + EYE_OFF + go, None) for t, p, a in tk]
     tracks.append(dict(name='r11_tu_b_glow', keys=gk, on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
-    r.prop('r11_tu_glow2', np.array(B_EYE[ks[0]]) + [-14.0, 0.0, -30.0], (0, 0, 0), name='r11_tu_b_glow')
+    r.prop(gm, np.array(B_EYE[ks[0]]) + go, (0, 0, 0), name='r11_tu_b_glow')
     # haze: a grey veil just in front of the camera until the cut at 2142
     tracks.append(dict(name='r11_tu_b_haze', keys=[(2083 * FRAME_T - 0.01, o + np.array([22.0, -30.0, 40.0]), None)], on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
     r.prop('r11_tu_haze', (22.0, -30.0, 40.0), (0, 0, 0), name='r11_tu_b_haze')
+    if HAZE2_X > 0:     # round 3: the haze is thicker on the wall than on the turret (film 2083: turret ~180, wall ~110 under
+        # the same grey): a second veil between the turret (x ~91) and the wall (150), the first one thinner
+        tracks.append(dict(name='r11_tu_b_haze2', keys=[(2083 * FRAME_T - 0.01, o + np.array([HAZE2_X, -30.0, 40.0]), None)], on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
+        r.prop('r11_tu_haze2', (HAZE2_X, -30.0, 40.0), (0, 0, 0), name='r11_tu_b_haze2')
     r.seal((-300, -600, -500), (B_WALL_X + 420, 400, 900))
 
 

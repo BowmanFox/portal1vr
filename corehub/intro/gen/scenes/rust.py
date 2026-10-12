@@ -107,11 +107,13 @@ def _arclen(P):
     return np.r_[0.0, np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))]
 
 
-def clean_ride(rd, end=None, flat_end=False):
+def clean_ride(rd, end=None, flat_end=False, lead=None):
     """Replace the measured positions (rd.moments, rd.curve) by straight lines along the straights and cubic
     Beziers (fitted to the measured positions, tangent to the straights) in the bends; the camera keeps its measured
     orientation and its arclength profile. end: (end point, end tangent) for a path that ends in a bend (map coords);
-    flat_end: the path ends on the last straight's line (the final bend is only begun)."""
+    flat_end: the path ends on the last straight's line (the final bend is only begun).
+    lead: {first frame of a bend: weight}: in that bend the path must not turn ahead of the camera (the film's view
+    leads the path into a turn); a path tangent turned further than the camera's measured view costs weight * rad^2."""
     mo = rd.moments
     fr = np.array([m[1] + (0.0 if m[2] == 'E' else 0.4995) for m in mo]); P = np.array([m[3] for m in mo])
     secs = rd.sections; st = [d for d in secs if d['kind'] == 'straight']
@@ -151,11 +153,22 @@ def clean_ride(rd, end=None, flat_end=False):
         else:
             sA = (bb * ee - cc * dd_) / den; sB = (aa * ee - bb * dd_) / den
             ha = max(1.0, sA); hb = max(1.0, -sB)
+        wl = (lead or {}).get(d['first'], 0.0)
+        if wl:
+            Fw = np.array([mo[i][4] for i in range(i0, i1 + 1)]); cam_turn = np.arccos(np.clip(Fw @ dA, -1, 1))
+            fm = _arclen(meas) / max(_arclen(meas)[-1], 1e-9)
         for fa in np.linspace(0.05, 1.0, 24):
             for fb in np.linspace(0.05, 1.0, 24):
                 C = _bezier(A, dA * fa * ha, B, dB * fb * hb, 120)
                 dd = np.sqrt(((meas[:, None, :] - C[None, :, :]) ** 2).sum(-1)).min(axis=1)
                 e = float((dd ** 2).mean())
+                if wl:
+                    sc_ = _arclen(C); q = np.interp(fm * sc_[-1], sc_, np.arange(len(C)))
+                    Tc = np.gradient(C, axis=0); Tc /= np.linalg.norm(Tc, axis=1, keepdims=True)
+                    Tq = Tc[np.clip(np.round(q).astype(int), 0, len(C) - 1)]
+                    path_turn = np.arccos(np.clip(Tq @ dA, -1, 1))
+                    if wl > 0: e += wl * rd.unit ** 2 * float((np.maximum(0.0, path_turn - cam_turn) ** 2).mean())
+                    else: e += -wl * rd.unit ** 2 * float(((path_turn - cam_turn) ** 2).mean())     # < 0: follow the view
                 if best is None or e < best[0]: best = (e, fa, fb, C)
         e, fa, fb, C = best
         # place the moments on the curve by their measured arclength fraction
@@ -218,13 +231,23 @@ def room_a(c):
     c.slab('x', 3548.0, (1004, FLOOR_A), (3487, 2361), +1, D)              # left wall of the +y run
     # end of the shot: the camera turns right (+x) into a dark tube; a lit wall far ahead (1081)
     c.slab('x', 5200.0, (2650, 1500), (3400, 2300), -1, D)
+    # round 3: 35.75-36.1 the film shows rust panels all round the tube mouth (frames 1071-1082), where at 35.5 it is
+    # black right of the run (the same place seen from the run): the far wall y 3487 goes on past x 4623 to the corner
+    # with the wall x 5200 as a model shown only from 35.7 s (ru_show; parked under the floor before)
+    c.slab('x', 5200.0, (3400, 1300), (3487, 2500), -1, D)
+    E.add_prop(c.v, 'models/corehub_intro/r11_rux_endwall.mdl', c.m(ENDWALL_PARK), (0, 0, 0), name='r11_rust_a_endwall')
+    SHOW.append(('r11_rust_a_endwall', 35.70, 36.20, c.m(ENDWALL_AT), c.m(ENDWALL_PARK)))
+    E.add_prop(c.v, 'models/corehub_intro/r11_rux_mouthwall.mdl', c.m(MOUTH_PARK), (0, 0, 0), name='r11_rust_a_mouthwall')
+    SHOW.append(('r11_rust_a_mouthwall', 35.85, 36.20, c.m(MOUTH_AT), c.m(MOUTH_PARK)))
     # devices
     prop(c, 'r11_ru_port', (X_WALL_A, 0.0, 0.0), (0, 0, 0), 'r11_rust_a_port0')
     prop(c, 'r11_ru_support', (X_WALL_A - 90.0, 0.0, -62.0), (0, 0, 0), 'r11_rust_a_support0')
     prop(c, 'r11_ru_port_open', (X_TUBE_A, Y_PORT_A, 0.0), (0, 90, 0), 'r11_rust_a_port1')
     prop(c, 'r11_ru_glass_t', (X_TUBE_A, 820.0, 0.0), (0, 90, 0), 'r11_rust_a_glass')
     prop(c, 'r11_ru_elbow', (2283.0, -228.0, 30.0), (0, 0, 0), 'r11_rust_a_elbow')
-    prop(c, 'r11_ru_endtube', (4540.0, 2950.0, 1863.0), (0, 0, 0), 'r11_rust_a_endtube')     # ribbed dark tube the camera enters at the cut (1063-1082)
+    # ribbed dark tube the camera enters at the cut (1063-1082); round 3: moving its mouth to y 2910, z 1852 (where
+    # the film's dark ring points at 36.0 s) and a collar on its face both scored lower at 36.0: kept at y 2950
+    prop(c, 'r11_ru_endtube', (4540.0, MOUTH_AT[1], MOUTH_AT[2]), (0, 0, 0), 'r11_rust_a_endtube')
 
 
 # collars the export did not list (the fade-in hides their edges) and two of its rings moved: ride x of the first
@@ -235,13 +258,36 @@ MOVE_RINGS_A = {991.9: 2163.0, 995.6: 2711.0}
 # rings that could be placed from their image radius instead of the export's passing frame (tried, all scored lower
 # once the preview averaged t and t+1/60 like the film: ring 1042.6 at z 870, a ring at y 620 for 1010, ring 1073.3
 # at y 2500); the export's positions are kept
-PLACED_RINGS_A = []
+# round 3: the collar at the start of the second +y run, seen at the bottom of the frame at 35.25 s (frame 1056: centre
+# 22.6 deg below the view, radius 125 px -> 226 units along that ray: on the path at y 1952)
+# (tried in round 3 and dropped: a collar at y 630 after the junction bend and the ring of 1025.0 at y 1363, from the
+# light-band edges of the moments 1010-1020: edge +0.03 but ssim -0.12 over 33.5-34.25)
+PLACED_RINGS_A = [((4253.5, 1952.0, 1863.0), (0.0, 1.0, 0.0))]
 REPLACE_RINGS_A = {}
 # junction rings one frame later than exported (998: ring radius ~136 px ahead -> x ~3565; 1003: radius ~136 px
 # -> passed at ~1004.2): placed on the path at these frames
 REFRAME_RINGS_A = {999.0: 1000.1, 1003.0: 1004.2}
 END_TANGENT_A = (0.945, 0.328, 0.0)          # direction of the path at the cut (1082E -> 1082L)
 PORT_A = 4538.0                              # the main tube ends at the port in the wall (x of the port's face)
+
+
+ENDWALL_AT = (X_WALL_A, 3487.0, 1300.0)       # model r11_rux_endwall: x 0..577, face at y 0 (facing -y), z 0..1200
+ENDWALL_PARK = (4000.0, 3000.0, -900.0)       # under the floor slab, inside the shell
+MOUTH_AT = (4538.0, 2950.0, 1863.0)           # model r11_rux_mouthwall: the wall round the end tube's mouth (x 4540)
+MOUTH_PARK = (3000.0, 3000.0, -900.0)
+SHOW = []
+
+
+def show_props(d):
+    """director hook: props in SHOW sit at their place only between t0 and t1 (else parked); acts only in 32.6-38.95 s"""
+    rows = ','.join('["%s",%.4f,%.4f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f]' % ((n, t0, t1) + tuple(p) + tuple(q)) for n, t0, t1, p, q in SHOW)
+    d.append('ruShow <- [' + rows + '];\n' + '''function Ru_Show(t) {
+    if(t<32.6||t>38.95) return;
+    foreach(r in ruShow){local e=Entities.FindByName(null,r[0]);if(e==null)continue;
+        if(t>=r[1]&&t<r[2])e.SetOrigin(Vector(r[3],r[4],r[5]));else e.SetOrigin(Vector(r[6],r[7],r[8]));}
+}
+''')
+    d.hook('Ru_Show(t);')
 
 
 def lead_in(cam, t_from):
@@ -266,10 +312,15 @@ function Ru_Fade(t) {
     d.hook('Ru_Fade(t);', late=True)
 
 
-# alpha = 1 - film / unfaded preview (linear light, frames 979-985 and 1150-1166, see the report)
-FADE_IN = [(32.60, 255.0), (32.674, 229.0), (32.741, 179.0), (32.808, 104.0), (32.874, 31.0), (32.92, 0.0), (33.16, 0.0)]
-FADE_OUT = [(38.38, 0.0), (38.447, 40.0), (38.513, 117.0), (38.58, 159.0), (38.647, 175.0), (38.714, 198.0), (38.78, 217.0),
-            (38.847, 236.0), (38.914, 250.0), (38.94, 255.0)]
+# round 3: the game (and now the preview) draws SetScreenBlack in gamma space: the round-2 alphas (fitted as
+# 1 - film / unfaded in linear light, frames 979-985 and 1150-1166) converted to 255 * (1 - (1 - a/255) ^ (1/2.2))
+# fade-in re-fitted on the gamma-space preview (film 979-986: 1.9 4.7 7.0 10.2 10.1 13.6 16.3 20.5; the unfaded
+# preview 14-33 with the collar passes): 32.75 s needs ~0.35 of the unfaded 29 -> alpha ~165
+FADE_IN = [(32.60, 255.0), (32.674, 225.0), (32.741, 168.0), (32.775, 150.0), (32.808, 110.0), (32.874, 30.0), (32.92, 0.0), (33.16, 0.0)]
+# fade-out re-fitted on the gamma-space preview: alpha = 255 * (1 - film / unfaded preview) at 38.5 (film 23.2,
+# unfaded 54.2 -> 146) and 38.75 (13.8 / 34.2 -> 152)
+FADE_OUT = [(38.38, 0.0), (38.447, 60.0), (38.513, 146.0), (38.58, 148.0), (38.647, 150.0), (38.714, 151.0), (38.78, 156.0),
+            (38.847, 180.0), (38.914, 215.0), (38.94, 255.0)]
 
 
 def straight_rails(c, a, b, rho=34.0, width=1.8):
@@ -282,6 +333,55 @@ def collars(c, pts, prefix, model=None):
     """collar props at ride points with axis directions [(p, axis)]"""
     for k, (p, ax) in enumerate(pts):
         E.add_prop(c.v, model or tube.COLLAR_MDL, c.m(p), tube.axis_angles(ax), name='%s_collar%d' % (prefix, k))
+
+
+# ------------------------------------------------------------------------------------------------ sample timing
+# The quarter-second samples (game runs, score.py) compare the game at t (two 60 Hz moments t, t + 1/60) with the
+# film frame n = round(t / FRAME_T), whose moments are n * FRAME_T and + 1/60: at x.25 / x.75 s the game is 0.4 frame
+# AHEAD of the film frame it is compared with, at x.0 / x.5 s 0.1 frame behind. A collar passing at 150 units per
+# frame then shows 60 units nearer than in the film. sample_shift() moves a collar along the path by the camera's
+# travel over that offset at the samples where the collar is in view (weighted by its size there), so the samples
+# show it as the film frames do; at most 0.4 frame of travel, invisible in motion.
+SAMPLES = [32.75 + 0.25 * i for i in range(25)]
+# Oct 12: the scorers now compare film frame n with the game / preview at the frame's own time n * FRAME_T
+# (offline/preview.film_time; the Mac's fetch_run.py fetches the game frames the same way), so the offset above is
+# gone and the shift is off.
+SAMPLE_SHIFT = False
+
+
+def _s_time(rd, t):
+    """camera arclength at film time t (fractional frames: E moment of frame n at n)"""
+    return rd.s_at(t / FRAME_T)
+
+
+def sample_shift(rd, s_c, R=61.06, f=461.88):
+    if not SAMPLE_SHIFT:
+        return 0.0
+    num = 0.0; den = 0.0
+    t_lo = rd.raw['first'] * FRAME_T; t_hi = (rd.raw['last'] + 1) * FRAME_T
+    for t in SAMPLES:
+        n = int(round(t / FRAME_T)); tn = n * FRAME_T
+        if not (t_lo <= t <= t_hi and t_lo <= tn <= t_hi): continue
+        D = s_c - _s_time(rd, tn)
+        if not (-150.0 < D < R * f / 15.0): continue          # in view, or just passed (the shift may bring it back)
+        w = R * f / max(abs(D), 30.0)                          # near passes dominate
+        num += w * (_s_time(rd, t) - _s_time(rd, tn)); den += w
+    return num / den if den > 0 else 0.0
+
+
+def shift_points(rd, pts, unit=1.0, origin=None):
+    """[(ride point, axis)] -> the same moved along the path by sample_shift (ride coordinates of a Ride built with
+    origin 0, unit 1: rd here is such a ride, cleaned as the scene's)"""
+    out = []
+    for p, ax in pts:
+        p = np.asarray(p, dtype=float)
+        i = int(np.argmin(np.linalg.norm(rd.curve - p, axis=1))); s = float(rd.S[i])
+        ds = sample_shift(rd, s)
+        q, tg = rd.at(s + ds)
+        # keep the point's offset from the path (collars sit on it; this is for safety)
+        out.append((q + (p - rd.curve[i]), tg if np.linalg.norm(np.cross(tg, ax)) > 1e-3 else np.asarray(ax, dtype=float)))
+        print('  collar s %7.1f shift %+6.1f' % (s, ds))
+    return out
 
 
 def build_a(v, d):
@@ -305,6 +405,8 @@ def build_a(v, d):
         elif rp: pts.append((np.array(rp[0]), r['axis']))
         else: pts.append(((r['pos'] - o), r['axis']))
     pts += [(np.array(p), np.array(a)) for p, a in PLACED_RINGS_A]
+    rr = Ride('rust_a'); clean_ride(rr, end=(rr.moments[-1][3], np.array(END_TANGENT_A)))
+    pts = shift_points(rr, pts)
     collars(c, pts, 'r11_rust_a', model='models/corehub_intro/r11_ru_collar.mdl')
     c.seal()
     return rd
@@ -333,13 +435,22 @@ def room_b(c):
 
 
 PORT_B = 7470.0
-EXTRA_COLLARS_B = [94.0, 820.0]        # ring radius 300 / 250 px in frames 1083 / 1089
-DARK_RINGS_B = (1120.5, 1153.8)         # dark rings in the film there (1119: dark ring below; 1154: dark ring around)
+# round 3: the second bend's fitted path turned ahead of the camera (horizontal at 1139 where the measured view still
+# looks 16 deg down and the film's rails meet at the frame centre, 38.0 s): the path may not turn ahead of the view
+LEAD_B = {1134: 2.0e5}                   # (1116: -1e5, a path following the view in the first bend, changed nothing)
+# collars of shot B (ride coordinates of the cleaned path), round 3: from the film's light-band edges, s_c = s_cam +
+# 61.06 * 461.88 / r over every E / L moment of a straight (clusters of 5-18 moments agreeing within 10-40 units):
+#   upper run (1083-1115): x 94 (1083: r 292 px), 652, 1414, 2168, 2718, 3269, 4026, 4562
+#   the drop (1124-1133):  z -779, -1301          lower run (1142-1152): x 5879, 6261, 6658
+COLLARS_B = ([((x, 0.0, 0.0), (1.0, 0.0, 0.0)) for x in (94.0, 652.0, 1414.0, 2168.0, 2718.0, 3269.0, 4026.0, 4562.0)] +
+             [((4976.9, 0.0, z), (0.0, 0.0, -1.0)) for z in (-779.0, -1301.0)] +
+             [((x, 0.0, -1519.0), (1.0, 0.0, 0.0)) for x in (5879.0, 6261.0, 6658.0)])
+DARK_RINGS_B = (1153.8,)                # dark ring in the film there (1154: dark ring around); 1120.5 dropped (37.25: rails only)
 
 
 def build_b(v, d):
     rd = Ride('rust_b', origin=ORIGIN_B, unit=UNIT_B)
-    clean_ride(rd, flat_end=True)
+    clean_ride(rd, flat_end=True, lead=LEAD_B)
     d.override_camera(rd.camera(), fov=60.0)
     c = Cell(v, rd, ORIGIN_B, UNIT_B, CELL_C1)
     room_b(c)
@@ -349,14 +460,11 @@ def build_b(v, d):
     straight_rails(c, (4500.0, 0, 0), (PORT_B, 0, 0))          # main tube on to the port of the far wall
     from models.tubekit import build_collar
     o = np.asarray(ORIGIN_B)
-    pts = [(np.array([x, 0.0, 0.0]), np.array([1.0, 0, 0])) for x in EXTRA_COLLARS_B]; dark = []
+    rr = Ride('rust_b'); clean_ride(rr, flat_end=True, lead=LEAD_B)    # ride coordinates (origin 0, unit 1), as built
+    pts = shift_points(rr, [(np.array(p), np.array(a)) for p, a in COLLARS_B]); dark = []
     for r in rd.rings:
-        if abs(r['frame'] - 1117.5) < 0.3: continue           # 1117.5: no collar there in the film (1116)
-        if abs(r['frame'] - 1115.0) < 0.3:                    # 1115: ring radius 280 px in frame 1115 -> x 4580
-            pts.append((np.array([4580.0, 0.0, 0.0]), np.array([1.0, 0, 0]))); continue
         if any(abs(r['frame'] - f) < 0.3 for f in DARK_RINGS_B):
-            dark.append(((r['pos'] - o) / k, r['axis'])); continue
-        pts.append(((r['pos'] - o) / k, r['axis']))
+            dark.append(((r['pos'] - o) / k, r['axis']))
     collars(c, pts, 'r11_rust_b', model='models/corehub_intro/r11_ru_collar_s065.mdl')
     for kk, (p, ax) in enumerate(dark):          # clamps are built about model +X
         ax = np.asarray(ax, dtype=float); left = np.cross([0, 0, 1.0], ax) if abs(ax[2]) < 0.9 else np.array([0, 1.0, 0])
@@ -385,7 +493,9 @@ def make_static(v):
 
 def apply(v, d):
     RM.brush_materials()
+    del SHOW[:]
     build_a(v, d)
     build_b(v, d)
     fades(d)
+    show_props(d)
     make_static(v)

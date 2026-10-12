@@ -105,6 +105,14 @@ The picture does not change with scale (keep k >= 0.4 so the near rails stay far
   the game: a black fade of alpha a scales the frame's 0-255 values by (1 - a/255). The preview did this in linear light
   until Oct 12 (fades looked weaker there: 106 instead of the game's 84 at 5.5 s); it now matches the game, so fade
   tables tuned on the old preview are too dark now: re-fit them against the film (alpha = 255 * (1 - film/unfaded)).
+- **Screen overlays** (env_screenoverlay) are drawn by the game but NOT by the preview: the old director's
+  r10_flicker_ov (6.85-7.85 s, the opening's cable flash) and r10_glare_ov (69.4-71.34 s, a grey veil with a wide red
+  glow that hid the turret in the game; the turret scene now stops it).
+- **Sample timing**: the video frame for a sample time t is n = round(t x 29.97); it blends the moments
+  n x 1001/30000 and + 1/60. The scorers (score.py, cmp.py, runscore.py) and the Mac's fetch_run.py compare the
+  game / preview at that frame's own time (`preview.film_time(t)`), not at t (until Oct 12 13:30 they used t: half a
+  film frame late at x.25 / x.75 s; do not compensate for that offset in your scene any more). When you render
+  yourself to compare with `ref_frame(t)`, use `P.render(film_time(t), blend=True)`.
 - Otherwise the game matches the preview closely (geometry, unlit materials, world translucency).
 - Game runs: frames of the newest run are in `/home/claude/data/runs/<run>/m<milliseconds>.jpg` every 0.25 s (blends of
   the game's two 60 fps frames at t and t + 1/60, like the film); `cmp.py TAG --run <run>` shows film | game | preview,

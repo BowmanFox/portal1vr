@@ -20,6 +20,13 @@ FRAMES = '/home/claude/data/frames'
 RUNS = '/home/claude/data/runs'
 
 
+def film_time(t):
+    """time of the 2009 video frame nearest to t (the frame ref_frame(t) returns). That frame blends the moments
+    film_time(t) and film_time(t) + 1/60, so the game / preview must be compared at film_time(t), not at t (at
+    x.25 / x.75 s the two differ by half a film frame)."""
+    return round(t * 30000 / 1001) * 1001 / 30000
+
+
 def ref_frame(t, size=None):
     """2009 video frame nearest to time t (640x400)"""
     n = max(0, min(4015, round(t * 30000 / 1001)))

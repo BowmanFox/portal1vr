@@ -10,7 +10,7 @@ scale of the measured camera (COLMAP model 1 times S1, see data/ic_cam_ride.json
   r11_ic_petal       iris quarter for the wall iris (axis model +X, petal in +Y+Z), radius 64
   r11_ic_disc        the white disc (closed hatch) at the far wall, axis +X
 Older starter models (kept, the old map refers to them): p9_end_shaft_iris_quarter, ending_iris_frame."""
-import math
+import math, os
 import numpy as np
 from lib.gen import Mesh, V, mat, ramp, save, rot_x, rot_y, rot_z
 from models import iris as I
@@ -37,10 +37,12 @@ def materials():
     mat('r11_ic_orange', (0.53, 0.215, 0.115))
     mat('r11_ic_orange_hi', (0.60, 0.25, 0.12))
     mat('r11_ic_orange_lo', (0.40, 0.17, 0.10))
-    for i, c in enumerate(((0.19, 0.15, 0.14), (0.25, 0.17, 0.14), (0.35, 0.19, 0.14), (0.47, 0.22, 0.13), (0.57, 0.245, 0.125), (0.66, 0.27, 0.125))):
+    # funnel bands top .. bottom: the film's radial luminance from inside the funnel (115.1: 108 at the centre, 84 at r 100,
+    # 68 at r 200, 52 at r 300 px) on the camera's sight lines to the bands (older ramp was 10-20 levels brighter)
+    for i, c in enumerate(((0.21, 0.155, 0.14), (0.25, 0.16, 0.14), (0.30, 0.175, 0.14), (0.38, 0.195, 0.14), (0.46, 0.22, 0.14), (0.58, 0.265, 0.15))):
         mat('r11_ic_burn%d' % i, c)
-    mat('r11_ic_fire', (0.80, 0.36, 0.15))
-    mat('r11_ic_fireglow', (0.74, 0.30, 0.13))
+    mat('r11_ic_fire', (0.74, 0.34, 0.15))
+    mat('r11_ic_fireglow', (0.66, 0.30, 0.15))
     mat('r11_ic_white', (0.88, 0.88, 0.87))
     mat('r11_ic_cyan', (0.30, 0.85, 0.85))
     mat('r11_ic_glowmat', (0.96, 0.92, 0.55))
@@ -51,8 +53,25 @@ def materials():
     mat('r11_ic_tlight', (0.37, 0.37, 0.37))
     mat('r11_ic_rimout', (0.26, 0.25, 0.25))
     mat('r11_ic_pipe', (0.13, 0.12, 0.12))
-    mat('r11_ic_darkwall', (0.07, 0.06, 0.06))
+    mat('r11_ic_darkwall', (0.13, 0.12, 0.12))         # the shaft's dark rim wall (film 3342-3350: 30-40)
     ramp('r11_ic_headmat', (0.93, 0.87, 0.62), (0.6, 0.72, 0.86, 1.0))
+    mat('r11_ic_headdk', (0.45, 0.40, 0.25))
+    mat('r11_ic_headmat2', (0.80, 0.74, 0.50))
+    mat('r11_ic_fan', (0.80, 0.78, 0.77), alpha=float(os.environ.get('IC_FANA', 0.2)), translucent=True, nocull=True)
+    mat('r11_ic_fc_light', (0.33, 0.33, 0.33)); mat('r11_ic_fc_dark', (0.12, 0.12, 0.12)); mat('r11_ic_fc_mid', (0.20, 0.20, 0.20))
+    mat('r11_ic_fc_sleeve', (0.30, 0.30, 0.30))
+    ramp('r11_ic_dk', (0.17, 0.17, 0.18))
+    mat('r11_ic_yfan', (0.98, 0.86, 0.45), alpha=0.42, translucent=True, nocull=True)
+    mat('r11_ic_lobe', (0.98, 0.88, 0.45), alpha=float(os.environ.get('IC_LOBEA', 0.5)), translucent=True, nocull=True)
+    # own turret / cube / can (film 3342-3354: shell ~225 lit, ~100 in shade; gaps and legs dark)
+    ramp('r11_ic_tsh', (0.88, 0.88, 0.89), (0.36, 0.46, 0.57, 0.69, 0.82, 0.95))
+    mat('r11_ic_tgap', (0.09, 0.09, 0.09))
+    mat('r11_ic_teye', (0.85, 0.16, 0.14))
+    ramp('r11_ic_tleg', (0.30, 0.30, 0.31), (0.45, 0.7, 1.0))
+    ramp('r11_ic_cubef', (0.80, 0.80, 0.81))
+    ramp('r11_ic_cubec', (0.52, 0.52, 0.53))
+    mat('r11_ic_cubed', (0.86, 0.86, 0.87))
+    ramp('r11_ic_can', (0.40, 0.37, 0.35))
 
 
 def lathe_z(m, prof, material, n=12, phase=15.0):
@@ -130,6 +149,18 @@ def tcollar(R=61.06, n=12, sleeve=True, light='r11_ic_lightgrey'):
     return m
 
 
+def tcollar_first(R=82.0, n=12):
+    """collar of the first tube, from the film's radial profile at 110.75 (camera 125 before the collar at x 1216):
+    light band 0.69-1.0 R (grey 85), dark ring 0.56-0.69 R (30), grey 0.43-0.56 R (50), lit sleeve 0.43 R deep 0.4 R"""
+    m = Mesh()
+    I.ring_x(m, 0.0, 0.69 * R, R, 'r11_ic_fc_light', n=n)
+    I.ring_x(m, 0.0, R, 1.15 * R, 'r11_ic_darkgrey', n=n)
+    I.ring_x(m, 0.0, 0.56 * R, 0.69 * R, 'r11_ic_fc_dark', n=n)
+    I.ring_x(m, 0.0, 0.43 * R, 0.56 * R, 'r11_ic_fc_mid', n=n)
+    I.wall_x(m, 0.0, 0.43 * R, 0.4 * R, 0.43 * R, 'r11_ic_fc_sleeve', n=n, inward=True)
+    return m
+
+
 def ringdark(R=100.0, w=0.25):
     m = Mesh()
     annulus_z(m, 0.0, (1 - w) * R, R, 'r11_ic_midgrey')
@@ -157,12 +188,14 @@ def bowl(prof):
     m = Mesh(); lathe_z(m, prof, 'r11_ic_orange', n=24); return m
 
 
-def rim(r0=64.0, r1=132.0):
-    """12-sided frame round the opening in the rust wall, facing -X (film 110.9: light band at R ~82, dark inside)"""
+def rim(r0=64.0, r1=170.0):
+    """12-sided frame round the opening in the rust wall, facing -X (film 110.75 / 110.85 radial profiles: dark ring
+    R 88-109 (~28), light band 109-126 (~85), grey outside (~66))"""
     m = Mesh()
-    I.ring_x(m, 0.0, r0, 76.0, 'r11_ic_darkgrey', n=12)
-    I.ring_x(m, 0.0, 76.0, 88.0, 'r11_ic_lightgrey', n=12)
-    I.ring_x(m, 0.0, 88.0, r1, 'r11_ic_rimout', n=12)          # film 110.9: about 66 outside the light band
+    I.ring_x(m, 0.0, r0, 88.0, 'r11_ic_darkgrey', n=12)
+    I.ring_x(m, 0.0, 88.0, 109.0, 'r11_ic_fc_dark', n=12)
+    I.ring_x(m, 0.0, 109.0, 126.0, 'r11_ic_fc_light', n=12)
+    I.ring_x(m, 0.0, 126.0, r1, 'r11_ic_rimout', n=12)
     I.wall_x(m, 0.0, r0, 30.0, r0, 'r11_ic_black', n=12, inward=True)
     return m
 
@@ -206,9 +239,181 @@ def rust_texture(n=512, seed=7):
     return np.clip(img, 0, 255).astype(np.uint8)
 
 
+# ------------------------------------------------------------------ own unlit turret, cube and can
+# The stock vacum_turret / vacum_cube / food_can render BLACK in the game's unlit cells: own models instead.
+# Turret after the idea of gen/models/turret.py (own copy, prefix r11_ic): model +Z up, eye toward -X, origin = the eye;
+# shell 42 high x 2 * T_W wide x 2 * T_D deep at k = 1 (the stock model's size); the film's falling turret shows white
+# shell panels with dark gaps between them, a red eye and dark legs.
+T_TOP, T_BOT, T_W, T_D = 18.5, -23.5, 8.2, 7.6
+TURRET_K = 1.0          # falling turret: fitted to the film's picture at the shaft's scale (S1)
+TURRET_K_TOP = 2.5
+CUBE_S = 38.0
+HEAD_K = float(os.environ.get('IC_HEADK', 1.3))
+RUST_TEX = int(os.environ.get('IC_RUST', 1))      # (the higher-contrast rust_texture2 scored lower: 110.25-111.0 ssim 0.49 vs 0.52)
+
+
+def _shell_r(z, W=T_W):
+    if z >= T_TOP or z <= T_BOT: return 0.0
+    zc = -3.0
+    if z >= zc:
+        u = (z - zc) / (T_TOP - zc); return W * max(0.0, 1 - u ** 1.9) ** 0.55
+    u = (zc - z) / (zc - T_BOT); return W * max(0.0, 1 - u ** 2.3) ** 0.5
+
+
+def turret(k=1.0, n=20, light=(-0.75, 0.45, 0.5), gaps=True, legs=True):
+    m = Mesh()
+    zs = list(np.linspace(T_BOT, T_TOP, 22))
+    body = Mesh().lathe([(z, _shell_r(z)) for z in zs], 'r11_ic_tsh', n=n, phase=0.0)
+    body.transform(R=np.diag([T_D / T_W, 1.0, 1.0]))
+    body.shade('r11_ic_tsh', levels=6, light=light)
+    m.add(body)
+    if gaps:
+        # dark gaps between the side panels and the centre body, front and back (the film sees the turret's back)
+        for side in (-1.0, 1.0):
+            for yy, w in ((-4.6, 0.75), (4.6, 0.75)):
+                zz = np.linspace(T_BOT + 1.5, T_TOP - 1.5, 26)
+                for z0, z1 in zip(zz, zz[1:]):
+                    r0 = _shell_r(z0); r1 = _shell_r(z1)
+                    y0 = yy * r0 / T_W; y1 = yy * r1 / T_W
+                    if r0 <= abs(y0) + w or r1 <= abs(y1) + w: continue
+                    x0 = side * (T_D / T_W) * math.sqrt(max(0.0, r0 ** 2 - y0 ** 2))
+                    x1 = side * (T_D / T_W) * math.sqrt(max(0.0, r1 ** 2 - y1 ** 2))
+                    q = [V(x0 + side * 0.08, y0 - w, z0), V(x1 + side * 0.08, y1 - w, z1), V(x1 + side * 0.08, y1 + w, z1), V(x0 + side * 0.08, y0 + w, z0)]
+                    if side > 0: q = q[::-1]
+                    m.quad('r11_ic_tgap', *q)
+    # the eye (facing -X)
+    xe = -T_D - 0.1
+    for r0, r1, mt in ((1.7, 2.6, 'r11_ic_tgap'), (0.0, 1.7, 'r11_ic_teye')):
+        for j in range(16):
+            a0 = 2 * math.pi * j / 16; a1 = 2 * math.pi * (j + 1) / 16
+            q = [V(xe, r0 * math.cos(a0), r0 * math.sin(a0)), V(xe, r1 * math.cos(a0), r1 * math.sin(a0)),
+                 V(xe, r1 * math.cos(a1), r1 * math.sin(a1)), V(xe, r0 * math.cos(a1), r0 * math.sin(a1))][::-1]
+            if r0 < 1e-6: m.poly(mt, [q[0], q[1], q[2]])
+            else: m.quad(mt, *q)
+    if legs:
+        lg = Mesh()
+        for pts in (((-2.0, 4.0, -20.0), (-3.0, 10.5, -27.0), (-5.0, 12.5, -49.0)),
+                    ((-2.0, -4.0, -20.0), (-3.0, -10.5, -27.0), (-5.0, -12.5, -49.0)),
+                    ((3.0, 0.0, -21.0), (8.0, 0.0, -28.0), (9.0, 0.0, -50.0))):
+            for a, b in zip(pts, pts[1:]):
+                lg.tube(V(*a), V(*b), 1.4, 'r11_ic_tleg', n=6)
+        lg.shade('r11_ic_tleg', levels=3, light=light)
+        m.add(lg)
+    return m.transform(scale=k)
+
+
+def turret_open(k=1.0, light=(0.6, 0.4, 0.7)):
+    """the turret with its side panels spread (film 3432-3456): narrower body, a white wing out on each side with a
+    dark gun plate on its inner face"""
+    m = turret(1.0, light=light, gaps=False)
+    m.transform(R=np.diag([1.0, 0.75, 1.0]))
+    for sy in (-1.0, 1.0):
+        w = Mesh().sphere((0.0, 0.0, 0.0), 1.0, 'r11_ic_tsh', n=12, m=8, squash=(6.5, 4.0, 15.0))
+        w.shade('r11_ic_tsh', levels=6, light=light)
+        m.add(w, R=rot_x(sy * 12.0), offset=(1.0, sy * 10.5, -3.0))
+        m.box((-6.6, sy * 9.5 - 1.6, -9.0), (-1.0, sy * 9.5 + 1.6, 7.0), 'r11_ic_tgap')
+    return m.transform(scale=k)
+
+
+def yfans(R=115.0, alpha_w=((-36.0, 21.0), (0.0, 9.0), (36.0, 22.0))):
+    """the three yellow scan fans converging on the falling turret (film 3452-3490): flat wedges in the model's YZ plane
+    facing -X, apex at the origin, opening toward +Z (picture up) at the given angles from vertical (+ = picture right =
+    model -Y) and widths (degrees)"""
+    m = Mesh()
+    for a, w in alpha_w:
+        p = []
+        for j in range(5):
+            phi = math.radians(a - w / 2 + w * j / 4.0)
+            p.append(V(0.0, -R * math.sin(phi), R * math.cos(phi)))
+        for j in range(4):
+            m.tri('r11_ic_yfan', V(0.0, 0.0, 0.0), p[j + 1], p[j])
+    return m
+
+
+def cube(s=50.0, light=(0.4, -0.5, 0.75)):
+    """storage cube (film 3361-3384: light grey faces, a round plate in the middle of each face, darker corner
+    pieces), centred at the origin"""
+    m = Mesh(); h = s / 2.0
+    m.box((-h, -h, -h), (h, h, h), 'r11_ic_cubef')
+    c = 0.3 * s
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                p = np.array([sx, sy, sz]) * (h - c / 2 + 0.6)
+                m.box(p - c / 2, p + c / 2, 'r11_ic_cubec')
+    disc = Mesh(); annulus_z(disc, 0.0, 0.0, 0.2 * s, 'r11_ic_cubed', n=16); annulus_z(disc, 0.0, 0.2 * s, 0.26 * s, 'r11_ic_cubec0', n=16)
+    for R in (np.eye(3), rot_x(180), rot_x(90), rot_x(-90), rot_y(90), rot_y(-90)):
+        m.add(disc, R=R, offset=R @ np.array([0.0, 0.0, h + 0.4]))
+    m.shade('r11_ic_cubef', levels=4, light=light); m.shade('r11_ic_cubec', levels=4, light=light)
+    return m
+
+
+def can(r=7.0, hgt=18.0, light=(0.4, -0.5, 0.75)):
+    m = Mesh(); m.tube((0, 0, -hgt / 2), (0, 0, hgt / 2), r, 'r11_ic_can', n=10, caps=True)
+    m.shade('r11_ic_can', levels=4, light=light)
+    return m
+
+
+def head():
+    """the lit optical head hanging in front of the exit iris (film 3500-3508: pale yellow body ~60 wide hanging from
+    the top, a round mouth facing the camera at its lower end); origin = the mouth, model +Z up, mouth toward -X"""
+    m = Mesh()
+    body = Mesh().lathe([(-6.0, 0.0), (-6.0, 20.0), (4.0, 28.0), (30.0, 31.0), (60.0, 27.0), (100.0, 21.0), (170.0, 16.0), (170.0, 0.0)][::-1],
+                        'r11_ic_headmat', n=14)
+    body.shade('r11_ic_headmat', levels=4, light=(-1.0, 0.3, 0.5))
+    m.add(body, R=np.diag([0.8, 1.0, 1.0]), offset=(0.0, 0.0, 6.0))
+    face = Mesh(); annulus_z(face, 0.0, 9.0, 15.0, 'r11_ic_headdk', n=16); annulus_z(face, 0.0, 0.0, 9.0, 'r11_ic_headmat2', n=16)
+    m.add(face, R=rot_y(-90), offset=(-25.0, 0.0, 14.0))
+    return m
+
+
+def lobes(L=80.0, r=40.0):
+    """the head's three yellow light lobes (film 3504: up behind the head, down-left and down-right toward the camera,
+    round ends ~95 across): translucent cones from the mouth"""
+    m = Mesh()
+    for d in ((-0.3, 0.0, 1.0), (-0.35, 0.55, -0.75), (-0.35, -0.55, -0.75)):
+        d = np.array(d) / np.linalg.norm(d)
+        m.tube((0, 0, 8.0), tuple(d * L + np.array([0, 0, 8.0])), 6.0, 'r11_ic_lobe', n=16, caps=True, radius2=r)
+    return m
+
+
+def rust_texture2(n=1024, seed=11, panels=3):
+    """the film's rust walls (3519-3546, the end wall seen frontally): grey metal (median 60 60 62, dark 44) with vertical
+    orange-brown rust streaks over about a quarter of the area (75th percentile 83 69 60, 90th 99 82 64, 97th 111 91 80),
+    light horizontal seams with a dark line below, darker vertical seams; panels/tile per side, own noise"""
+    from scipy.ndimage import gaussian_filter
+    rng = np.random.default_rng(seed)
+    def nz(sy, sx):
+        a = gaussian_filter(rng.standard_normal((n, n)), (sy, sx), mode='wrap'); return a / a.std()
+    streak = 0.45 * nz(60, 3.5) + 0.35 * nz(25, 8.0) + 0.55 * nz(90, 30.0)
+    fine = nz(1.0, 1.0)
+    pw = n // panels
+    bias = np.zeros((n, n))
+    for i in range(panels):
+        for j in range(panels):
+            bias[j * pw:(j + 1) * pw, i * pw:(i + 1) * pw] = rng.normal(0.0, 0.35)
+    yy = (np.arange(n)[:, None] % pw) / pw
+    drip = 0.5 * np.exp(-((yy - 0.08) / 0.10) ** 2)          # rust runs down from the horizontal seams
+    r = streak + bias + drip
+    thr = np.quantile(r, 0.72)
+    rust = np.clip((r - thr) / 1.5, 0, 1) ** 0.8
+    base = (58.0 + 5.0 * nz(20, 20) + 2.5 * fine)[..., None] * np.array([1.0, 1.0, 1.03])[None, None, :]
+    rc = np.array([88.0, 70.0, 56.0])[None, None, :] * (1 - rust[..., None]) + np.array([128.0, 96.0, 70.0])[None, None, :] * rust[..., None]
+    w = np.clip(rust * 1.6, 0, 1)[..., None]
+    img = base * (1 - w) + rc * w
+    for j in range(panels):                                  # seams
+        y = j * pw
+        img[y % n:(y + 3) % n or n, :, :] = np.array([104.0, 98.0, 92.0])
+        img[(y + 3) % n:(y + 6) % n or n, :, :] *= 0.45
+    for i in range(panels):
+        x = i * pw + pw // 2
+        img[:, x:x + 3, :] *= 0.6
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
 def brush_materials():
     from lib.gen import write_texture
-    write_texture('corehub_intro/r11_ic_rust_tex', rust_texture())
+    write_texture('corehub_intro/r11_ic_rust_tex', rust_texture2() if RUST_TEX == 2 else rust_texture())
     mat('r11_ic_rust', (1, 1, 1), base='corehub_intro/r11_ic_rust_tex', folder='corehub_intro', model=False)
     mat('r11_ic_orange', (0.53, 0.215, 0.115), folder='corehub_intro', model=False)
     mat('r11_ic_orange_dk', (0.42, 0.18, 0.11), folder='corehub_intro', model=False)
@@ -228,13 +433,24 @@ def build():
     save(Mesh().sphere((0, 0, 0), 22.0, 'r11_ic_glowmat', n=14, m=9), 'r11_ic_glow')
     save(cone(470.0, 1.5, 9.0, 'r11_ic_yellow_faint'), 'r11_ic_longcone')       # final scanners' long cones (115.3-116.65)
     save(cone(45.0, 3.0, 15.0, 'r11_ic_yellow_faint'), 'r11_ic_scancone')
-    hd = Mesh().tube((0, 0, 0), (0, 0, 115.0), 16.0, 'r11_ic_headmat', n=12, caps=True)       # the lit optical head hanging in front
-    hd.sphere((0, 0, 0), 18.0, 'r11_ic_headmat', n=12, m=8)                                   # of the exit iris (film 3496-3515)
-    hd.shade('r11_ic_headmat', levels=4, light=(-1.0, 0.3, 0.4))
-    save(hd, 'r11_ic_head')       # their short cones at the iris (116.65-117.4)
+    save(head().transform(scale=HEAD_K), 'r11_ic_head')      # (film 3504: the body ~145 px wide at 262 units)
+    save(lobes(95.0 * HEAD_K / 1.3, 50.0 * HEAD_K / 1.3), 'r11_ic_lobes')
     save(disc(), 'r11_ic_disc')
     save(rim(), 'r11_ic_rim')
     save(tcollar(73.0, light='r11_ic_tlight'), 'r11_ic_tcollar')          # final tube (Hough: light band about 66, grey ~90)
-    save(tcollar(82.0), 'r11_ic_tcollar_b')        # first tube (light band about 74)
+    save(tcollar_first(82.0), 'r11_ic_tcollar_b')        # first tube
     mo = Mesh(); I.ring_x(mo, 0.0, 75.0, 92.0, 'r11_ic_tlight', n=12); I.ring_x(mo, 0.0, 60.0, 75.0, 'r11_ic_tband', n=12)
     save(mo, 'r11_ic_tcollar_m')        # the black mouth at the end of the final tube (light band about 72-90)
+    save(turret(TURRET_K, light=(0.6, 0.4, 0.7)), 'r11_ic_turret')     # the falling turret, seen from its back (film 3338-3420)
+    save(turret_open(TURRET_K), 'r11_ic_turret_open')                  # the turret again near the camera in the funnel (3430-3462)
+    save(yfans(), 'r11_ic_yfans')
+    save(turret(TURRET_K_TOP), 'r11_ic_turret_top')         # the turret held above the white disc (film 3300-3336)
+    save(cube(CUBE_S), 'r11_ic_cube')
+    dc = cube(CUBE_S * 0.8)                                  # the falling debris cubes are dark in the film (3460-3490)
+    for t in dc.tris: t.mat = t.mat.replace('r11_ic_cubef', 'r11_ic_dk').replace('r11_ic_cubec', 'r11_ic_dk').replace('r11_ic_cubed', 'r11_ic_dk1')
+    save(dc, 'r11_ic_cube_s')
+    db = Mesh().box((-22.0, -16.0, -14.0), (22.0, 16.0, 14.0), 'r11_ic_dk'); db.shade('r11_ic_dk', levels=4, light=(0.4, -0.5, 0.75))
+    save(db, 'r11_ic_dbox')                                  # dark boxes / cans falling ahead of the camera (film 3354-3384)
+    dcy = Mesh().tube((0, 0, -16.0), (0, 0, 16.0), 11.0, 'r11_ic_dk', n=12, caps=True); dcy.shade('r11_ic_dk', levels=4, light=(0.4, -0.5, 0.75))
+    save(dcy, 'r11_ic_dcan')
+    save(can(), 'r11_ic_can')

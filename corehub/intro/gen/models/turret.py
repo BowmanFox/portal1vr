@@ -118,7 +118,10 @@ def materials():
     mat('r11_tu_laser', (0.95, 0.66, 0.66), alpha=0.7, translucent=True, nocull=True)
     mat('r11_tu_laser_dim', (0.85, 0.45, 0.45), alpha=0.35, translucent=True, nocull=True)
     mat('r11_tu_glow', (0.80, 0.30, 0.32), alpha=0.13, translucent=True, nocull=True)
-    mat('r11_tu_haze', (0.48, 0.48, 0.48), alpha=0.63, translucent=True, nocull=True)
+    hz = [float(x) for x in os.environ.get('TU_HAZE', '0.48,0.5').split(',')]     # veil colour, alpha
+    mat('r11_tu_haze', (hz[0], hz[0], hz[0]), alpha=hz[1], translucent=True, nocull=True)
+    hz2 = [float(x) for x in os.environ.get('TU_HAZE2', '0.48,0.42').split(',')]   # second veil between turret and wall
+    mat('r11_tu_haze2', (hz2[0], hz2[0], hz2[0]), alpha=hz2[1], translucent=True, nocull=True)
     ramp('r11_tu_white', (0.86, 0.86, 0.86), (0.55, 0.7, 0.85, 1.0))
     mat('r11_tu_cyan', (0.30, 0.85, 0.88))
 
@@ -267,6 +270,32 @@ def glow_sprite_texture(n=128):
     img = np.zeros((n, n, 4), np.uint8)
     img[..., 0] = 230; img[..., 1] = 90; img[..., 2] = 96; img[..., 3] = (a * 255).astype(np.uint8)
     return img
+
+
+def glow_band_texture(n=128, W=130.0, H=85.0, peak=0.54, base=0.19, mid=0.42):
+    """red light of the haze shot (film 2083-2141, R-G of the frames): nothing above the turret's waist, a glow round
+    its lower body and legs (peak ~20 units below the eye, ~20 wide, ~16 high) and a broad red tint over the lower part
+    of the picture (floor; the edges of the frame too). Image row 0 = the top of the quad (at the eye's height),
+    column 0 = its left as seen from the camera; RGBA, alpha = coverage (behind the haze veil: x 1 / (1 - veil alpha))"""
+    yy, xx = np.mgrid[0:n, 0:n] / (n - 1.0)
+    zu = yy * H; yu = (xx - 0.5) * W                    # units below the quad's top / right of its centre
+    glow = np.exp(-0.5 * (yu / 11.0) ** 2 - 0.5 * ((zu - 15.0) / 10.0) ** 2)
+    ramp_v = np.clip((zu - 14.0) / 22.0, 0.0, 1.0) ** 1.3
+    broad = base + (mid - base) * np.exp(-0.5 * (yu / 30.0) ** 2)
+    a = np.clip(np.maximum(peak * glow, broad * ramp_v) + 0.35 * peak * glow * ramp_v, 0.0, 0.85)
+    a *= np.clip((W / 2 - np.abs(yu)) / 6.0, 0.0, 1.0)  # soft side edges
+    img = np.zeros((n, n, 4), np.uint8)
+    img[..., 0] = 235; img[..., 1] = 55; img[..., 2] = 65; img[..., 3] = (a * 255).astype(np.uint8)
+    return img
+
+
+def glow_band(W=130.0, H=85.0):
+    """a quad facing -X, top edge at Z = 0, Y -W/2..W/2, Z -H..0, with the glow_band texture"""
+    m = Mesh()
+    a, b, c, d = V(0, W / 2, 0), V(0, W / 2, -H), V(0, -W / 2, -H), V(0, -W / 2, 0)
+    m.tri('r11_tu_glowband', a, b, c, uv=[(0.0, 1.0), (0.0, 0.0), (1.0, 0.0)])
+    m.tri('r11_tu_glowband', a, c, d, uv=[(0.0, 1.0), (1.0, 0.0), (1.0, 1.0)])
+    return m
 
 
 def glow_sprite(w=70.0, h=80.0):
@@ -488,6 +517,23 @@ def robot_arm(L1=45.0, L2=41.0, w=2.6):
     return m
 
 
+CAM_F = 461.88           # focal length (px) of the film's 640x400 frame at fov 60
+# film 1918-1932 / 1933-1946: left edge (x at rows -20 / 420), right edge (from the black runs at rows 0..375)
+WEDGE_A = (((205.0, -20.0), (264.0, 420.0)), ((317.0, -20.0), (302.0, 420.0)))
+WEDGE_B = (((219.0, -20.0), (299.0, 420.0)), ((304.0, -20.0), (306.0, 420.0)))
+
+
+def cam_wedge(left, right, D=16.0, material='r11_tu_black_m'):
+    """a dark plate that rides with the camera (film 1918-1946: the black wedge in the middle of the picture keeps its
+    place while the camera descends 240 units): model axes = the camera's (+X forward, +Y left, +Z up), the plate at
+    X = D; left / right: ((x, y), (x, y)) top and bottom points of its edges in 640x400 pixels"""
+    def v(p):
+        return V(D, -(p[0] - 319.5) * D / CAM_F, (199.5 - p[1]) * D / CAM_F)
+    m = Mesh()
+    m.quad(material, v(left[0]), v(left[1]), v(right[1]), v(right[0]))
+    return m
+
+
 def sheet(w, h, material):
     """flat quad in the plane X = 0 facing -X (w along Y, h along Z), centred"""
     m = Mesh()
@@ -495,12 +541,12 @@ def sheet(w, h, material):
     return m
 
 
-def ring_tube(L=160.0, rho=34.0, w=1.8):
+def ring_tube(L=160.0, rho=34.0, w=1.8, tall=18.0):
     """the moving tube end of shot A (film 1958-1996): collar 1 at X = 0 and collar 2 at X = L (axes model +X, bands
     facing -X), the four rails between them"""
     m = Mesh()
     up = rot_y(90)                  # collar() is made about +Z; rot_y(90) turns +Z into +X
-    m.add(collar(1.0), R=up)
+    m.add(collar(1.0, tall=tall), R=up)
     if L <= 0: return m
     m.add(collar(1.0), R=up, offset=(L, 0, 0))
     for a in range(4):
@@ -512,15 +558,17 @@ def ring_tube(L=160.0, rho=34.0, w=1.8):
 def build():
     textures()
     materials()
-    save(ring_tube(0.0), 'r11_tu_ringtube')
+    save(ring_tube(0.0, tall=float(os.environ.get('TU_RTALL', 18.0))), 'r11_tu_ringtube')
     bd, bh = float(os.environ.get('TU_BANDD', 3.0)), float(os.environ.get('TU_BANDH', 35.4))   # (was 83 deep, 29 high at x 160)
     bs = Mesh(); bs.box((0.0, -700.0, 0.0), (bd, 700.0, bh), 'r11_tu_bandm', mats={'-z': 'r11_tu_bandm_bot'}); save(bs, 'r11_tu_bandslab')
     # the dark wedge in front of the descending camera (film 1918-1960): a near rail, slanting away below
     wb = Mesh(); wb.tube(V(0.0, 0.0, 0.0), V(30.0, 2.0, -300.0), 2.0, 'r11_tu_black_m', n=6)
     save(wb, 'r11_tu_wedge')
+    # the black wedge measured on the film's moments (rows 0 / 375 of the black run, 1918-1945), two shapes
+    save(cam_wedge(*WEDGE_A), 'r11_tu_camwedge_a'); save(cam_wedge(*WEDGE_B), 'r11_tu_camwedge_b')
     # shot B: the small tube below the sign, axis +Z, top collar at Z = 0. Film 2183/2192 ring fits: R 13.7 at x 128,
     # rings ~20 apart; the wall above the sign is bare up to ~z 180 (2201-2205), so the upper part starts at Z = ST_U
-    st_r = float(os.environ.get('TU_STR', 14.0)); st_s = float(os.environ.get('TU_STS', 20.0)); st_u = float(os.environ.get('TU_STU', 330.0))   # (an upper part from Z 123 / 150 scored lower)
+    st_r = float(os.environ.get('TU_STR', 14.0)); st_s = float(os.environ.get('TU_STS', 34.0)); st_u = float(os.environ.get('TU_STU', 330.0))   # (an upper part from Z 123 / 150 scored lower)
     rho, rw = 0.558 * st_r, max(0.7, 0.05 * st_r)
     t = Mesh()
     ks = [-st_s * k for k in range(int(300 / st_s))]
@@ -557,7 +605,8 @@ def build():
     m2 = Mesh(); m2.add(collar(23.0 / 61.06), R=rot_y(90))
     for k in range(12):                  # the turret's eye light seen through it (film 1976-1990: white glint)
         a0 = 2 * math.pi * k / 12; a1 = 2 * math.pi * (k + 1) / 12
-        m2.tri('r11_tu_tglint', V(12.0, 0, 0), V(12.0, 3.2 * math.cos(a1), 3.2 * math.sin(a1)), V(12.0, 3.2 * math.cos(a0), 3.2 * math.sin(a0)))
+        m2.tri('r11_tu_r2glint', V(12.0, 0, 0), V(12.0, 3.6 * math.cos(a1), 3.6 * math.sin(a1)), V(12.0, 3.6 * math.cos(a0), 3.6 * math.sin(a0)))
+    mat('r11_tu_r2glint', (0.93, 0.93, 0.93), nocull=True)        # film 1976-1992: a white glint (r ~12 px at ~138)
     save(m2, 'r11_tu_ring2')            # (two bars into it, as the film shows 1978-1990, scored lower: left out)
     mat('r11_tu_gun', (0.20, 0.20, 0.21))
     bv = float(os.environ.get('TU_BANDV', 0.38))
@@ -610,6 +659,10 @@ def build():
             elif t.mat in ('r11_tu_teye', 'r11_tu_tglint'): t.mat = 'r11_tu_tsock'
     save(inv, 'r11_tu_turret_inv')
     save(glow_sprite(85.0, 95.0), 'r11_tu_glow2')
+    ga = [float(x) for x in os.environ.get('TU_GLOWA', '0.71,0.25,0.55').split(',')]       # peak, broad edge, broad middle
+    write_texture('corehub_intro/r11_tu_glowbandtex', glow_band_texture(peak=ga[0], base=ga[1], mid=ga[2]), clamp=True)
+    mat('r11_tu_glowband', (1.0, 1.0, 1.0), base='corehub_intro/r11_tu_glowbandtex', translucent=True, nocull=True)
+    save(glow_band(), 'r11_tu_glowband')
     h = scan_head2() if os.environ.get('TU_HEADM', '2') == '2' else scan_head(0.62)
     h.shade('r11_tu_white', light=(-0.5, -0.4, 0.75)); save(h, 'r11_tu_scanhead')
     save(robot_arm(), 'r11_tu_arm')
@@ -618,3 +671,4 @@ def build():
     w = wings(1.0); w.shade('r11_tu_white', light=(0.3, 0.4, 0.85)); save(w, 'r11_tu_wings')
     save(glow(), 'r11_tu_glow')
     save(sheet(4000.0, 3000.0, 'r11_tu_haze'), 'r11_tu_haze')
+    save(sheet(4000.0, 3000.0, 'r11_tu_haze2'), 'r11_tu_haze2')

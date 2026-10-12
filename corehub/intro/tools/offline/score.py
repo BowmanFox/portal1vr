@@ -57,14 +57,14 @@ if __name__ == '__main__':
     ap.add_argument('--run'); ap.add_argument('--quiet', action='store_true')
     ap.add_argument('--single', action='store_true', help='compare a single moment instead of the blend of the two moments of a film frame')
     a = ap.parse_args()
-    from preview import Preview, ref_frame, run_frame
+    from preview import Preview, ref_frame, run_frame, film_time
     P = None if a.run else Preview(a.tag, quiet=True)
     rows = []; t = a.t0
     if a.run:                     # game-run frames exist only on multiples of the fetch step
         import math; t = round(math.ceil(a.t0 / a.step - 1e-9) * a.step, 4)
     while t <= a.t1 + 1e-6:
         ref = ref_frame(t)
-        im = run_frame(a.run, t) if a.run else P.render(t, blend=not a.single)
+        im = run_frame(a.run, t) if a.run else P.render(film_time(t), blend=not a.single)
         if im is not None:
             rows.append((t,) + scores(ref, im))
         t = round(t + a.step, 4)

@@ -13,7 +13,14 @@ COLMAP's world drifts (its rise is too fast for the tower's bands to stay put): 
 of COLMAP's points (one static model), and the tower's poles, bands, discs and beams follow the film's own image
 measurements (dark-row traces, pole runs, disc / beam tracks: out/tw/tools/dtrack.py, ltrack.py), as keyed props
 moved by the director hook Tw_Update (angles through __KeyValueFromString). Ride coordinates: origin = camera 1664,
-room axes. Engine budget: 15 brushes in the cell (large plain surfaces + the shell), 26 static props, 49 dynamic."""
+room axes. Engine budget: 15 brushes in the cell (large plain surfaces + the shell), 24 static props, 47 dynamic.
+Round 3: the platform (disc + hanging pipes) placed per moment from the film's image of it (PLAT_*: centre row and
+width 1664-1764, tilted to the film's shallow ~5 deg view); the glass tower's poles reach down to the platform
+(POLE_Z0); the camera-carried collar stays until 1757.5 with a dark inside (the film's wide dark arc at 1755-1758);
+from 1852 the keyed bands are tilted per moment into open rings (BAND_TILT, from below / above); left wall 54.
+Tried and dropped (scored lower): bands placed from the film's top arcs as open rings over the whole rise (BAND_FILM,
+higher edge, lower ssim), tilting from 1790, a 75-grey panel instead of the base column, the right walls 1.45x,
+a brighter glass interior, a lower left wall from 58.7 s."""
 import math, json, os
 import numpy as np
 from lib import vmfedit as E, tube
@@ -157,6 +164,8 @@ TINTS = [0.55, 0.65, 0.75, 0.85, 0.95, 1.05, 1.15, 1.25, 1.4, 1.55, 1.75, 2.0]
 BASE_DIM = 1.0            # (0.8 for the walls behind the tower base scored the same or lower)
 RISE_LIFT = 1.1           # film 60.8-62.4 s: the walls around the tower 37-63, the cells gave 31-52
 GLASS_LIFT = 1.35          # film 59-63 s: between the poles 55-72, the rust cells alone gave 41-56
+RIGHT_LIFT = 1.0           # (film 1810-1870: the right third 50-58, the cells give 36-39; lifting them 1.45x scored lower)
+RIGHT_Z0 = 1400.0
 
 
 def tube_axis(a): return TUBE_PT + TUBE_DIR * (a - TUBE_PT @ TUBE_DIR)
@@ -182,6 +191,7 @@ def backdrop(c, rd):
         if z0 >= 900.0: t *= RISE_LIFT
         else: t *= BASE_DIM
         if z0 >= 900.0 and -10.0 <= y0 + ys / 2 <= 355.0: t *= GLASS_LIFT     # seen through the tower's glass: lighter
+        if z0 >= RIGHT_Z0 and y0 + ys / 2 < -10.0: t *= RIGHT_LIFT       # right of the tower
         i = int(np.argmin([abs(math.log(max(t, 0.05) / q)) for q in TINTS]))
         m.box((x, y0, z0), (x + 60.0, y0 + ys, z0 + zs), names[i], mats={'+x': None})
     m.uv_box(scale=512.0)
@@ -194,13 +204,14 @@ def backdrop(c, rd):
 # front edge at x 1500 (A 2055 / 2189, B 2568 / 2610 rising / sinking; a band at the horizon at 1812-1820 -> 1650);
 # the bands the camera passes close by while sinking (1886-1890, 1912-1917) reach close to its path (COLMAP's
 # sinking path drifts ~450 away from the tower relative to the rising one) and show only while it sinks
+POLE_Z0 = 330.0            # the glass tower's poles reach down to the platform (film 1756-1770; they started at 900)
 TOWER = dict(x=1550.0, y=172.0, poles=[(1450.0, 355.0, 100.0), (1450.0, -10.0, 65.0)], pole_descent=[(1450.0, 355.0), (1450.0, -10.0)],    # (moved nearer while sinking: scored lower)
              # the poles follow the film (dark run centres at row 200, 1760-1916, on the plane x 1450)
              pole_keys=[[(1760, 337.0), (1780, 346.0), (1800, 370.0), (1830, 361.0), (1845, 384.0), (1860, 387.0), (1870, 366.0), (1880, 410.0),
                          (1895, 380.0), (1904, 377.0), (1910, 313.0), (1916, 263.0)],
                         [(1760, 11.0), (1780, 6.0), (1800, 6.0), (1820, -8.0), (1840, -20.0), (1860, -29.0), (1870, -27.0), (1880, -65.0),
                          (1895, -33.0), (1904, -42.0), (1916, -54.0)]],
-             pole_z0=900.0, pole_z1=3400.0, column=False,
+             pole_z0=POLE_Z0, pole_z1=3400.0, column=False,
              key_dz=0.0,               # (moving them -100 / +50 scored the same or lower)
              band_ri=200.0, band_t=70.0, bands=[(1707.0, 330.0), (2102.0, 330.0), (2504.0, 330.0), (2900.0, 330.0), (1800.0, 630.0), (1180.0, 820.0)],
              # bands A, B, C follow the film's dark-row traces (heights for a front edge at x 1220 from each frame's
@@ -210,22 +221,150 @@ TOWER = dict(x=1550.0, y=172.0, poles=[(1450.0, 355.0, 100.0), (1450.0, -10.0, 6
                     0: [(1812, 1694), (1816, 1714), (1820, 1766)]},
              col_r=150.0, col_z0=900.0, col_z1=3400.0, col_tint=0.52, disc_r0=0.0, disc_r1=310.0, disc_t=30.0, disc_z=330.0)
 BASE = dict(x=2060.0, y=230.0, r=150.0)            # the tower's base (1664-1730: column x ~1984, platform rim z ~300 at x ~2170)
+GLASS_BASE = False         # (a grey 75 panel between the base poles instead of the column scored lower)
+BASE_COLUMN = True         # (removing the grey column above the platform scored lower at 57.85-59.35 s)
+# the platform in the film (E moments, 640x400): centre x ~292, centre row and width against n - 1700 (rows: 1664 125,
+# 1688 130, 1712 147, 1728 191, 1752 295, 1760 343; widths 175 at 1664 .. 221 at 1728 .. ~295 at 1760); placed per
+# moment along the ray through that centre at the distance that gives that width (radius disc_r1)
+PLAT_CY = (-7.20151287e-06, 4.81057484e-04, 3.98339134e-02, 7.66206587e-01, 1.34342468e+02)
+PLAT_W = (1.26635545e-02, 7.92161804e-01, 1.90951296e+02)
+PLAT_CX = 292.0
+PLAT_N = (1650.0, 1778.0)
+PLAT_OFF = 1780.0
+PLAT_ELEV = 5.0
+
+
+def cam_at(rd, fn):
+    """camera (position, forward, up) at fractional film frame fn (moments: n = E, n + 0.5 = L)"""
+    M = rd.moments
+    fs = np.array([m[1] + (0.5 if m[2] == 'L' else 0.0) for m in M])
+    i = int(np.clip(np.searchsorted(fs, fn) - 1, 0, len(M) - 2)); a = (fn - fs[i]) / max(fs[i + 1] - fs[i], 1e-9); a = min(max(a, 0.0), 1.0)
+    p = M[i][3] * (1 - a) + M[i + 1][3] * a; f = M[i][4] * (1 - a) + M[i + 1][4] * a; u = M[i][5] * (1 - a) + M[i + 1][5] * a
+    f = f / np.linalg.norm(f); u = u - f * (u @ f); u /= np.linalg.norm(u)
+    return p, f, u
+
+
+def img_ray(rd, fn, px, py, F=461.88):
+    p, f, u = cam_at(rd, fn); r = np.cross(f, u)
+    d = f * F + r * (px - 319.5) - u * (py - 199.5); return p, d / np.linalg.norm(d)
+
+
+def plat_keys(rd, R, T):
+    """[(t, origin)] of the platform disc (top at the origin) from the film's platform centre / width"""
+    out = []
+    for t, n, mo, p, f, u in rd.moments:
+        fn = n + (0.5 if mo == 'L' else 0.0)
+        if fn < PLAT_N[0] or fn > PLAT_N[1] or (int(round(fn * 2)) % 2): continue
+        x = min(max(fn, 1664.0), 1776.0) - 1700.0
+        cy = float(np.polyval(PLAT_CY, x)) + (0.0 if fn >= 1664 else 0.0); w = float(np.polyval(PLAT_W, x))
+        c, d = img_ray(rd, fn, PLAT_CX, cy)
+        s = 461.88 * R / (w / 2.0)
+        pos = c + d * s + np.array([0, 0, T / 2.0])
+        # the film's platform is seen nearly edge-on (1744-1770: ~25 px of top face for ~290 px width, ~5 deg):
+        # tilted so it never shows steeper than PLAT_ELEV
+        phi = math.degrees(math.asin(d[2])); tgt = math.copysign(min(abs(phi), PLAT_ELEV), phi)
+        out.append((t, pos, (-(phi - tgt), math.degrees(math.atan2(d[1], d[0])), 0.0)))
+    return out
+LWALL_LOW_T = None         # (a lower part from 58.7 s, z 300-1000, scored lower at 59.1 s)
+LWALL_LOW_Z = 300.0
 LWALL_OFF = 63.0           # the film's left side turns dark after the near band (1888)
 DESCENT_T = 62.15          # frame 1863: the camera has turned from rising to sinking
 
 
-def tower(c, tracks):
+# the film's bands look like open rings at every height in the frame (1790-1890: the outer outline ~150-175 px tall
+# for ~340 px wide, seen from below in the upper part of the frame and from above in the lower part), more open than
+# a level ring at COLMAP's camera pitch can look: each keyed band is tilted per moment about the horizontal axis
+# across the view so it shows at BAND_ELEV from below / above (switching at row BAND_ROW)
+BAND_TILT = True
+TILT_FROM = 1852.0        # (tilting from 1800 scored lower at 59.1-61.4 s, higher at 62.35-62.6 s): level before,
+TILT_RAMP = 8.0           # ramped in over 8 frames
+BAND_ELEV = 22.0
+BAND_ROW = 250.0
+
+
+BAND_DY = 70.0            # the keyed heights put a level band on the film's top arc (dark rows at the centre column);
+                          # the open ring's centre lies ~70 px lower (outline ~160 px tall from that arc)
+
+
+# the film's bands from their top arcs (dark run centres at the centre column x 270-330 of the E moments, 640x400):
+# the open ring's centre lies BAND_DY below, at x BAND_CX, at the distance that gives its ~340 px width (radius 330)
+BAND_RUNS = {1: [(1792, 9.5), (1796, 36.5), (1800, 63.0), (1804, 91.5), (1808, 119.0), (1812, 147.0), (1816, 174.5), (1820, 200.0),
+                 (1824, 225.5), (1828, 247.5), (1832, 268.0), (1836, 287.0), (1840, 303.5), (1844, 315.0), (1848, 321.0), (1852, 323.0),
+                 (1856, 319.5), (1860, 311.0), (1864, 291.0), (1868, 263.5), (1872, 229.0), (1876, 190.5), (1880, 141.5)],
+             2: [(1820, 2.0), (1824, 22.5), (1828, 48.5), (1832, 67.5), (1836, 87.0), (1840, 103.0), (1844, 117.0), (1848, 124.5),
+                 (1852, 128.0), (1856, 126.0), (1860, 117.5), (1864, 99.5), (1868, 76.5), (1872, 43.0), (1876, 11.0)]}
+BAND_CX = 295.0
+BAND_DIST = 897.0
+BAND_DY_BELOW = 106.0     # top arc -> ring centre, seen from below (the near wall is the top)
+BAND_DY_ABOVE = 40.0      # seen from above (the far side is the top)
+BAND_FILM = False         # bands 1 / 2 placed from BAND_RUNS (else from the old keyed heights)
+BAND_FILM_DIMS = (250.0, 40.0)   # inner radius, thickness of those bands
+
+
+def band_film_keys(rd, runs, step=2):
+    ns = [n for n, _ in runs]; ys = [y for _, y in runs]
+    out = []; prev = None
+    for fn in np.arange(ns[0] - 4, ns[-1] + 4.01, step):
+        yr = float(np.interp(fn, ns, ys, left=ys[0] - (ys[1] - ys[0]), right=ys[-1] + (ys[-1] - ys[-2])))
+        below = yr + BAND_DY < BAND_ROW
+        yc = yr + (BAND_DY_BELOW if below else BAND_DY_ABOVE)     # (the near side projects farther from the centre)
+        cp, d = img_ray(rd, fn, BAND_CX, yc)
+        pos = cp + d * BAND_DIST
+        phi_c = math.degrees(math.asin(d[2]))
+        tgt = BAND_ELEV if below else -BAND_ELEV
+        ang = np.array([-(phi_c - tgt), math.degrees(math.atan2(d[1], d[0])), 0.0])
+        if prev is not None: ang = prev + (ang - prev + 180.0) % 360.0 - 180.0
+        prev = ang
+        out.append((ft(fn), pos, tuple(ang)))
+    return out
+
+
+def band_tilt_keys(rd, axis_pt, keyed, dz=0.0, step=2):
+    ns = [n for n, _ in keyed]; zs = [z + dz for _, z in keyed]
+    out = []; prev = None
+    for fn in np.arange(ns[0], ns[-1] + 0.01, step):
+        z = float(np.interp(fn, ns, zs)); p0 = np.asarray(axis_pt, float) + (0, 0, z)
+        cp, f, u = cam_at(rd, fn); r0 = p0 - cp; rr = np.cross(f, u)
+        x0 = 319.5 + 461.88 * (r0 @ rr) / (r0 @ f); y0 = 199.5 - 461.88 * (r0 @ u) / (r0 @ f)
+        wt = min(max((fn - TILT_FROM) / TILT_RAMP, 0.0), 1.0)
+        _, d = img_ray(rd, fn, x0, y0 + BAND_DY * wt)
+        pos = cp + d * np.linalg.norm(r0)
+        r = pos - cp; dist = np.linalg.norm(r)
+        phi_c = math.degrees(math.asin(r[2] / dist))
+        row = y0 + BAND_DY
+        tgt = BAND_ELEV if row < BAND_ROW else -BAND_ELEV
+        delta = (phi_c - tgt) * wt
+        ang = np.array([-delta, math.degrees(math.atan2(r[1], r[0])), 0.0])
+        if prev is not None: ang = prev + (ang - prev + 180.0) % 360.0 - 180.0
+        prev = ang
+        out.append((ft(fn), pos, tuple(ang)))
+    return out
+
+
+def tower(c, rd, tracks):
     """the glass tower: rust column, two black poles at its sides (as seen from the camera), dark octagonal ring
     bands, the base disc"""
-    T = TOWER; M = TM.brush_materials(); o = np.asarray(ORIGIN)
+    T = dict(TOWER); M = TM.brush_materials(); o = np.asarray(ORIGIN)
+    if BAND_TILT or BAND_FILM:       # (the octagon's 22.5 deg yaw baked into the tilted bands)
+        T['band_rot'] = {k: 0.0 for k in T['keyed'] if k != 0 or BAND_FILM or TILT_FROM < 1820}
+    if BAND_FILM: T['band_dims'] = {k: BAND_FILM_DIMS for k in BAND_RUNS}
     TM.save_tower(T)
     ax = np.array([T['x'], T['y'], 0.0])
     if T.get('column', True): sprop(c.v, PFX + '_column', o + ax)
     for k, (z, ro) in enumerate(T['bands']):
         name = '%s_band%d' % (PFX, k)
         if k in T.get('keyed', {}):
-            ks = [(ft(n), o + ax + (0, 0, zz + T.get('key_dz', 0.0)), None) for n, zz in T['keyed'][k]]
-            E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), ks[0][1], (0, 22.5, 0), name=name)
+            if (BAND_FILM or (BAND_TILT and TILT_FROM < 1820)) and k == 0: continue   # (1812-1820: the bottom arc of band 1's open ring)
+            if BAND_FILM and k in BAND_RUNS:
+                ks = band_film_keys(rd, BAND_RUNS[k])
+                E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), ks[0][1], ks[0][2], name=name)
+                tracks.append(dict(name=name, keys=ks, t_on=ks[0][0] - 0.01, t_off=ks[-1][0] + 0.01)); continue
+            if BAND_TILT and (k != 0 or TILT_FROM < 1820):
+                ks = band_tilt_keys(rd, o + ax, T['keyed'][k], T.get('key_dz', 0.0))
+                E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), ks[0][1], ks[0][2], name=name)
+            else:
+                ks = [(ft(n), o + ax + (0, 0, zz + T.get('key_dz', 0.0)), None) for n, zz in T['keyed'][k]]
+                E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), ks[0][1], (0, 22.5, 0), name=name)
             tracks.append(dict(name=name, keys=ks, t_on=54.0, t_off=70.0)); continue
         if ro <= 600: sprop(c.v, name, o + ax + (0, 0, z), (0, 22.5, 0)); continue
         E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), o + ax + (0, 0, z), (0, 22.5, 0), name=name)
@@ -241,14 +380,21 @@ def tower(c, tracks):
         E.add_prop(c.v, 'models/corehub_intro/%s.mdl' % nm, a, (0, 0, 0), name=nm)
         ks = [(ft(n), o + (px, yy, T['pole_z0']), None) for n, yy in T['pole_keys'][k]]
         tracks.append(dict(name=nm, keys=ks, t_on=54.0, t_off=70.0))
-    # the base (seen 1655-1760 from the tube): platform disc, column, two poles (1664: 250 / 352 px -> y 418 / -28)
-    sprop(c.v, PFX + '_disc', o + (2100.0, 150.0, T['disc_z']))
-    TM.save_column(BASE['r'], T['col_z0'], T['col_z1'], PFX + '_column_base')
-    sprop(c.v, PFX + '_column_base', o + (BASE['x'], BASE['y'], 330.0 - T['col_z0']))
+    # the base (seen 1655-1776 from the tube): platform disc and its hanging pipes placed per moment on the film's
+    # image of the platform (PLAT_IMG: centre and width, 1664-1764), two poles (1664: 250 / 352 px -> y 418 / -28)
+    TM.save_hangers()
+    pk = plat_keys(rd, T['disc_r1'], T['disc_t'])
+    for nm, dz in ((PFX + '_disc', 0.0), (PFX + '_hangers', -T['disc_t'])):
+        ks = [(t, p + (0, 0, dz), a) for t, p, a in pk]
+        E.add_prop(c.v, 'models/corehub_intro/%s.mdl' % nm, ks[0][1], ks[0][2], name=nm + 'k')
+        tracks.append(dict(name=nm + 'k', keys=ks, t_on=54.0, t_off=ft(PLAT_OFF)))
+    if BASE_COLUMN:
+        TM.save_column(BASE['r'], T['col_z0'], T['col_z1'], PFX + '_column_base')
+        sprop(c.v, PFX + '_column_base', o + (BASE['x'], BASE['y'], 330.0 - T['col_z0']))
     for y in (418.0, -28.0):
         c.box((1990.0, y - 30.0, 330.0), (2050.0, y + 30.0, 905.0), M['black'])
-    TM.save_hangers()
-    sprop(c.v, PFX + '_hangers', o + (2100.0, 150.0, T['disc_z'] - T['disc_t']))
+    if GLASS_BASE:      # the glass tower's interior between the base poles (film 1696-1735: 75 grey with streaks)
+        c.box((2055.0, 2.0, 330.0), (2075.0, 388.0, 905.0), M['glassbase'], su=1.0, sv=2.0)
     # the light grey ledge behind the platform (1664: rows 105-145, x 155-415 px on the plane x 2150; film 94)
     c.box((2150.0, -321.0, 230.0), (2190.0, 904.0, 414.0), M['ledge'])
     # horizontal pipes across the view (1664: rows 222 / 245 px), with the flanges' darker rings left out
@@ -334,6 +480,11 @@ def room(c, rd, lw_tracks):
     m = Mesh(); m.box((0.0, 0.0, 0.0), (40.0, 1020.0, 2400.0), PFX + '_lwall'); save(m, PFX + '_lwall')
     E.add_prop(c.v, 'models/corehub_intro/%s_lwall.mdl' % PFX, np.asarray(ORIGIN) + (1300.0, 380.0, 1000.0), (0, 0, 0), name=PFX + '_lwall')
     lw_tracks.append(dict(name=PFX + '_lwall', keys=[(54.0, np.asarray(ORIGIN) + (1300.0, 380.0, 1000.0), None)], t_on=54.0, t_off=LWALL_OFF))
+    if LWALL_LOW_T is not None:      # its lower part once the camera has risen out of the tube (film 1764-1790: the
+        m = Mesh(); m.box((0.0, 0.0, 0.0), (40.0, 1020.0, 1000.0 - LWALL_LOW_Z), PFX + '_lwall'); save(m, PFX + '_lwall2')   # left third grey to the bottom)
+        p2 = np.asarray(ORIGIN) + (1300.0, 380.0, LWALL_LOW_Z)
+        E.add_prop(c.v, 'models/corehub_intro/%s_lwall2.mdl' % PFX, p2, (0, 0, 0), name=PFX + '_lwall2')
+        lw_tracks.append(dict(name=PFX + '_lwall2', keys=[(54.0, p2, None)], t_on=LWALL_LOW_T, t_off=LWALL_OFF))
 
 
 # ------------------------------------------------------------------------------------------------ the tube 1702-1795
@@ -349,7 +500,7 @@ CT_VPX = 297.0
 CT_FR = (2.59e-04, -0.106884, 5.722989)                       # collar f/r (outer band edge) against n - 1700 (rms 0.02,
                                                              # 1700-1736; a cubic through 1749 / 1757 as well scored lower)
 CT_PASS = 1763.2
-CT_HIDE = 1755.5           # the collars are hidden from here (their wide light band at 1757 scored lower than nothing)
+CT_HIDE = 1757.5           # the collars are hidden from here (their wide light band at 1757 scored lower than nothing)
 CT_DK = 1.0                # (distance factor on the fitted collar distances: 1.0 scored best of 0.85 / 1.0 / 1.2)
 CT_END = 1795.0
 
@@ -411,7 +562,7 @@ def apply(v, d):
     cam_tube(v, rd, tracks)
     backdrop(c, rd)
     room(c, rd, tracks)
-    tower(c, tracks)
+    tower(c, rd, tracks)
     interior(c, rd, tracks)
     d.append(tracks_code(tracks))
     d.hook('Tw_Update(t);')

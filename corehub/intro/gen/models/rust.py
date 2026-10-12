@@ -102,10 +102,13 @@ def materials():
     mat('r11_ru_light', (0.50, 0.50, 0.50))
     mat('r11_ru_glass', (0.50, 0.51, 0.53), alpha=0.10, translucent=True, nocull=True)
     # collars of the rust room: translucent light grey 12-gon bands (film 1041, 1069: outer band, dark ring, inner band)
-    mat('r11_ru_col_band', (0.56, 0.56, 0.57), alpha=0.82, translucent=True, nocull=True)
-    mat('r11_ru_col_side', (0.46, 0.46, 0.47), alpha=0.55, translucent=True, nocull=True)
+    # round 3: band 103-114 in the film's moments (E 1039-1071: over the lit wall and over black alike, the wall's
+    # streaks show through faintly), but near collars show dark in the film (1101L, 1102E): 0.36 at alpha 0.85 scored
+    # best over the collar samples (0.56 / 0.82 before: ssim -0.04, tone -0.07; 0.43 / 0.9: ssim -0.01)
+    mat('r11_ru_col_band', (0.36, 0.36, 0.37), alpha=0.85, translucent=True, nocull=True)
+    mat('r11_ru_col_side', (0.12, 0.12, 0.125), alpha=0.7, translucent=True, nocull=True)      # round 3: dark (near collars show dark rings)
     mat('r11_ru_col_dark', (0.10, 0.10, 0.11), nocull=True)
-    mat('r11_ru_col_inner', (0.42, 0.42, 0.43), alpha=0.85, translucent=True, nocull=True)
+    mat('r11_ru_col_inner', (0.28, 0.28, 0.29), alpha=0.85, translucent=True, nocull=True)
     mat('r11_ru_glass_edge', (0.80, 0.80, 0.82), alpha=0.6, translucent=True, nocull=True)
 
 
@@ -134,11 +137,11 @@ def cyl_x(m, x0, x1, r, material, n=N, inward=False):
     return m
 
 
-def port(k=1.0, closed=True):
+def port(k=1.0, closed=True, flange='r11_ru_grey3'):
     """round port in a wall, face at X = 0, the tube arriving from -X: grey flange, dark ring, light inner ring,
     black throat (film 990-996: rings of radius ~45-110 around the tube's end)"""
     m = Mesh()
-    ring_disc(m, -14.0, 82.0, 112.0, 'r11_ru_grey3')
+    ring_disc(m, -14.0, 82.0, 112.0, flange)
     cyl_x(m, -14.0, 0.0, 112.0, 'r11_ru_grey1')
     ring_disc(m, -10.0, 66.0, 82.0, 'r11_ru_dark1')
     ring_disc(m, -12.0, 50.0, 66.0, 'r11_ru_grey2')
@@ -213,11 +216,15 @@ def collar(k=1.0, R=61.06, n=12, tall=18.0, band='r11_ru_col_band'):
             a0 = 2 * math.pi * (i + 0.5) / n; a1 = 2 * math.pi * (i + 1.5) / n
             m.quad(mt, V(r * math.cos(a0), r * math.sin(a0), z0), V(r * math.cos(a1), r * math.sin(a1), z0),
                    V(r * math.cos(a1), r * math.sin(a1), z1), V(r * math.cos(a0), r * math.sin(a0), z1))
-    poly_ring(0.0, 0.80 * R, R, band)
-    poly_ring(0.5, 0.72 * R, 0.80 * R, 'r11_ru_col_dark')
-    poly_ring(0.0, 0.62 * R, 0.72 * R, 'r11_ru_col_inner')
+    # round 3: band 0.76-1.0 R, groove 0.70-0.76, inner band 0.62-0.70 (film E 1067 / 1069 radial profiles: light
+    # band 0.75-1.0 of its outer edge, dark groove, a lighter band 0.67-0.73, the dark inside below 0.65)
+    poly_ring(0.0, 0.76 * R, R, band)
+    poly_ring(0.5, 0.70 * R, 0.76 * R, 'r11_ru_col_dark')
+    poly_ring(0.0, 0.62 * R, 0.70 * R, 'r11_ru_col_inner')
     sleeve(0.0, tall, R, 'r11_ru_col_side')
-    poly_ring(tall, 0.80 * R, R, band)
+    # no second band at the back (it showed as an extra light ring just before a pass, which the film never shows,
+    # e.g. 1094E); a dark inside wall instead (film 1071E: dark ring inside the band when close)
+    sleeve(0.0, tall, 0.62 * R, 'r11_ru_col_dark')
     return m.transform(scale=k)
 
 
@@ -236,10 +243,34 @@ def ribbed_tube(k=1.0, r=58.0, length=800.0, pitch=70.0, n=12):
     return m.transform(scale=k)
 
 
+def end_wall():
+    """the far wall's end past x 4623 (shot A, shown 35.7-36.2 s): rust panels, x 0..577, face at y 0 facing -y,
+    z 0..1200 (dark rust as r11_ru_wall_dark)"""
+    m = Mesh()
+    m.quad('r11_rux_endwall', V(0, 0, 0), V(577, 0, 0), V(577, 0, 1200), V(0, 0, 1200))
+    m.quad('r11_rux_endwall', V(0, 0, 0), V(0, 0, 1200), V(577, 0, 1200), V(577, 0, 0))
+    return m.uv_box(scale=1200.0)
+
+
+def mouth_wall(y0=-300.0, y1=537.0, z0=-563.0, z1=637.0, h=66.0):
+    """rust wall round the end tube's mouth (shot A, 35.85-36.2 s; film 1077-1082: rust panels all round the dark
+    mouth): plane X = 0 facing -X, a square hole of half size h round the origin (the tube's axis)"""
+    m = Mesh()
+    def q(ya, yb, za, zb):
+        if yb - ya < 1 or zb - za < 1: return
+        m.quad('r11_rux_mouthwall', V(0, ya, za), V(0, ya, zb), V(0, yb, zb), V(0, yb, za))
+    q(y0, -h, z0, z1); q(h, y1, z0, z1); q(-h, h, z0, -h); q(-h, h, h, z1)
+    return m.uv_box(scale=1200.0)
+
+
 def build():
     textures()
     materials()
-    mat('r11_ru_tdark', (0.13, 0.13, 0.135), nocull=True)
+    mat('r11_rux_endwall', (0.45, 0.45, 0.45), base='corehub_intro/r11_ru_rust')
+    save(end_wall(), 'r11_rux_endwall')
+    mat('r11_rux_mouthwall', (0.80, 0.80, 0.80), base='corehub_intro/r11_ru_rust')
+    save(mouth_wall(), 'r11_rux_mouthwall')
+    mat('r11_ru_tdark', (0.13, 0.13, 0.135), nocull=True)          # (0.20 tried in round 3: lower at 36.0 s)
     mat('r11_ru_trib', (0.24, 0.24, 0.25))
     save(ribbed_tube(1.0), 'r11_ru_endtube')
     save(collar(1.0), 'r11_ru_collar')
@@ -247,7 +278,9 @@ def build():
     save(collar(0.65), 'r11_ru_collar_s065')
     for k, tag in ((1.0, ''), (0.65, '_s065')):
         save(port(k), 'r11_ru_port' + tag)
-        save(port(k, closed=False), 'r11_ru_port_open' + tag)
+        # the dividing wall's port (shot A, y 980) shows dark rings with one light ring in the film (33.75 s, frame
+        # 1012): dark flange (round 3; was light grey, a light disc round the junction)
+        save(port(k, closed=False, flange='r11_ru_dark1'), 'r11_ru_port_open' + tag)
         save(support(300.0, k), 'r11_ru_support' + tag)
         save(glass_t(k), 'r11_ru_glass_t' + tag)
         save(dark_elbow(k), 'r11_ru_elbow' + tag)

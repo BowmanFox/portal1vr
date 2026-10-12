@@ -41,7 +41,7 @@ def textures():
     # grey rust (shaft walls): horizontal bands of brick-like rows
     n1 = _noise(256, 256, 8, 7); n2 = _noise(256, 256, 1.5, 8)
     rows = (np.arange(256) // 16) % 2
-    base = 70 + 10 * rows[:, None] + 12 * n1 + 6 * n2
+    base = 70 + 10 * rows[:, None] + 12 * n1 + 6 * n2          # (film walls 55-64 at 85.5 s: as bright as these)
     g = np.stack([base, base * 0.87, base * 0.84], -1)
     g[::16, :] *= 0.6
     TEX['grey'] = g
@@ -76,16 +76,34 @@ def materials():
     ramp('r11_sg_whiteobj', (0.88, 0.88, 0.86), nocull=True)
     ramp('r11_sg_metal', (0.62, 0.58, 0.56), nocull=True)
     mat('r11_sg_bridge', (0.45, 0.85, 0.85), nocull=True)
-    mat('r11_sg_lit', (0.95, 0.88, 0.84), nocull=True)
+    mat('r11_sg_lit', (0.93, 0.92, 0.86), nocull=True)            # lit band of the last collars (film 2858)
     mat('r11_sg_dark', (0.06, 0.05, 0.05), nocull=True)
     mat('r11_sg_sign', (0.35, 0.62, 0.68), nocull=True)
     ramp('r11_sg_cupl', (0.45, 0.25, 0.18), nocull=True)         # copper disc of the plate
+    band_materials()
+    for i, c in enumerate(((0.26, 0.23, 0.21), (0.17, 0.15, 0.14), (0.36, 0.33, 0.30))):
+        mat('r11_sg_shard%d' % i, c, nocull=True)                  # broken plank fragments around the wall hole
+    ramp('r11_sg_beam', (0.86, 0.82, 0.74), nocull=True)          # the white beam in the hole (film 2824)
+
+
+BAND = [(0, (212, 210, 198)), (45, (220, 182, 162)), (70, (204, 153, 133)), (90, (176, 125, 108)), (120, (150, 106, 93)),
+        (180, (118, 82, 72))]          # film 2744 (sRGB): the light band of the exit collars, by angle from the bottom
+
+
+def band_materials():
+    """r11_sg_band0..11: the light band's colour in 12 sectors (sector k centred at 30k deg from model +X = world down)"""
+    a = [x for x, _ in BAND]; c = np.array([q for _, q in BAND], float)
+    for k in range(12):
+        th = abs(((30.0 * k + 180.0) % 360.0) - 180.0)
+        col = [np.interp(th, a, c[:, i]) / 255.0 for i in range(3)]
+        mat('r11_sg_band%d' % k, tuple(col), nocull=True)
 
 
 def collar(scale=1.0, band='r11_sg_pink3'):
-    """copper collar with a light inner band (axis = model +Z): light band 0.62R..R (R = 61.06), groove, copper ring
-    to 1.65R; 42 deep"""
-    m = Mesh(); R = 61.06 * scale; d = 42.0 * scale; n = 24
+    """copper collar with a light inner band (axis = model +Z): light band 0.55R..R (R = 61.06), groove, copper ring;
+    the inner wall dark copper bands (the film shows no light inside the collars). band='sectors': the band shaded by
+    angle like the film's exit collars (light from below: model +X points down for a horizontal axis)"""
+    m = Mesh(); R = 61.06 * scale; d = 18.0 * scale; n = 24             # thin: the film's collars show a narrow dark rim inside the band
     def ring(r0, r1, z, mt):
         for k in range(n):
             a0 = 2 * math.pi * k / n; a1 = 2 * math.pi * (k + 1) / n
@@ -99,15 +117,20 @@ def collar(scale=1.0, band='r11_sg_pink3'):
                  V(r * math.cos(a1), r * math.sin(a1), z1), V(r * math.cos(a0), r * math.sin(a0), z1)]
             m.quad(mt, *p)
     for z in (0.0, d):
-        ring(0.55 * R, R, z, band)
+        if band == 'sectors':
+            for k in range(n):
+                a0 = 2 * math.pi * k / n; a1 = 2 * math.pi * (k + 1) / n; am = math.degrees(a0 + a1) / 2.0
+                p = [V(0.55 * R * math.cos(a0), 0.55 * R * math.sin(a0), z), V(R * math.cos(a0), R * math.sin(a0), z),
+                     V(R * math.cos(a1), R * math.sin(a1), z), V(0.55 * R * math.cos(a1), 0.55 * R * math.sin(a1), z)]
+                m.quad('r11_sg_band%d' % (int(round(am / 30.0)) % 12), *p)
+        elif band == 'copper':
+            ring(0.55 * R, 0.8 * R, z, 'r11_sg_cu2'); ring(0.8 * R, R, z, 'r11_sg_cu1')
+        else:
+            ring(0.55 * R, R, z, band)
         ring(R, 1.1 * R, z, 'r11_sg_groove')
-    w = Mesh()
-    for k in range(n):
-        a0 = 2 * math.pi * k / n; a1 = 2 * math.pi * (k + 1) / n; r = 0.55 * R
-        p = [V(r * math.cos(a0), r * math.sin(a0), 0), V(r * math.cos(a1), r * math.sin(a1), 0), V(r * math.cos(a1), r * math.sin(a1), d), V(r * math.cos(a0), r * math.sin(a0), d)]
-        w.quad('r11_sg_pink', *p)
-    w.shade('r11_sg_pink', levels=4, light=(0.3, -0.8, 0.5))
-    m.add(w)
+    nb = 4
+    for b in range(nb):                       # inner wall: dark copper bands
+        wall(0.55 * R, d * b / nb, d * (b + 1) / nb, 'r11_sg_cu1' if b % 2 == 0 else 'r11_sg_cu0')
     wall(1.1 * R, 0.0, d, 'r11_sg_cu0')
     return m
 
