@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+"$basetexture" "models\props/Turret_01"
+"$color" "[1 1 1]"
+"$model" "1"
+}
