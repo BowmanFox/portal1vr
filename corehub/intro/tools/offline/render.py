@@ -317,21 +317,27 @@ class Renderer:
 
 
 def apply_fades(img_lin, row):
-    """screen fades recorded by the director simulation (blended in linear light like the rest):
-    the scanner veil, the grey lens veil and black"""
-    out = img_lin.copy()
+    """screen fades recorded by the director simulation (env_fade entities: the scanner veil, the grey lens veil and
+    black). The game draws screen fades over the finished frame in GAMMA space (measured in the test runs: the opening's
+    black fade of 92 takes the frame from ~130 to 84 like the film, where a linear-light blend gave 106), so they are
+    applied to the sRGB-encoded image here too. World translucency stays in linear light (game and preview agree)."""
     ents = row.get('ents', {})
+    fades = []
     for name, default in (('r10_veil_fade', (95, 95, 95)), ('r10_red_fade', (137, 136, 136))):
         e = ents.get(name)
         if e and 'renderamt' in e:
             a = float(e['renderamt']) / 255.0
             if a > 0:
-                c = gamma_to_linear(np.array(default) / 255.0)
-                out = out * (1 - a) + c * a
+                fades.append((a, np.array(default) / 255.0))
     b = row.get('black', 0)
+    if not fades and not (b and b > 0):
+        return img_lin.copy()
+    g = srgb_encode(img_lin)
+    for a, c in fades:
+        g = g * (1 - a) + c * a
     if b and b > 0:
-        out = out * (1 - b / 255.0)
-    return out
+        g = g * (1 - b / 255.0)
+    return srgb_decode(g)
 
 
 def to_image(img_lin):

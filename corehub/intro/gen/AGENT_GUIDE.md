@@ -90,6 +90,26 @@ smaller scale: `Ride(NAME, origin, unit=k)` with k < 1 scales the camera path, a
 (rails: `tube.add_*` take rho / width; collars: build a scaled collar model, see `models/iris.py: collar(R=...)`).
 The picture does not change with scale (keep k >= 0.4 so the near rails stay farther than the engine's near plane).
 
+## What the game does differently from the preview (learned from the full test runs)
+
+- **Stock models with lit materials render BLACK** in the new cells (no light there): build your own unlit models (as
+  the turret agent did), or place `light` entities near the stock model and check the brightness in a game run.
+- **The 2009 engine has no SetAngles / GetAngles**: a call stops the whole director (the screen stayed black from 84 s
+  in the first run). Turn props with `e.__KeyValueFromString("angles", "p y r")`. The preview now fails on them too.
+- **Map limits**: the 2009 vbsp is close to its brush-side limit (the whole map has room for about 1300 more brushes):
+  large plain surfaces as brushes, everything else as models. Models that do not move are `prop_static`
+  (`E.add_prop(..., cls='prop_static')`, no targetname): prop_dynamic only for animated parts (entity limit).
+- **Leaks**: every point entity (props included, also where a hook parks them at first) must be inside a sealed shell,
+  or the whole map leaks and does not compile: `python3 /home/claude/work/tools/leakcheck.py <your vmf>` must report 0.
+- **Screen fades** (SetScreenBlack and the other env_fade veils) are drawn over the finished frame in GAMMA space in
+  the game: a black fade of alpha a scales the frame's 0-255 values by (1 - a/255). The preview did this in linear light
+  until Oct 12 (fades looked weaker there: 106 instead of the game's 84 at 5.5 s); it now matches the game, so fade
+  tables tuned on the old preview are too dark now: re-fit them against the film (alpha = 255 * (1 - film/unfaded)).
+- Otherwise the game matches the preview closely (geometry, unlit materials, world translucency).
+- Game runs: frames of the newest run are in `/home/claude/data/runs/<run>/m<milliseconds>.jpg` every 0.25 s (blends of
+  the game's two 60 fps frames at t and t + 1/60, like the film); `cmp.py TAG --run <run>` shows film | game | preview,
+  `score.py TAG t0 t1 0.25 --run <run>` scores the game frames, `runscore.py <run>` all scenes.
+
 ## Rules
 
 - Edit only your own files (named in your task): your scene module, your model module(s), your data/<NAME>_ride.json.
