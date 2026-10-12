@@ -102,3 +102,61 @@ def solve_pose(obs, eye0, ang0, fov, free=('x', 'y', 'z', 'pitch', 'yaw'), prior
     n = sum(len(p) for _, p in obs)
     r = resid(sol.x)[:n]
     return eye, ang, float(np.sqrt((r ** 2).mean()))
+
+
+def ellipse_points(g, c0, r_lo, r_hi, polarity=1, n_rays=180, min_step=10.0, tol=2.5, blur=1.2):
+    """like edge_points() for a ring seen at an angle (an ellipse in the picture): strongest radial step per ray, kept
+    when it agrees with a fitted ellipse. -> (points[k,2], ((cx, cy), (major, minor), angle_deg)) or (None, None)"""
+    g = cv2.GaussianBlur(g, (0, 0), blur)
+    h, w = g.shape; pts = []
+    rs = np.arange(r_lo, r_hi, 0.5)
+    for k in range(n_rays):
+        a = 2 * np.pi * k / n_rays
+        xs = c0[0] + rs * np.cos(a); ys = c0[1] + rs * np.sin(a)
+        ok = (xs >= 1) & (xs < w - 2) & (ys >= 1) & (ys < h - 2)
+        if ok.sum() < 8: continue
+        v = cv2.remap(g, xs[ok].astype(np.float32)[None], ys[ok].astype(np.float32)[None], cv2.INTER_LINEAR)[0]
+        d = (v[:-4] - v[4:]) * polarity
+        i = int(np.argmax(d))
+        if d[i] < min_step: continue
+        pts.append((xs[ok][i + 2], ys[ok][i + 2]))
+    if len(pts) < 16: return None, None
+    P = np.array(pts, dtype=np.float32); keep = np.ones(len(P), bool)
+    el = None
+    for _ in range(3):
+        el = cv2.fitEllipse(P[keep])
+        (cx, cy), (d1, d2), ang = el
+        th = math.radians(ang); c, s = math.cos(th), math.sin(th)
+        x = (P[:, 0] - cx) * c + (P[:, 1] - cy) * s; y = -(P[:, 0] - cx) * s + (P[:, 1] - cy) * c
+        rr = np.hypot(x / (d1 / 2 + 1e-9), y / (d2 / 2 + 1e-9))
+        res = np.abs(rr - 1) * min(d1, d2) / 2
+        keep = res < max(tol, 2.5 * np.median(res[keep]))
+        if keep.sum() < 12: return None, None
+    return P[keep].astype(np.float64), el
+
+
+def solve_points(pts3d, pts2d, eye0, ang0, fov, free=('x', 'y', 'z', 'pitch', 'yaw', 'roll'), weights=None, prior=None, loss_scale=3.0):
+    """camera pose from point correspondences: world points pts3d [n,3] seen at pixels pts2d [n,2] (640x400).
+    -> eye, ang, rms px. free: which of x y z pitch yaw roll may change; prior: {name: weight} pulls a parameter back
+    to its start value (px per unit). Needs at least as many well spread points as free parameters / 2."""
+    names = ['x', 'y', 'z', 'pitch', 'yaw', 'roll']
+    P3 = np.asarray(pts3d, dtype=np.float64); P2 = np.asarray(pts2d, dtype=np.float64)
+    wts = np.ones(len(P3)) if weights is None else np.asarray(weights, dtype=np.float64)
+    p_full = np.array(list(eye0) + list(ang0), dtype=np.float64)
+    idx = [names.index(k) for k in free]
+    def unpack(q):
+        p = p_full.copy(); p[idx] = q; return p[:3], p[3:]
+    def resid(q):
+        eye, ang = unpack(q)
+        pr = project(eye, ang, fov, P3)
+        r = (pr[:, :2] - P2) * wts[:, None]
+        r[pr[:, 2] <= 1] = 200.0
+        out = [r.ravel()]
+        if prior:
+            for k, wgt in prior.items():
+                if k in free: out.append(np.array([(q[list(free).index(k)] - p_full[names.index(k)]) * wgt]))
+        return np.concatenate(out)
+    sol = least_squares(resid, p_full[idx], loss='soft_l1', f_scale=loss_scale, x_scale=[{'x': 1, 'y': 1, 'z': 1, 'pitch': 0.3, 'yaw': 0.3, 'roll': 0.3}[k] for k in free])
+    eye, ang = unpack(sol.x)
+    r = resid(sol.x)[:2 * len(P3)].reshape(-1, 2)
+    return eye, ang, float(np.sqrt((r ** 2).sum(axis=1).mean()))

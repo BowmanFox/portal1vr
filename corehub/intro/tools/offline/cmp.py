@@ -25,7 +25,7 @@ for g in range(0, len(ts), per):
         cells = [ref_frame(t, (cw, ch))]
         if a.run:
             r = run_frame(a.run, t, (cw, ch)); cells.append(r if r else Image.new('RGB', (cw, ch), (40, 0, 40)))
-        cells.append(P.render(t, cw, ch))
+        cells.append(P.render(t, cw, ch, blend=True))
         for j, c in enumerate(cells): im.paste(c, (x + j * cw, y))
         d.rectangle((x, y, x + 46, y + 11), fill=(0, 0, 0)); d.text((x + 2, y), '%gs' % t, fill=(255, 255, 0))
     out = (a.out or 'out/cmp_%s' % a.tag) + '_%06.2f.jpg' % grp[0]; im.save(out, quality=88); print(out)

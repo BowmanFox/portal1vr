@@ -97,8 +97,36 @@ class Preview:
             return (apply_fades(out[0], row) if fades else out[0]), out[1]
         return apply_fades(out, row) if fades else out
 
-    def render(self, t, w=640, h=400, fades=True, cam=None):
+    def render(self, t, w=640, h=400, fades=True, cam=None, blend=False):
+        """blend=True: like the film, the average of the two moments t and t + 1/60 (each film frame is a blend of
+        its two 60 Hz moments; in fast motion they differ)"""
+        if blend and cam is None:
+            a = self.render_lin(t, w, h, fades); b = self.render_lin(t + 1.0 / 60.0, w, h, fades)
+            return to_image((a + b) * 0.5)
         return to_image(self.render_lin(t, w, h, fades, cam))
+
+
+    def pick(self, t, px, py, w=640, h=400, cam=None):
+        """what the preview shows at pixel (px, py) of the 640x400 frame: dict(material, depth, point) of the first
+        visible surface (None when the ray leaves the map)"""
+        row = self.row(t)
+        eye, ang, fov = cam if cam else (row['eye'], row['ang'], row['fov'])
+        img, aux = self.R.render(eye, ang, fov, row['ents'], w=w, h=h, return_aux=True)
+        x = min(w - 1, max(0, int(px))); y = min(h - 1, max(0, int(py)))
+        m = int(aux['mat'][y, x])
+        if m < 0: return None
+        o, d = self.ray(t, x + 0.5, y + 0.5, w, h, cam)
+        dist = float(aux['depth'][y, x])
+        return dict(material=self.scene.mat_names[m], depth=dist, point=(o + d * dist).tolist())
+
+    def materials_in_view(self, t, w=320, h=200, cam=None):
+        """{material: share of the frame} for the first visible surfaces at time t, largest first"""
+        row = self.row(t)
+        eye, ang, fov = cam if cam else (row['eye'], row['ang'], row['fov'])
+        img, aux = self.R.render(eye, ang, fov, row['ents'], w=w, h=h, return_aux=True)
+        ids, cnt = np.unique(aux['mat'], return_counts=True)
+        out = {(self.scene.mat_names[i] if i >= 0 else '(nothing)'): c / float(w * h) for i, c in zip(ids, cnt)}
+        return dict(sorted(out.items(), key=lambda kv: -kv[1]))
 
     # ------------------------------------------------------------------ camera geometry helpers (640x400 pixel grid by default)
     def cam(self, t):

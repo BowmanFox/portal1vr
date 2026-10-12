@@ -110,4 +110,5 @@ restore
 trap - INT TERM
 if (( failed )); then print "A map script failed to compile; see console.log."; grep -n -B2 -A6 "FAILED to compile" $moviedir/console.log | head -40; exit 3; fi
 if (( ! done )); then print "Movie did not complete."; tail -40 $moviedir/console.log 2>/dev/null; print "--- wine log tail"; tail -30 $moviedir/wine.log 2>/dev/null; exit 4; fi
-(( assemble )) && zsh ${0:A:h}/assemble.sh -Prefix $prefix -Fps $fps
+if (( assemble )); then zsh ${0:A:h}/assemble.sh -Prefix $prefix -Fps $fps || exit $?; fi
+exit 0

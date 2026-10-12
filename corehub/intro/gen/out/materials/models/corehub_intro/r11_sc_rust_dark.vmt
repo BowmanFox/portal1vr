@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+"$basetexture" "models/corehub_intro/r11_sc_rusttex"
+"$color" "[0.45 0.45 0.45]"
+"$model" "1"
+}

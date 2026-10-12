@@ -32,7 +32,7 @@ url=$(g remote get-url origin)
 g pull --quiet --ff-only origin $BRANCH || print "pull skipped (not fast-forward)"
 
 D=$WT/corehub/intro
-mkdir -p $D/{map,wip,tools/mac/handlers,models/transport,materials/corehub_intro/r10,review,mod}
+mkdir -p $D/{map,wip,tools/mac/handlers,models/transport,materials/corehub_intro/r10,mod}
 pub=(); wip=()
 [[ -f $R10/PUBLISHED.txt ]] && pub=($(cat $R10/PUBLISHED.txt))   # build director movie
 [[ -f $R10/WIP.txt ]] && wip=($(cat $R10/WIP.txt))               # build director
@@ -56,7 +56,8 @@ for f in $R10/models/*.(qc|smd|py); do cp $f $D/models/; done
 for f in $R/transport-models/*.(qc|smd|py); do cp $f $D/models/transport/; done
 for f in $MOD/materials/corehub_intro/r10/*.(vmt|vtf); do cp $f $D/materials/corehub_intro/r10/; done
 [[ -f $R10/STATUS.md ]] && cp $R10/STATUS.md $D/README.md
-for f in $R10/review/*.jpg; do cp $f $D/review/; done
+# Review sheets put film frames next to the rebuild: frames of the reference video never go to GitHub.
+rm -rf $D/review
 # The rebuilt (non-Valve) mod content: our own materials, model sources' compiled output and scripts.
 if [[ -d $R10/mod-src ]]; then
   /usr/bin/rsync -a --exclude '*.bsp' --exclude '*.bik' --exclude '*.wav' --exclude '*.mp3' --exclude '*.mp4' --exclude '*.vpk' --exclude 'sound/' --exclude 'movies/' --exclude 'maps/' $R10/mod-src/ $D/mod/
@@ -64,6 +65,8 @@ fi
 # Safety net: nothing from the Valve build or the reference video may be staged.
 bad=$(cd $D && find . \( -name '*.bsp' -o -name '*.bik' -o -name '*.wav' -o -name '*.mp3' -o -name '*.mp4' -o -name '*.vpk' -o -name '*.exe' -o -name '*.dll' \) | head -5)
 if [[ -n $bad ]]; then print "REFUSING to commit, found:\n$bad"; exit 3; fi
+films=$(cd $D && find . \( -path './review/*' -o -iname '*side*.jp*g' -o -iname '*cmp_*.jp*g' -o -iname 'f[0-9][0-9][0-9][0-9].jp*g' \) | head -5)
+if [[ -n $films ]]; then print "REFUSING to commit, possible film frames:\n$films"; exit 3; fi
 big=$(cd $D && find . -type f -size +40M | head -5)
 if [[ -n $big ]]; then print "REFUSING to commit, file over 40 MB:\n$big"; exit 3; fi
 
