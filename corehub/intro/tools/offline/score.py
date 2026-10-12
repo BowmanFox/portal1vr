@@ -60,6 +60,8 @@ if __name__ == '__main__':
     from preview import Preview, ref_frame, run_frame
     P = None if a.run else Preview(a.tag, quiet=True)
     rows = []; t = a.t0
+    if a.run:                     # game-run frames exist only on multiples of the fetch step
+        import math; t = round(math.ceil(a.t0 / a.step - 1e-9) * a.step, 4)
     while t <= a.t1 + 1e-6:
         ref = ref_frame(t)
         im = run_frame(a.run, t) if a.run else P.render(t, blend=not a.single)
@@ -68,6 +70,7 @@ if __name__ == '__main__':
         t = round(t + a.step, 4)
     if not a.quiet:
         for t, s, e, o in rows: print('%7.2f  ssim %.3f  edge %.3f  tone %.3f' % (t, s, e, o))
+    if not rows: print('no frames in %g-%g s' % (a.t0, a.t1)); raise SystemExit(1)
     M = np.array([r[1:] for r in rows])
     print('%s %g-%g s (%d samples): ssim %.3f  edge %.3f  tone %.3f' % (a.run or a.tag, a.t0, a.t1, len(rows), M[:, 0].mean(), M[:, 1].mean(), M[:, 2].mean()))
     worst = sorted(rows, key=lambda r: r[1] + r[2])[:6]

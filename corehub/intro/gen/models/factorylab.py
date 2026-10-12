@@ -27,10 +27,13 @@ def materials():
     ramp('r11_fl_corange', (0.62, 0.36, 0.17), factors=(0.35, 0.55, 0.78, 1.0))
     ramp('r11_fl_arm', (0.70, 0.50, 0.16), factors=(0.25, 0.45, 0.7, 1.0))
     ramp('r11_fl_armg', (0.58, 0.56, 0.53), factors=(0.25, 0.45, 0.7, 1.0))
+    ramp('r11_fl_mach', (0.52, 0.51, 0.49), factors=(0.3, 0.5, 0.75, 1.0))
     mat('r11_fl_armdark', (0.10, 0.07, 0.03))
     ramp('r11_fl_box', (0.82, 0.82, 0.80), factors=(0.45, 0.65, 0.85, 1.0))
     # lab
     mat('r11_fl_lring', (0.10, 0.10, 0.10))
+    mat('r11_fl_lglass', (0.09, 0.09, 0.10), alpha=0.6, translucent=True)
+    mat('r11_fl_lband', (0.42, 0.28, 0.20), alpha=0.8, translucent=True)
     mat('r11_fl_glass2', (0.22, 0.22, 0.23))
     ramp('r11_fl_lorange', (0.75, 0.45, 0.30), factors=(0.45, 0.65, 0.85, 1.0))
     ramp('r11_fl_lgrey', (0.55, 0.55, 0.56), factors=(0.30, 0.5, 0.75, 1.0))
@@ -94,6 +97,17 @@ def arm(mt='r11_fl_arm'):
     return m
 
 
+def mach():
+    """grey machinery hanging under the ceiling on the +y side (film 96.7-97.5: grey housings, motor drums, hoses)"""
+    m = Mesh()
+    m.box((-45, -30, -28), (45, 30, 0), 'r11_fl_mach')                    # housing under its rail
+    m.tube((-30, 0, -40), (30, 0, -40), 16, 'r11_fl_mach', n=10)          # motor drum
+    m.box((-12, -12, -90), (12, 12, -40), 'r11_fl_mach')                  # drop arm
+    m.box((-22, -18, -112), (22, 18, -90), 'r11_fl_mach')                 # tool head
+    m.shade('r11_fl_mach', light=(-0.3, -0.4, 0.85))
+    return m
+
+
 def floorarm():
     """robot arm lying on the conveyor (long axis +X)"""
     m = Mesh()
@@ -116,12 +130,12 @@ def lcollar(s=1.0):
     """lab collar: dark 16-gon ring, orange inner band; axis +Z, centred at z = 0 (depth 30)"""
     m = Mesh(); ph = 360.0 / 32
     o = Mesh()
-    ring_z(o, -15 * s, 70 * s, 88 * s, 'r11_fl_lring', phase=ph)
-    ring_z(o, -15 * s, 61.06 * s, 70 * s, 'r11_fl_lorange0', phase=ph)
-    ring_z(o, 15 * s, 61.06 * s, 88 * s, 'r11_fl_lring', face=+1, phase=ph)
-    wall_z(o, -15 * s, 15 * s, 88 * s, 'r11_fl_lring', inward=False, phase=ph)
-    wall_z(o, -15 * s, 15 * s, 61.06 * s, 'r11_fl_lorange', inward=True, phase=ph)
-    o.shade('r11_fl_lorange', light=(0.0, 0.3, 0.95))
+    # film (100-106 s): dark translucent glass rings, a thin brownish-orange inner band
+    ring_z(o, -15 * s, 66 * s, 88 * s, 'r11_fl_lglass', phase=ph)
+    ring_z(o, -15 * s, 61.06 * s, 66 * s, 'r11_fl_lband', phase=ph)
+    ring_z(o, 15 * s, 61.06 * s, 88 * s, 'r11_fl_lglass', face=+1, phase=ph)
+    wall_z(o, -15 * s, 15 * s, 88 * s, 'r11_fl_lglass', inward=False, phase=ph)
+    wall_z(o, -15 * s, 15 * s, 61.06 * s, 'r11_fl_lband', inward=True, phase=ph)
     m.add(o)
     return m
 
@@ -157,7 +171,7 @@ def pedestal():
     p = Mesh()
     for k in range(8):
         a = 360.0 * (k + 0.5) / 8
-        p.add(Mesh().box((28, -50, -3), (150, 50, 0), 'r11_fl_lorange'), R=rot_z(a))
+        p.add(Mesh().box((28, -40, -28), (110, 40, -25), 'r11_fl_lorange'), R=rot_z(a))
     p.shade('r11_fl_lorange', light=(0.0, 0.3, 0.95))
     m.add(p)
     return m
@@ -204,6 +218,7 @@ def build():
     save(arm().transform(scale=1.5), 'r11_fl_arm_l')
     save(arm('r11_fl_armg').transform(scale=1.3), 'r11_fl_arm_g')
     save(floorarm(), 'r11_fl_floorarm')
+    save(mach(), 'r11_fl_mach')
     save(box(), 'r11_fl_box')
     save(box().transform(scale=1.6), 'r11_fl_box_l')
     save(lcollar(), 'r11_fl_lcollar')

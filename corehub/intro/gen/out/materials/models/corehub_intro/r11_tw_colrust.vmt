@@ -1,6 +1,6 @@
 "UnlitGeneric"
 {
-"$basetexture" "corehub_intro/r11_tw_rust"
-"$color" "[0.75 0.75 0.75]"
+"$basetexture" "corehub_intro/r11_tw_concrete"
+"$color" "[0.52 0.52 0.52]"
 "$model" "1"
 }

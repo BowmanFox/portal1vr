@@ -113,11 +113,12 @@ def materials():
     mat(PFX + '_col_side', (sc(80),) * 3)
     mat(PFX + '_black', (sc(12),) * 3)
     mat(PFX + '_pole', (sc(16),) * 3)
+    mat(PFX + '_lwall', (sc(45),) * 3)
     ramp(PFX + '_band', (sc(34),) * 3, (0.45, 0.65, 0.85, 1.0))
     mat(PFX + '_glass', (0.55, 0.56, 0.58), alpha=0.06, translucent=True, nocull=True)
     mat(PFX + '_white', (0.86, 0.86, 0.85))
     mat(PFX + '_whiteg', (0.55, 0.55, 0.56))
-    mat(PFX + '_laser', (0.86, 0.30, 0.30), alpha=0.75, translucent=True, nocull=True)
+    mat(PFX + '_laser', (0.90, 0.32, 0.32), alpha=0.85, translucent=True, nocull=True)
     ramp(PFX + '_pipe', (0.42, 0.42, 0.43), (0.35, 0.55, 0.8, 1.0))
     ramp(PFX + '_dk', (0.13, 0.13, 0.135), (0.45, 0.65, 0.85, 1.0))
 
@@ -140,8 +141,8 @@ def iris_frame(h, outer, t=6.0):
 
 
 def collar(R=61.06, n=12, tall=20.0):
-    """tube collar (axis model +Z, face at Z = 0): 12-gon light band 0.86-1.0 R, mid band 0.76-0.86 R, dark ring
-    0.60-0.76 R, side wall; both faces"""
+    """tube collar (axis model +Z, face at Z = 0): 12-gon light band 0.86-1.0 R, mid band 0.78-0.86 R, thin dark ring
+    0.73-0.78 R, open inside (film 1682 profile; 1749: the opening starts at ~0.73 R), outer side wall"""
     m = Mesh()
 
     def poly_ring(z, r0, r1, mt, up=True):
@@ -161,10 +162,10 @@ def collar(R=61.06, n=12, tall=20.0):
             m.quad(mt, *q)
     for z, up in ((0.0, False), (tall, True)):
         poly_ring(z, 0.86 * R, R, PFX + '_col_band', up)
-        poly_ring(z, 0.76 * R, 0.86 * R, PFX + '_col_mid', up)
-        poly_ring(z, 0.60 * R, 0.76 * R, PFX + '_col_dark', up)
+        poly_ring(z, 0.78 * R, 0.86 * R, PFX + '_col_mid', up)
+        poly_ring(z, 0.73 * R, 0.78 * R, PFX + '_col_dark', up)
     sleeve(0.0, tall, R, PFX + '_col_side', True)
-    sleeve(0.0, tall, 0.60 * R, PFX + '_col_dark', False)
+    sleeve(0.0, tall, 0.73 * R, PFX + '_col_mid', False)
     return m
 
 
@@ -219,7 +220,8 @@ def disc(R0, R1, T, n=24, mt=None):
 def save_tower(P):
     """tower parts at the scene's sizes (dict P)"""
     materials()
-    mat(PFX + '_colrust', (P.get('col_tint', 0.8),) * 3, base='corehub_intro/%s_rust' % PFX)
+    # the column: dark grey with faint rust (film 1664: 72 69 68; 1757: 45-60) -> the concrete texture, darkened
+    mat(PFX + '_colrust', (P.get('col_tint', 0.8),) * 3, base='corehub_intro/%s_concrete' % PFX)
     for k, (z, ro) in enumerate(P['bands']):
         save(band(P['band_ri'], ro, P['band_t']), '%s_band%d' % (PFX, k))
     save(column(P['col_r'], P['col_z0'], P['col_z1']), PFX + '_column')
@@ -237,6 +239,111 @@ def save_pipe(L, r):
         x += 600
     m.shade(PFX + '_pipe', light=(0.2, -0.3, 0.9))
     save(m, PFX + '_pipe')
+
+
+# ------------------------------------------------------------------------------------------------ inside the tower
+def white_disc(R=48.0, n=32):
+    """the white 4-segment disc (valve wheel) seen in the glass tower: face at X = 0 toward -X, 4 white quarter
+    segments separated by dark spokes, dark hub and rim (film 1760-1792, 1848-1856)"""
+    m = Mesh()
+    def sector(r0, r1, a0, a1, mt, x=0.0):
+        k = max(2, int(n * (a1 - a0) / (2 * math.pi)))
+        for i in range(k):
+            b0 = a0 + (a1 - a0) * i / k; b1 = a0 + (a1 - a0) * (i + 1) / k
+            q = [V(x, r0 * math.cos(b0), r0 * math.sin(b0)), V(x, r1 * math.cos(b0), r1 * math.sin(b0)),
+                 V(x, r1 * math.cos(b1), r1 * math.sin(b1)), V(x, r0 * math.cos(b1), r0 * math.sin(b1))]
+            m.quad(mt, *q[::-1])
+    gap = 0.16
+    for q in range(4):
+        a0 = q * math.pi / 2 + gap / 2 + math.pi / 4; a1 = (q + 1) * math.pi / 2 - gap / 2 + math.pi / 4
+        sector(0.22 * R, 0.86 * R, a0, a1, PFX + '_white')
+        sector(0.22 * R, 0.86 * R, a1, a1 + gap, PFX + '_spoke', x=0.5)
+    sector(0.0, 0.22 * R, 0.0, 2 * math.pi, PFX + '_spoke', x=0.2)
+    sector(0.86 * R, R, 0.0, 2 * math.pi, PFX + '_rimd', x=0.2)
+    m.add(Mesh().lathe([(0.5, R), (14.0, R), (14.0, 0.0)], PFX + '_rimd', n=24, axis='x'))
+    return m
+
+
+def turret(h=46.0):
+    """a turret: white egg (axis +Z) with a dark side slot and a red eye toward -X"""
+    m = Mesh()
+    m.sphere((0, 0, 0), h / 2, PFX + '_turw', n=12, m=8, squash=(0.55, 0.55, 1.0))
+    m.shade(PFX + '_turw', levels=3, light=(-0.6, 0.3, 0.7))
+    m.box((-0.3 * h, -2.0, -0.35 * h), (0.3 * h, 2.0, 0.3 * h), PFX + '_spoke')
+    m.sphere((-0.27 * h, 0, 0.12 * h), 3.0, PFX + '_eye', n=6, m=4)
+    return m
+
+
+def laser(L, w=2.5):
+    """red beam along +Z, 0..L"""
+    m = Mesh(); m.box((-w, -w, 0.0), (w, w, L), PFX + '_laser'); return m
+
+
+def arm(L1=110.0, L2=90.0, r=5.0):
+    """white two-segment robot arm: from the origin along +Z then bent toward -Y, with dark joints"""
+    m = Mesh()
+    j = V(0, 0, L1); e = V(0, -L2 * 0.8, L1 + L2 * 0.6)
+    m.tube((0, 0, 0), j, r, PFX + '_turw2', n=8); m.tube(j, e, r * 0.8, PFX + '_turw2', n=8)
+    for q in (V(0, 0, 0), j, e): m.sphere(q, r * 1.6, PFX + '_spoke', n=8, m=6)
+    return m
+
+
+def diag_tube(L, ring_r=46.0, pitch=118.0, rail_sep=30.0):
+    """a dark transport tube seen behind the glass tower: two black rails along +X (0..L) and dark ring collars"""
+    m = Mesh()
+    for sy in (1, -1):
+        m.tube((0, sy * rail_sep / 2, 0), (L, sy * rail_sep / 2, 0), 3.5, PFX + '_pole', n=6, caps=False)
+    x = pitch / 2
+    while x < L:
+        m.add(Mesh().lathe([(x - 7, ring_r - 9), (x - 7, ring_r), (x + 7, ring_r), (x + 7, ring_r - 9), (x - 7, ring_r - 9)], PFX + '_dk', n=16, axis='x'))
+        x += pitch
+    m.shade(PFX + '_dk', light=(-0.5, 0.4, 0.75))
+    return m
+
+
+def save_hangers(R=230.0, top=0.0, bottom=-380.0, n=7, r=9.0):
+    """dark pipes hanging from the platform's underside (film 1664-1760: 6-8 pipes curving down to the floor and
+    the horizontal pipes), on the front half of a circle of radius R (model origin = the platform's centre)"""
+    materials()
+    m = Mesh()
+    for k in range(n):
+        a = math.radians(110 + 140 * k / (n - 1))           # front half (toward -X, the camera)
+        p0 = V(R * math.cos(a), R * math.sin(a), top); p1 = V(R * math.cos(a) * 1.35, R * math.sin(a) * 1.35, (top + bottom) / 2)
+        p2 = V(R * math.cos(a) * 1.6, R * math.sin(a) * 1.6, bottom)
+        m.tube(p0, p1, r, PFX + '_dk', n=8, caps=False); m.tube(p1, p2, r, PFX + '_dk', n=8, caps=False)
+    m.add(Mesh().lathe([(top - 40, 0.0), (top - 40, 60.0), (top, 60.0), (top, 0.0)], PFX + '_dk', n=16))   # the hub below
+    m.shade(PFX + '_dk', light=(-0.5, 0.4, 0.75))
+    save(m, PFX + '_hangers')
+
+
+def save_column(R, z0, z1, name):
+    save(column(R, z0, z1), name)
+
+
+def save_glass(W, H):
+    """translucent light pane (model Y 0..W, Z 0..H, plane X = 0, both sides)"""
+    materials()
+    mat(PFX + '_glassf', (0.62, 0.63, 0.65), alpha=0.16, translucent=True, nocull=True)
+    m = Mesh(); m.quad(PFX + '_glassf', V(0, 0, 0), V(0, W, 0), V(0, W, H), V(0, 0, H))
+    save(m, PFX + '_glassfront')
+
+
+def save_interior(beams, k=1.0):
+    """k: size scale (the objects stand nearer than the film's tower, see scenes/tower.py: INT_K)"""
+    materials()
+    mat(PFX + '_spoke', (sc(40),) * 3)
+    mat(PFX + '_rimd', (sc(28),) * 3)
+    mat(PFX + '_eye', (0.95, 0.25, 0.25))
+    ramp(PFX + '_turw', (0.85, 0.85, 0.84), (0.55, 0.8, 1.0))
+    mat(PFX + '_turw2', (0.80, 0.80, 0.80))
+    save(white_disc().transform(scale=0.9), PFX + '_wdisc')          # film 1830: disc radius ~27 px at ~730 units -> 43
+    save(turret().transform(scale=k * 1.3), PFX + '_turret')
+    save(arm().transform(scale=k), PFX + '_arm')
+    cm = Mesh(); cm.box((-20, -20, -20), (20, 20, 20), PFX + '_dk'); cm.shade(PFX + '_dk', light=(-0.5, 0.4, 0.75)); save(cm, PFX + '_cube')
+    save(diag_tube(1800.0).transform(scale=k), PFX + '_diag')
+    save(diag_tube(1800.0), PFX + '_diag1')
+    for i, L in enumerate(beams):
+        save(laser(L, 6.0), '%s_laser%d' % (PFX, i))          # film 1790: beams ~7 px wide at ~730 units
 
 
 def save_iris(h, outer):

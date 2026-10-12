@@ -80,13 +80,13 @@ def rails_along(v, P, name, up0=(0, 0, 1.0), rho=34.0, width=1.8, step=6.0, roll
         U, W = U * np.cos(r) + W * np.sin(r), W * np.cos(r) - U * np.sin(r)
     org = P[0].copy()
     save(rail_sweep(P - org, U, W, rho, width, material='r11_pc_rail'), name)
-    E.add_prop(v, 'models/corehub_intro/%s.mdl' % name, org, (0, 0, 0), name=name)
+    E.add_prop(v, 'models/corehub_intro/%s.mdl' % name, org, (0, 0, 0), cls='prop_static')
 
 
 def rings_at(v, kind, pts, axis, prefix):
     ang = tube.axis_angles(axis)
     for k, p in enumerate(pts):
-        E.add_prop(v, 'models/corehub_intro/r11_pc_ring_%s.mdl' % kind, p, ang, name='%s_%s_%d' % (prefix, kind, k))
+        E.add_prop(v, 'models/corehub_intro/r11_pc_ring_%s.mdl' % kind, p, ang, cls='prop_static')
 
 
 def line(a, b, n=40):
@@ -179,13 +179,13 @@ def junction(v, base):
             q = [c + (p[0][0], p[0][1], -900.0), c + (p[0][0], p[0][1], 260.0), c + (p[1][0], p[1][1], 260.0), c + (p[1][0], p[1][1], -900.0)]
             m.quad(mt, *q)
     save(m.transform(offset=-c), PFX + '_cross')
-    E.add_prop(v, 'models/corehub_intro/%s_cross.mdl' % PFX, c, (0, 0, 0), name=PFX + '_cross')
+    E.add_prop(v, 'models/corehub_intro/%s_cross.mdl' % PFX, c, (0, 0, 0), cls='prop_static')
     for k, z in enumerate((230.0, 120.0, -330.0, -470.0, -610.0, -750.0)):
-        E.add_prop(v, 'models/corehub_intro/r11_pc_ring_xl.mdl', c + (0.0, 0.0, z), tube.axis_angles((0, 0, -1)), name='%s_xring%d' % (PFX, k))
+        E.add_prop(v, 'models/corehub_intro/r11_pc_ring_xl.mdl', c + (0.0, 0.0, z), tube.axis_angles((0, 0, -1)), cls='prop_static')
     # the white pod at the ringed tube's end, in front of the vertical tube (the film's bright blob at the vanishing point)
     pp = base + (0.0, JUNCTION_Y - CROSS_R - 40.0, 0.0)
     E.add_prop(v, 'models/corehub_intro/r11_pc_pod.mdl', pp, tube.axis_angles((0, 1, 0)), name=PFX + '_pod')
-    WALL_SHOW.append((PFX + '_pod', 39.0, 47.15, pp, pp + (0.0, 0.0, -2500.0)))      # gone once the camera reaches it
+    WALL_SHOW.append((PFX + '_pod', 39.0, 47.15, pp, np.asarray(ORIGIN_A) + (-500.0, 0.0, 0.0)))      # gone once the camera reaches it
 
 
 # ---------------------------------------------------------------------------------------------------------- shot B
@@ -208,7 +208,7 @@ def shot_b(v, d, rc):
             p = [(rr * math.cos(a), rr * math.sin(a)) for a in (a0, a1)]
             m.quad(mt, V(p[0][0], p[0][1], -40.0), V(p[0][0], p[0][1], 600.0), V(p[1][0], p[1][1], 600.0), V(p[1][0], p[1][1], -40.0))
     save(m, PFX + '_bsleeve')
-    E.add_prop(v, 'models/corehub_intro/%s_bsleeve.mdl' % PFX, top, (0, 0, 0), name=PFX + '_bsleeve')
+    E.add_prop(v, 'models/corehub_intro/%s_bsleeve.mdl' % PFX, top, (0, 0, 0), cls='prop_static')
     return rd
 
 

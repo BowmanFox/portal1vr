@@ -232,11 +232,11 @@ def room_a(c):
 # (A series of rings of radius ~110 every 550 units also fits the kymograph, but scored worse in the preview.)
 EXTRA_COLLARS_A = [258.0, 822.0, 1607.0, 3000.0]
 MOVE_RINGS_A = {991.9: 2163.0, 995.6: 2711.0}
-# a ring placed from its image radius where the export's passing frame disagrees with the film: 1040 shows it with
-# radius 190 px (ring at z 870, export 923). (Tried and dropped, lower scores: a ring at y 620 for 1010, ring
-# 1073.3 at y 2500.)
+# rings that could be placed from their image radius instead of the export's passing frame (tried, all scored lower
+# once the preview averaged t and t+1/60 like the film: ring 1042.6 at z 870, a ring at y 620 for 1010, ring 1073.3
+# at y 2500); the export's positions are kept
 PLACED_RINGS_A = []
-REPLACE_RINGS_A = {1042.6: (4253.5, 1646.0, 870.0)}
+REPLACE_RINGS_A = {}
 # junction rings one frame later than exported (998: ring radius ~136 px ahead -> x ~3565; 1003: radius ~136 px
 # -> passed at ~1004.2): placed on the path at these frames
 REFRAME_RINGS_A = {999.0: 1000.1, 1003.0: 1004.2}
@@ -367,8 +367,25 @@ def build_b(v, d):
     return rd
 
 
+STATIC_PREFIXES = ('models/corehub_intro/r11_ru_', 'models/corehub_intro/r11_rust_')
+
+
+def make_static(v):
+    """every model of this scene is still: prop_static without a targetname (entity limit of the 2009 engine)"""
+    n = 0
+    for e in v.entities:
+        if e['classname'] in ('prop_dynamic_override', 'prop_dynamic') and e['model', ''].lower().startswith(STATIC_PREFIXES):
+            e['classname'] = 'prop_static'
+            for k in ('targetname', 'solid', 'disableshadows'):
+                if k in e: del e[k]
+            e['solid'] = '0'; e['disableshadows'] = '1'
+            n += 1
+    return n
+
+
 def apply(v, d):
     RM.brush_materials()
     build_a(v, d)
     build_b(v, d)
     fades(d)
+    make_static(v)

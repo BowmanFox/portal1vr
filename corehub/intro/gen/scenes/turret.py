@@ -75,6 +75,11 @@ class Room:
         mdl = model if model.startswith('models/') else 'models/corehub_intro/%s.mdl' % model
         return E.add_prop(self.v, mdl, self.m(p), ang, name=name or 'r11_tu_%s_%d' % (self.name, self.nprop), **kv)
 
+    def static(self, model, p, ang=(0, 0, 0)):
+        """a model that never moves: prop_static, no name (entity limit)"""
+        mdl = model if model.startswith('models/') else 'models/corehub_intro/%s.mdl' % model
+        return E.add_prop(self.v, mdl, self.m(p), ang, cls='prop_static')
+
     def seal(self, lo, hi):
         lo = np.maximum(self.m(lo), self.bounds[0]); hi = np.minimum(self.m(hi), self.bounds[1])
         shell(self.v, lo, hi)
@@ -151,21 +156,29 @@ ORIGIN_A1 = (12900.0, 11000.0, 3600.0)    # shot A, room a1 (s1a frame: origin =
 ORIGIN_A5 = (14500.0, 11000.0, 1200.0)    # shot A, room a5 (s1b frame: origin = camera of frame 2026)
 A1_LIT_Y = 28.0                            # a1: the wall is lit right of this (y < 28), dark left of it
 A_WALL_X = 243.0                           # a1: the rust wall behind the tower (s1a cloud, planes x 238-247)
-TOWER = dict(x=158.0, y=-5.0, z=-50.0)     # a1: tower axis and flange top (flange outline 1918 + wall constraint)
-TOWER_Z = [(1916, -37.0), (1933, -50.0), (1960, -62.0)]
-BAND = dict(x=160.0, z0=-134.5, z1=-105.5)  # a1: light grey band behind the tubes (1934 / 1950 edges)
+TOWER = dict(x=float(os.environ.get('TU_TX', 151.0)), y=-5.0, z=-50.0)     # a1: tower axis and flange top (flange r 92 spans the film's 1925-1940 width; wall constraint)
+WALL_BAND = [float(x) for x in os.environ.get('TU_WBAND', 'off').split(',')] if os.environ.get('TU_WBAND', 'off') != 'off' else None      # (a stripe at 228,-110,-62 scored lower)
+BAND_DROP = float(os.environ.get('TU_BDROP', -12.5))
+TOWER_Z = [(1916, -37.0 + float(os.environ.get('TU_TZ', 8))), (1933, -50.0 + float(os.environ.get('TU_TZ', 8))), (1960, -62.0 + float(os.environ.get('TU_TZ', 8)))]
+# a1: light grey band behind the tubes. Its left-edge rows in 1929-1955 (290-361 ... 10-91) fit a static stripe on the
+# wall: front face x 240, z -146.8 .. -111.4 (drift -0.01 per frame; at x 160 it would have to sink 1.6 per frame)
+BAND = dict(x=float(os.environ.get('TU_BANDX', 240.0)), z0=float(os.environ.get('TU_BAND0', -146.8)))
+BAND['z1'] = BAND['z0'] + float(os.environ.get('TU_BANDH', 35.4))
 A5_WALL_X = 410.0                          # a5: rust wall (s1b cloud, scale 21)
 A5_SLAB = dict(x=258.0, z0=-5.0, z1=94.0)  # a5: grey floor slab front face (band edges 2024-2080)
-LIFT = (185.0, -36.0, 30.0)                # a1: axis (x, y) and rail offset of the vertical lift tube
-RING2 = (180.0, -4.0, -255.0)             # a1: the small collar the turret is lifted out of (1980-1996)
+LIFT = (195.0, float(os.environ.get('TU_LIFTY', -26.5)), float(os.environ.get('TU_LIFTO', 23.5)))                # a1: axis (x, y) and rail offset of the vertical lift tube
+RING2 = (180.0, -4.0, -255.0)
+USE_WEDGE = os.environ.get('TU_WEDGE', '0') == '1'       # tried: the score drops a little with it
+WEDGE = (13.0, 3.0, 110.0)                 # a1: top of the near dark rail relative to the camera (the film's central wedge)             # a1: the small collar the turret is lifted out of (1980-1996)
 BEAM_DIR = [(2021, 1.0, 0.35), (2028, 1.0, 0.55), (2032, 0.6, 1.0), (2036, 0.3, 1.0), (2040, -0.4, 1.0), (2046, -0.75, 1.0),
             (2050, -0.3, 1.0), (2054, 1.0, 0.15), (2058, 1.0, -0.05), (2066, 1.0, -0.15), (2074, 1.0, -0.18), (2082, 1.0, -0.2)]
-TURRET_MDL = 'models/props_backstage/vacum_turret.mdl'
-TURRET_ANG = (0.0, -90.0, 90.0)            # stock turret: head (model +Y) up, eye (model +Z) toward -x
-EYE_OFF = np.array([-13.5, 0.0, 3.0])      # eye relative to the prop origin with TURRET_ANG
+TURRET2 = [(1994, (178.0, -20.0, -256.0)), (2001, (179.0, -27.0, -250.0)), (2008, (182.0, -25.0, -234.0)), (2017, (184.0, -24.0, -214.0))]
+TURRET_MDL = 'r11_tu_turret_w'             # own unlit turret (models/turret.py): +Z up, eye toward -X, origin = the eye
+TURRET_ANG = (0.0, 0.0, 0.0)
+EYE_OFF = np.array([0.0, 0.0, 0.0])        # eye relative to the prop origin
 
 
-def cam_tube(r, J, org, tracks, name='r11_tu_a_camtube', rho=34.0, width=2.6, f0=1918, f1=1975, x_end=232.0, off=1989):
+def cam_tube(r, J, org, tracks, name='r11_tu_a_camtube', rho=34.0, width=2.6, f0=1918, f1=1975, x_end=232.0, off=1982):
     """the tube the camera rides down (film 1918-1975: its near rails are the big dark wedges converging toward
     collar 1): four rails swept along the smoothed camera path, then on along +x to the collar's start"""
     from lib.gen import save
@@ -197,20 +210,41 @@ def shot_a(v, d, tracks):
     r.slab('x', A_WALL_X, (A1_LIT_Y, -1500), (700, 500), -1, TM.WALL_A1)           # dark left part (1960 / 1990: p50 31-33)
     r.prop('r11_tu_tower', (TOWER['x'], TOWER['y'], TOWER['z']), (0, 0, 0), name='r11_tu_a_tower')
     # the flange sits lower in the film's later frames than the measured descent puts it: keyed height (1918 / 1933)
-    tracks.append(dict(name='r11_tu_a_tower', keys=[(n * FRAME_T, org['a1'] + np.array([TOWER['x'], TOWER['y'], z]), None) for n, z in TOWER_Z]))
-    r.box((BAND['x'], -700, BAND['z0']), (A_WALL_X, 700, BAND['z1']), TM.GREY)      # floor slab of the upper level (front face = the grey band)
-    r.slab('x', BAND['x'], (-700, BAND['z0'] - 22.0), (700, BAND['z0']), -1, TM.BLACK, t=6.0)      # dark strip under it (1934-1950)
+    tracks.append(dict(name='r11_tu_a_tower', keys=[(n * FRAME_T, org['a1'] + np.array([TOWER['x'], TOWER['y'], z]), None) for n, z in TOWER_Z],
+                       on=T0 - 0.1, off=1964 * FRAME_T))         # below the tower from ~1964 the film shows none of its tubes
+    # floor slab of the upper level (front face = the grey band 1934-1950); seen again from below as the camera rises
+    # through it (2015-2016) about 12 units lower than the descent puts it: a model, keyed
+    r.prop('r11_tu_bandslab', (BAND['x'], 0.0, BAND['z0']), (0, 0, 0), name='r11_tu_a_bandslab')
+    tracks.append(dict(name='r11_tu_a_bandslab', keys=[(1962 * FRAME_T, org['a1'] + np.array([BAND['x'], 0.0, BAND['z0']]), None),
+                                                        (1996 * FRAME_T, org['a1'] + np.array([BAND['x'], 0.0, BAND['z0'] + BAND_DROP]), None)],
+                       on=(T0 - 0.1) if not WALL_BAND else 1990 * FRAME_T))
+    if WALL_BAND:       # the grey band of 1934-1950 moves across the picture like something near the wall: a grey stripe there
+        r.box((WALL_BAND[0], -700, WALL_BAND[1]), (A_WALL_X, 700, WALL_BAND[2]), TM.GREY)
+        r.box((WALL_BAND[0] + 3.0, -700, WALL_BAND[1] - 14.0), (A_WALL_X, 700, WALL_BAND[1]), TM.GREY_DARK)
+    if os.environ.get('TU_STRIP', '0') == '1':
+        r.slab('x', BAND['x'], (-700, BAND['z0'] - 12.0), (700, BAND['z0']), -1, TM.GREY_DARK, t=6.0)  # dark strip under it (1934-1950)
+    if os.environ.get('TU_BEAM', '0') == '1':      # (tried, scores drop) the dark beam above the lifted turret (film 2008: y ~64 px; 2016: slab bottom)
+        r.box((BAND['x'] - 2.0, -700, -163.0), (BAND['x'] + 40.0, 700, -155.0), TM.GREY_DARK)
     r.slab('z', -300.0, (-200, -700), (A_WALL_X, 700), +1, TM.FLOOR)            # floor (1980-1992: dark floor)
     P = J['props']
     ring_keys = [(t, org['a1'] + np.array(p), (0.0, 0.0, 0.0)) for t, p in P['ring']]
+    if os.environ.get('TU_RINGX', '0') == '1':      # (scored lower: held is better) past the last fit (65.94) the ring keeps coming: at 66.0 its inner edge
+        lp = np.array(P['ring'][-1][1])               # frames the picture (d ~ 88), by 66.1 it has passed the camera
+        rx = [float(v) for v in os.environ.get('TU_RINGXS', '144,130,110').split(',')]
+        ring_keys += [(tt, org['a1'] + np.array([xx, lp[1], lp[2]]), (0.0, 0.0, 0.0)) for tt, xx in zip((66.0, 66.1, 66.2), rx)]
     tracks.append(dict(name='r11_tu_a_ringtube', keys=ring_keys, on=T0 - 0.01, off=2000 * FRAME_T))
     r.prop('r11_tu_ringtube', P['ring'][0][1], (0, 0, 0), name='r11_tu_a_ringtube')
-    r.prop('r11_tu_ring2', RING2, (0, 0, 0), name='r11_tu_a_ring2')
+    r.static('r11_tu_ring2', RING2)
+    # the near dark rail in front of the descending camera keeps its place in the picture (1918-1962): it moves with it
+    if USE_WEDGE:
+        wk = [(m[0], org['a1'] + np.array(m[3:6]) + np.array(WEDGE), None) for m in J['moments'] if m[2] == 'E' and m[1] % 3 == 1 and m[1] <= 1964]
+        tracks.append(dict(name='r11_tu_a_wedge', keys=wk, on=T0 - 0.01, off=1962 * FRAME_T))
+        r.prop('r11_tu_wedge', np.array(J['moments'][0][3:6]) + np.array(WEDGE), (0, 0, 0), name='r11_tu_a_wedge')
     # the vertical tube the turret is lifted in (film 1996-2016: two thick dark rails left and right of the turret)
     for sy in (-1, 1):
         for sx in (-1,):
             cx, cy = LIFT[0] + sx * LIFT[2], LIFT[1] + sy * LIFT[2]
-            r.box((cx - 2.0, cy - 2.0, -262.0), (cx + 2.0, cy + 2.0, -40.0), TM.BLACK)
+            r.box((cx - 3.5, cy - 3.5, -262.0), (cx + 3.5, cy + 3.5, -40.0), TM.BLACK)
     r.seal((-600, -800, -1700), (800, 800, 700))
     # ---------------- room a5: wall, slab, the rising turret
     r5 = Room(v, ORIGIN_A5, 'a5', tex=0.35)
@@ -220,14 +254,20 @@ def shot_a(v, d, tracks):
     # the platform the turret is lifted out of (film 2018-2024: grey front, dark top edge at ~292 px in 2023)
     r5.box((150.0, -900, -80.0), (A5_SLAB['x'], 900, -45.0), TM.GREY_MID)
     r5.slab('z', -45.0, (150.0, -900), (A5_SLAB['x'], 900), +1, TM.GREY_DARK, t=2.0)
-    tk = []
+    # before 1998 the turret sits in ring 2 (film 1990-1997: its head in the collar), then it is lifted
+    tk = [(1986 * FRAME_T, org['a1'] + np.array(RING2) + [26.0, 0.0, 2.0] - EYE_OFF, TURRET_ANG, 'a1'),
+          (1993 * FRAME_T, org['a1'] + np.array(RING2) + [14.0, -3.0, 8.0] - EYE_OFF, TURRET_ANG, 'a1')]
     for t, rm, p in P['turret']:
         if tk and rm == 'a5' and tk[-1][3] == 'a1':
             tk.append((2016.95 * FRAME_T, tk[-1][1], TURRET_ANG, 'a1')); tk.append((2016.96 * FRAME_T, org[rm] + np.array(p) - EYE_OFF, TURRET_ANG, rm))
         tk.append((t, org[rm] + np.array(p) - EYE_OFF, TURRET_ANG, rm))
     tk = [k[:3] for k in tk]
-    tracks.append(dict(name='r11_tu_a_turret', keys=tk, on=tk[0][0] - 0.2, off=2083 * FRAME_T))
+    tracks.append(dict(name='r11_tu_a_turret', keys=tk, on=1985 * FRAME_T, off=2083 * FRAME_T))
     r5.prop(TURRET_MDL, np.array(P['turret'][0][2]) - EYE_OFF, TURRET_ANG, name='r11_tu_a_turret')
+    # the next turret, below the lifted one, its back to the camera (film 1996-2016: white dome low in the frame)
+    k2 = [(n * FRAME_T, org['a1'] + np.array(p), (0.0, 180.0, 0.0)) for n, p in TURRET2]
+    tracks.append(dict(name='r11_tu_a_turret2', keys=k2, on=1994 * FRAME_T, off=2016.9 * FRAME_T))
+    r.prop('r11_tu_turret', TURRET2[0][1], (0.0, 180.0, 0.0), name='r11_tu_a_turret2')
     # the laser sight: a thin beam from the eye, its image direction read from the film (2024-2080)
     bk = []
     for t, pos, ang in tk:
@@ -244,18 +284,24 @@ def shot_a(v, d, tracks):
 ORIGIN_B = (14600.0, 14600.0, 1500.0)     # shot B room (s2 frame: origin = camera of frame 2083E)
 B_WALL_X = 150.0                           # the rust wall (s2 cloud, scale 13.8)
 B_WALL_END = -150.0                        # the wall ends here on the right (black beyond: 2171, 2188)
-B_IRIS = (146.0, -58.0, 76.0)              # iris centre (moves down, B_IRIS_KEYS)
+B_IRIS = (112.0, -62.0, 76.0)              # iris centre (moves down, B_IRIS_KEYS)
 B_IRIS_R = 59.0                            # petal radius (196 px at 139 units)
 B_SIGN = (148.5, -101.6, 97.0)             # the "16" sign's centre (2176-2200: consistent to 0.1)
-B_EYE = {2089: (90.8, -5.7, 15.7), 2092: (90.7, -4.4, 20.6), 2095: (90.8, -4.9, 22.0), 2098: (90.8, -5.5, 22.4),
+B_EYE = {2083: (90.6, -3.6, 11.3), 2086: (90.7, -4.2, 14.0), 2089: (90.8, -5.7, 15.7), 2092: (90.7, -4.4, 20.6), 2095: (90.8, -4.9, 22.0), 2098: (90.8, -5.5, 22.4),
          2101: (90.9, -6.7, 22.0), 2104: (90.9, -6.6, 23.4), 2107: (91.1, -8.7, 26.4), 2110: (91.1, -8.9, 28.3),
          2113: (91.3, -10.7, 30.5), 2116: (91.5, -12.4, 33.1), 2119: (91.6, -12.2, 36.0), 2122: (91.9, -14.4, 42.5),
          2128: (92.3, -17.3, 53.4), 2131: (92.4, -17.2, 57.7), 2134: (92.7, -19.6, 62.1), 2137: (93.1, -22.5, 67.0)}
-# the iris moves down the wall (cyan lights 2138-2148: -6.4 units per frame at y -70)
-B_IRIS_KEYS = [(2120, 230.0), (2138, 113.5), (2142, 96.1), (2145, 76.4), (2148, 57.3), (2160, -20.0), (2217, -385.0)]
+# the iris moves down (cyan lights 2138-2148: -6.4 units per frame on the wall plane); it hangs in front of the small
+# tube (the film's petals hide the tube in 2143-2150), so it is placed at x 112 (the wall-plane track scaled to there)
+B_IRIS_KEYS = [(2120, -58.0, 233.0), (2138, -59.0, 118.5), (2141.95, -59.0, 96.0), (2142, -57.9, 90.5), (2145, -62.3, 74.8), (2148, -62.6, 61.7), (2160, -69.8, 3.9), (2217, -70.3, -209.4)]
 T_CUT_B = 2142 * FRAME_T
 B_HEAD = [(2150, (96.0, -48.0, 150.0)), (2156, (98.0, -50.0, 128.0)), (2160, (100.0, -58.0, 114.0)), (2163, (101.0, -57.0, 104.0)),
           (2166, (102.0, -56.0, 90.0)), (2172, (104.0, -55.0, 62.0))]
+# film 2161/2163/2165: the head's white cylinder (r 13.6) is 156/187/244 px wide, top edge at rows 4/50/141: it comes
+# toward the camera while it goes down (cylinder top centre (91.5,-63.6,106.9), (78.9,-63.5,93.7), (63.9,-67.3,77.6))
+# (z of 2161/2163 then lowered by 6: the silhouette top is the cylinder's near rim; checked: rows 57/56 at 2163)
+B_HEAD2 = [(2150, (100.0, -58.0, 168.0)), (2155, (100.0, -62.0, 150.0)), (2161, (91.5, -63.6, 100.9)), (2163, (78.9, -63.5, 87.7)),
+           (2165, (63.9, -67.3, 78.6)), (2169, (36.3, -70.0, 49.4))]   # (2165 at 74.6 / 82.6 scored lower)
 
 
 def shot_b(v, d, tracks):
@@ -267,44 +313,67 @@ def shot_b(v, d, tracks):
     r.slab('x', B_WALL_X + 400, (-900, -500), (B_WALL_END, 900), -1, TM.BLACK)
     r.slab('z', -41.0, (-200, -400), (B_WALL_X, 300), +1, TM.FLOOR)                 # floor (2084-2100: dark strip at the bottom)
     # sign and the small tube below / above it
-    r.prop('r11_tu_sign16', B_SIGN, (0, 0, 0), name='r11_tu_b_sign')
-    r.prop('r11_tu_smalltube', (128.0, -100.0, 78.0), (0, 0, 0), name='r11_tu_b_smalltube')
+    r.static('r11_tu_sign16', B_SIGN)
+    r.static('r11_tu_smalltube', (128.0, -100.0, float(os.environ.get('TU_STZ', 67.0))), tuple(float(v) for v in os.environ.get('TU_STA', '0,0,0').split(',')))
+    r.static('r11_tu_htube', (100.0, -84.0, 278.0))           # the end: rings at x 100-102, z 277-280 (2214/2215 fits)
+    if os.environ.get('TU_HT2', '118,-84,246') != 'off':        # a second camera-facing tube end lower down (2211: ring r 105 px at row 90)
+        r.static('r11_tu_htube', tuple(float(v) for v in os.environ.get('TU_HT2', '118,-84,246').split(',')))
     # the scanner head descends past the camera (2156-2168: cylinder top 2160 y 5 -> 2163 y 60, x ~215 px, ~70 away)
-    hk = [(n * FRAME_T, o + np.array(p), None) for n, p in B_HEAD]
-    tracks.append(dict(name='r11_tu_b_head', keys=hk, on=2152 * FRAME_T, off=2172 * FRAME_T))
+    if os.environ.get('TU_HEAD2', '1') == '1':
+        hk = [(n * FRAME_T + 1 / 120.0, o + np.array(p), None) for n, p in B_HEAD2]
+        tracks.append(dict(name='r11_tu_b_head', keys=hk, on=2152 * FRAME_T, off=2170 * FRAME_T))
+    else:
+        hk = [(n * FRAME_T, o + np.array(p), None) for n, p in B_HEAD]
+        tracks.append(dict(name='r11_tu_b_head', keys=hk, on=2152 * FRAME_T, off=2172 * FRAME_T))
     r.prop('r11_tu_scanhead', B_HEAD[0][1], (0, 0, 0), name='r11_tu_b_head')
+    # the turret it holds, hanging head-down left of it (2156-2166)
+    if os.environ.get('TU_HELD', '1') == '1':      # grey, left of and below the head (with the measured head track it scores higher)
+        ho = np.array([float(v) for v in os.environ.get('TU_HELDO', '-4,27,-43').split(',')])   # film 2159/2161: egg left of and below the head
+        tk2 = [(t, p + ho, None) for t, p, a in hk]
+        tracks.append(dict(name='r11_tu_b_heldturret', keys=tk2, on=2153 * FRAME_T, off=2166 * FRAME_T))
+        r.prop('r11_tu_turret_inv', np.array(B_HEAD[0][1]) + ho, (0, 0, 0), name='r11_tu_b_heldturret')
     # the white arm reaching into the iris (2148-2158), moving with the iris
-    ak = [(n * FRAME_T, o + np.array([B_IRIS[0] - 25.0, B_IRIS[1] - 15.0, z + 105.0]), None) for n, z in B_IRIS_KEYS]
+    ao = [float(v) for v in os.environ.get('TU_ARMO', '-19,-11,79').split(',')]
+    ak = [(n * FRAME_T, o + np.array([B_IRIS[0] + ao[0], y + ao[1], z + ao[2]]), None) for n, y, z in B_IRIS_KEYS]
     tracks.append(dict(name='r11_tu_b_arm', keys=ak, on=2142 * FRAME_T, off=2160 * FRAME_T))
     r.prop('r11_tu_arm', (B_IRIS[0] - 25.0, B_IRIS[1] - 15.0, 180.0), (0, 0, 0), name='r11_tu_b_arm')
-    # a grey floor slab passes the camera downward (2167-2181: top of the frame -> bottom)
-    r.prop('r11_tu_slab', (40.0, -80.0, 150.0), (0, 0, 0), name='r11_tu_b_slab')
-    tracks.append(dict(name='r11_tu_b_slab', keys=[(2165 * FRAME_T, o + np.array([40.0, -80.0, 131.0]), None), (2181 * FRAME_T, o + np.array([40.0, -80.0, 21.0]), None)],
-                       on=2165 * FRAME_T, off=2184 * FRAME_T))
+    # a grey panel passes the camera downward (2166-2182: its lower edge top -> bottom of the frame, then its top edge):
+    # a vertical plate at x 60, lower edge z 67.6 at frame 2171, -3.96 per frame (fit of both edges, rms 0.6)
+    if os.environ.get('TU_VPLATE', '1') == '1':
+        zl = lambda n: 67.6 - 3.96 * (n - 2171)
+        r.prop('r11_tu_vplate', (60.0, -71.0, zl(2160)), (0, 0, 0), name='r11_tu_b_slab')
+        tracks.append(dict(name='r11_tu_b_slab', keys=[(n * FRAME_T + 1 / 120.0, o + np.array([60.0, -71.0, zl(n)]), None) for n in (2160, 2186)],
+                           on=2160 * FRAME_T, off=2186 * FRAME_T))
+    else:                          # (the earlier horizontal slab)
+        r.prop('r11_tu_slab', (40.0, -80.0, 150.0), (0, 0, 0), name='r11_tu_b_slab')
+        tracks.append(dict(name='r11_tu_b_slab', keys=[(2165 * FRAME_T, o + np.array([40.0, -80.0, 131.0]), None), (2181 * FRAME_T, o + np.array([40.0, -80.0, 21.0]), None)],
+                           on=2165 * FRAME_T, off=2184 * FRAME_T))
     # iris on the wall: four petals (retracted by g), frame ring, throat
     from lib.tube import frame_angles
-    g = 17.0
+    g = 17.0                       # petals retracted: their cyan corners at +-95 px around the centre (2145)
     for k in range(4):
         th = math.radians(90 * k); th2 = th + math.pi / 2
         X = (0, math.cos(th2), math.sin(th2)); Y = (0, math.cos(th), math.sin(th))
         off = np.array([-1.0, g * (math.cos(th) + math.cos(th2)), g * (math.sin(th) + math.sin(th2))])
         ang = frame_angles(X, Y); nm = 'r11_tu_b_petal%d' % k
         r.prop('r11_tu_petal', np.array(B_IRIS) + off, ang, name=nm)
-        tracks.append(dict(name=nm, keys=[(n * FRAME_T, o + np.array([B_IRIS[0], B_IRIS[1], z]) + off, None) for n, z in B_IRIS_KEYS]))
+        tracks.append(dict(name=nm, keys=[(n * FRAME_T, o + np.array([B_IRIS[0], y, z]) + off, None) for n, y, z in B_IRIS_KEYS]))
     r.prop('r11_tu_irisframe', np.array(B_IRIS) + [0.5, 0, 0], frame_angles((0, 1, 0), (0, 0, -1)), name='r11_tu_b_irisframe')
-    tracks.append(dict(name='r11_tu_b_irisframe', keys=[(n * FRAME_T, o + np.array([B_IRIS[0] + 0.5, B_IRIS[1], z]), None) for n, z in B_IRIS_KEYS]))
+    tracks.append(dict(name='r11_tu_b_irisframe', keys=[(n * FRAME_T, o + np.array([B_IRIS[0] + 0.5, y, z]), None) for n, y, z in B_IRIS_KEYS]))
     # turret rising in front of the wall (eye track at 117.6: stock shell 42 units = 165 px), wings from 2095
     ks = sorted(B_EYE)
     tk = [(T0 + 0.0, o + np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG)] + [(n * FRAME_T + 1001 / 120000.0, o + np.array(B_EYE[n]) - EYE_OFF, TURRET_ANG) for n in ks]
     tk[0] = (2083 * FRAME_T - 0.01, tk[1][1], TURRET_ANG)
     tracks.append(dict(name='r11_tu_b_turret', keys=tk, on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
-    r.prop(TURRET_MDL, np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG, name='r11_tu_b_turret')
-    wk = [(t, p, a) for t, p, a in tk]
-    tracks.append(dict(name='r11_tu_b_wings', keys=wk, on=2096 * FRAME_T, off=T_CUT_B - 0.001))
-    r.prop('r11_tu_wings', np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG, name='r11_tu_b_wings')
-    gk = [(t, p + EYE_OFF + np.array([-1.0, 0.0, -10.0]), (8.0, 180.0, 0.0)) for t, p, a in tk]
+    r.prop('r11_tu_turret', np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG, name='r11_tu_b_turret')
+    # the side panels open (2093-2100): the open turret replaces the closed one from 2096
+    tracks[-1]['off'] = 2096 * FRAME_T
+    tracks.append(dict(name='r11_tu_b_turret_open', keys=[(t, p, a) for t, p, a in tk], on=2096 * FRAME_T, off=T_CUT_B - 0.001))
+    r.prop('r11_tu_turret_open', np.array(B_EYE[ks[0]]) - EYE_OFF, TURRET_ANG, name='r11_tu_b_turret_open')
+    # red glow over the lower body: a soft sprite just in front of the turret
+    gk = [(t, p + EYE_OFF + np.array([-14.0, 0.0, -30.0]), None) for t, p, a in tk]
     tracks.append(dict(name='r11_tu_b_glow', keys=gk, on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
-    r.prop('r11_tu_glow', np.array(B_EYE[ks[0]]), (12.0, 180.0, 0.0), name='r11_tu_b_glow')
+    r.prop('r11_tu_glow2', np.array(B_EYE[ks[0]]) + [-14.0, 0.0, -30.0], (0, 0, 0), name='r11_tu_b_glow')
     # haze: a grey veil just in front of the camera until the cut at 2142
     tracks.append(dict(name='r11_tu_b_haze', keys=[(2083 * FRAME_T - 0.01, o + np.array([22.0, -30.0, 40.0]), None)], on=2083 * FRAME_T - 0.005, off=T_CUT_B - 0.001))
     r.prop('r11_tu_haze', (22.0, -30.0, 40.0), (0, 0, 0), name='r11_tu_b_haze')

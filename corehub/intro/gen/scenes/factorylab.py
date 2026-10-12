@@ -172,16 +172,18 @@ def build_factory(v, d):
         box(v, det, o, (x, -382, -100), (x + 4, -378, -20), post)
     for x in np.arange(-700.0, X1, 230.0):                              # hanging arms
         for y in (-430, -610):
-            E.add_prop(v, MDL % 'r11_fl_arm', o + (x + (y == -610) * 110, y, 150), (0, 90, 0))
+            E.add_prop(v, MDL % 'r11_fl_arm', o + (x + (y == -610) * 110, y, 150), (0, 90, 0), cls='prop_static')
     for x in np.arange(-600.0, X1, 260.0):                              # grey arms hanging on the +y side
-        E.add_prop(v, MDL % 'r11_fl_arm_g', o + (x, 230, 150), (0, -90, 0))
+        E.add_prop(v, MDL % 'r11_fl_arm_g', o + (x, 230, 150), (0, -90, 0), cls='prop_static')
+    for k, x in enumerate(np.arange(-760.0, X1, 210.0)):                 # grey machinery under the ceiling on the +y side
+        E.add_prop(v, MDL % 'r11_fl_mach', o + (x, 118 + 20 * (k % 2), 150), (0, 90 * (k % 2), 0), cls='prop_static')
     for x in np.arange(-650.0, X1, 180.0):                              # arms on the conveyor (-y)
-        E.add_prop(v, MDL % 'r11_fl_floorarm', o + (x, -260, -110), (0, 20, 0))
+        E.add_prop(v, MDL % 'r11_fl_floorarm', o + (x, -260, -110), (0, 20, 0), cls='prop_static')
     for x in np.arange(-800.0, X1, 80.0):                               # cartons on the left conveyor
-        E.add_prop(v, MDL % 'r11_fl_box_l', o + (x, 325, -45), (0, 0, 0))
+        E.add_prop(v, MDL % 'r11_fl_box_l', o + (x, 325, -45), (0, 0, 0), cls='prop_static')
     rails_x(v, det, o, X0, X1)
     for x in (100.0, 715.0, 1460.0, 2240.0, -700.0):
-        E.add_prop(v, MDL % 'r11_fl_fcollar', o + (x, 0, 0), tube.axis_angles((1, 0, 0)))
+        E.add_prop(v, MDL % 'r11_fl_fcollar', o + (x, 0, 0), tube.axis_angles((1, 0, 0)), cls='prop_static')
     shell(v, o + (X0 - 100, -1100, -450), o + (X1 + 100, 520, 300))
     return cam
 
@@ -202,7 +204,7 @@ def rails_path(v, P, o, name, rho=34.0, w=1.8, step=8.0):
     U = np.tile([0.0, 0.0, 1.0], (len(P), 1)); U -= T * np.sum(U * T, axis=1, keepdims=True); U /= np.linalg.norm(U, axis=1, keepdims=True)
     W = np.cross(T, U)
     save(rail_sweep(P - P[0], U, W, rho, w), name)
-    E.add_prop(v, MDL % name, np.asarray(o, dtype=float) + P[0], (0, 0, 0), name=name)
+    E.add_prop(v, MDL % name, np.asarray(o, dtype=float) + P[0], (0, 0, 0), cls='prop_static')
 
 
 def tube_body(v, P, o, name, R=66.0, n=16, material='r11_fl_glass'):
@@ -230,7 +232,7 @@ def tube_body(v, P, o, name, R=66.0, n=16, material='r11_fl_glass'):
             if nrm @ c < 0: q = q[::-1]
             m.quad(material, *q)
     save(m, name)
-    E.add_prop(v, MDL % name, np.asarray(o, dtype=float) + P[0], (0, 0, 0), name=name)
+    E.add_prop(v, MDL % name, np.asarray(o, dtype=float) + P[0], (0, 0, 0), cls='prop_static')
 
 
 def smooth_path(P, k=5):
@@ -298,8 +300,9 @@ def build_lab1(v, d):
     tbox(v, det, o, (XL, -4600, -900), (XL + 30, YW + 30, 160), tile)     # far wall (x 3650, behind the second tube)
     tbox(v, det, o, (-400, -4600, -930), (XL, YW, -900), tile)            # floor
     # sphere room (COLMAP points, top view): white wall y -3770 (x 1400..3450), dark wall x 1400, floor z -1300
-    tbox(v, det, o, (1400, -3800, -480), (XL, -3770, 300), white)         # white wall panel facing the camera path
-    tbox(v, det, o, (1400, -3800, -1300), (XL, -3770, -480), tile)        # dark tiles below it
+    tbox(v, det, o, (1400, -3800, -800), (XL, -3770, 300), white)         # white wall panel facing the camera path
+    tbox(v, det, o, (1400, -3800, -1300), (XL, -3770, -800), tile)        # dark tiles below it
+    tbox(v, det, o, (2400, -2400, -900), (XL, -150, -898), white)         # white floor below the start of the second straight
     tbox(v, det, o, (1370, -3800, -1300), (1400, -1900, 160), tile)       # dark wall (-x side)
     tbox(v, det, o, (1400, -3770, -1330), (XL, -1900, -1300), white)      # white floor
     tbox(v, det, o, (3000, -4600, -1300), (3030, -3800, 160), tile)       # dark wall beyond
@@ -314,17 +317,17 @@ def build_lab1(v, d):
             c = np.array([sy, 0.0, sz]) * 34.0 / math.sqrt(2.0)
             box(v, det, o, (x2 + c[0] - 0.9, -4500, c[2] - 0.9), (x2 + c[0] + 0.9, y2, c[2] + 0.9), tube.RAIL_MAT)
     for x in (660.0, 1134.0, 1600.0, 2199.0, 180.0, -300.0):
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x, 0, 0), tube.axis_angles((1, 0, 0)))
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x, 0, 0), tube.axis_angles((1, 0, 0)), cls='prop_static')
     for y in np.arange(-290.0, -4400.0, -480.0):                          # (none where the film shows none near 3132-3140)
         if -3300.0 < y < -2500.0: continue
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x2, y, 0), tube.axis_angles((0, 1, 0)))
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (x2, y, 0), tube.axis_angles((0, 1, 0)), cls='prop_static')
     Pb = smooth_path(np.array([m[3:6] for m in cm if m[1] <= 3096]) * (1, 1, 0), 3)
     Sb = np.r_[0.0, np.cumsum(np.linalg.norm(np.diff(Pb, axis=0), axis=1))]
     for sb in (380.0,):                                                    # a collar in the bend
         i = int(np.searchsorted(Sb, sb)); i = min(i, len(Pb) - 2)
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + Pb[i], tube.axis_angles(Pb[i + 1] - Pb[i]))
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + Pb[i], tube.axis_angles(Pb[i + 1] - Pb[i]), cls='prop_static')
     # pedestal with the orange petals under the tube at the end of the first straight
-    E.add_prop(v, MDL % 'r11_fl_pedestal', o + (2125.0, 0, -22), (0, 0, 0))
+    E.add_prop(v, MDL % 'r11_fl_pedestal', o + (2125.0, 0, -22), (0, 0, 0), cls='prop_static')
     # the cube ahead of the camera (from its size: x 871 at 3010, 1572 at 3030, 2125 at 3044)
     rows = []
     for n, x, z in ((2996, 294.0, 0), (3009, 816.0, 0), (3018, 1177.0, 0), (3027, 1492.0, 0), (3036, 1809.0, 0), (3045, 2128.0, 0),
@@ -345,7 +348,7 @@ def build_lab1(v, d):
     track_hook(d, 'FL_Cube1', 'r11_fl_cube1', rows)
     # spheres hanging on red cables (COLMAP clusters at z -150..-300; about 170 across from their size in the film)
     for k, (x, y, z) in enumerate([(1950, -3180, -200), (2560, -3290, -250), (3230, -3260, -220), (1750, -2650, -180), (2250, -3500, -300)]):
-        E.add_prop(v, MDL % 'r11_fl_sphere', o + (x, y, z), (0, math.degrees(math.atan2(-2500 - y, 3480 - x)), 0))
+        E.add_prop(v, MDL % 'r11_fl_sphere', o + (x, y, z), (0, math.degrees(math.atan2(-2500 - y, 3480 - x)), 0), cls='prop_static')
         for dy in (-25, 25):
             box(v, det, o, (x - 2, y + dy - 2, z + 70), (x + 2, y + dy + 2, 160), red)
     shell(v, o + (-500, -4700, -1450), o + (XL + 150, YW + 150, 1200), mat=sky)
@@ -383,7 +386,7 @@ def build_lab2(v, d):
     mom.sort(key=lambda m: m[0])
     cam = camera_of(mom, o)
     d.override_camera(cam, fov=60.0)
-    E.add_prop(v, MDL % 'r11_fl_ringstack', o + (-300, 380, -3768), (0, 0, 0))
+    E.add_prop(v, MDL % 'r11_fl_ringstack', o + (-300, 380, -3768), (0, 0, 0), cls='prop_static')
     det = v.create_ent(classname='func_detail')
     shaft = bmat('r11_fl_l2shaft', (0.07, 0.07, 0.075))
     white = bmat('r11_fl_l2white', (0.80, 0.80, 0.80))
@@ -403,7 +406,7 @@ def build_lab2(v, d):
             c = np.array([sx, sy, 0.0]) * 34.0 / math.sqrt(2.0)
             box(v, det, o, (c[0] - 0.9, c[1] - 0.9, ZC), (c[0] + 0.9, c[1] + 0.9, 700), tube.RAIL_MAT)
     for z in np.arange(300.0, -1600.0, -300.0):
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (0, 0, z), (0, 0, 0))
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (0, 0, z), (0, 0, 0), cls='prop_static')
     # the chamber: ceiling with the tube mouth, white floor; peach wall on the film's left (-x), dark walls right (+x)
     box(v, det, o, (-700, -1300, ZC), (700, -170, ZC + 30), white)
     box(v, det, o, (-700, 170, ZC), (700, 1300, ZC + 30), white)
@@ -425,7 +428,7 @@ def build_lab2(v, d):
     for lo, hi in (((-430, 250), (-410, 510)), ((-190, 250), (-170, 510)), ((-410, 250), (-190, 270)), ((-410, 490), (-190, 510))):
         tbox(v, det, o, (lo[0], lo[1], -4250), (hi[0], hi[1], -3798), dark)
     for z in (-3900.0, -4020.0, -4140.0):
-        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (-300, 380, z), (0, 0, 0))
+        E.add_prop(v, MDL % 'r11_fl_lcollar', o + (-300, 380, z), (0, 0, 0), cls='prop_static')
     shell(v, o + (-3000, -1600, -4300), o + (900, 1600, 900))
     return cam
 

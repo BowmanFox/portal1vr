@@ -1,17 +1,19 @@
 """Tower (film frames 1644-1917, 54.85-63.96 s), rebuilt in cell C9 (x 12000..16300, y 3200..9750, z -3000..5000),
 sealed by a black shell. One continuous shot (moments/ncc.npy: no cut; the drop at 1655 is the iris opening):
   1644-1654  the camera in front of a closed iris (the whole frame flat grey 10)
-  1655-1663  the iris opens as a cross (4 panels sliding apart diagonally, dark corners until 1663); the camera
-             passes its plane at 1664.5 (1/H of the cross arms falls linearly to 0 there)
-  1664-1700  slow straight tube (8.5 units per frame) toward the tower base: collars every 370 (first at 319)
-  1700-1856  the camera bends up and rises beside the glass tower (up to 23 units per frame) looking at it
-  1856-1917  it sinks again, past the dark ring band at 1886-1890
-Camera: COLMAP run of out/tw/sfm (frames 1656-1930, 275 images, 0.86 px), aligned to the room lines at 1664-1690
-(27 frames, spread 0.6 deg), scaled by the collars (offline/out/tw/tools/twsolve.py, twcam.py), mis-registered
-frames dropped and interpolated; 1644-1655 extrapolated. COLMAP's world drifts in depth between the rising and
-the sinking part: the rust walls are a height field of COLMAP's points
-(each band where the camera of that time saw it), the tower's poles / bands are placed from the film's image
-positions (out/tw/tools/poles.py, band traces). Ride coordinates: origin = camera 1664, room axes."""
+  1655-1663  the iris opens as a cross (4 panels sliding apart diagonally); the camera passes its plane at 1664.5
+  1664-1702  slow straight tube (8.5 units per frame) toward the tower base: collars every 370 (first at 319)
+  1702-1763  the film keeps the tube around the camera (rails converging below the centre, the second collar
+             centred and passed at ~1760) while COLMAP's camera rises: that tube is carried with the camera
+  1763-1856  the camera rises beside the glass tower (poles, octagonal bands, turrets, arms, white discs, red beams,
+             diagonal tubes with dark collars), then sinks again past the bands (1856-1917)
+Camera: COLMAP run of out/tw/sfm (frames 1656-1930, 275 images, 0.86 px), aligned to the room lines at 1664-1690,
+scaled by the collars, kept on the first tube's axis until 1702 (offline/out/tw/tools/twsolve.py, twcam.py).
+COLMAP's world drifts (its rise is too fast for the tower's bands to stay put): the rust walls are a height field
+of COLMAP's points (one static model), and the tower's poles, bands, discs and beams follow the film's own image
+measurements (dark-row traces, pole runs, disc / beam tracks: out/tw/tools/dtrack.py, ltrack.py), as keyed props
+moved by the director hook Tw_Update (angles through __KeyValueFromString). Ride coordinates: origin = camera 1664,
+room axes. Engine budget: 15 brushes in the cell (large plain surfaces + the shell), 26 static props, 49 dynamic."""
 import math, json, os
 import numpy as np
 from lib import vmfedit as E, tube
@@ -113,7 +115,7 @@ def iris(c, rd, tracks):
     ctr = rd.pos(IRIS_FRAME); F = rd.direction(IRIS_FRAME)
     up = np.array([0, 0, 1.0]); L = np.cross(up, F); L /= np.linalg.norm(L); U = np.cross(F, L)
     c.v_prop = None
-    E.add_prop(c.v, 'models/corehub_intro/%s_iris_frame.mdl' % PFX, ctr, tube.frame_angles(F, L), name=PFX + '_iris_frame')
+    sprop(c.v, PFX + '_iris_frame', ctr, tube.frame_angles(F, L))
     for k in range(4):
         a = math.radians(90 * k); Lk = L * math.cos(a) + U * math.sin(a); Uk = np.cross(F, Lk)
         ang = tube.frame_angles(F, Lk); name = '%s_iris%d' % (PFX, k)
@@ -124,7 +126,7 @@ def iris(c, rd, tracks):
 
 
 # ------------------------------------------------------------------------------------------------ tube
-def rails_along(v, P, name, up0=(0, 0, 1.0), rho=34.0, width=1.8, step=6.0):
+def rails_along(v, P, name, up0=(0, 0, 1.0), rho=34.0, width=1.8, step=6.0, dynamic=False):
     """the four rails (on the diagonals of up0 / left) swept along polyline P (map coordinates) as one model"""
     from models.tubekit import rail_sweep
     P = np.asarray(P, dtype=float)
@@ -140,7 +142,9 @@ def rails_along(v, P, name, up0=(0, 0, 1.0), rho=34.0, width=1.8, step=6.0):
     W = np.cross(T, U)
     org = P[0].copy()
     save(rail_sweep(P - org, U, W, rho, width, material=PFX + '_rail'), name)
-    E.add_prop(v, 'models/corehub_intro/%s.mdl' % name, org, (0, 0, 0), name=name)
+    if dynamic: E.add_prop(v, 'models/corehub_intro/%s.mdl' % name, org, (0, 0, 0), name=name)
+    else: sprop(v, name, org)
+    return org
 
 
 # ------------------------------------------------------------------------------------------------ the room
@@ -149,34 +153,64 @@ TUBE_PT = np.array([81.7, 8.1, -9.0])
 COLLARS_AX = [319.0, 689.0, 1059.0, 1429.0]         # collars along the tube (axial, from the cloud: first collar's
                                                     # inner rings at 319, the film's inner circles at 1664: 681, 1060, 1376)
 TUBE_END_AX = 1900.0
-TINTS = [0.55, 0.65, 0.75, 0.85, 0.95, 1.05, 1.15, 1.25]
+TINTS = [0.55, 0.65, 0.75, 0.85, 0.95, 1.05, 1.15, 1.25, 1.4, 1.55, 1.75, 2.0]
+BASE_DIM = 1.0            # (0.8 for the walls behind the tower base scored the same or lower)
+RISE_LIFT = 1.1           # film 60.8-62.4 s: the walls around the tower 37-63, the cells gave 31-52
+GLASS_LIFT = 1.35          # film 59-63 s: between the poles 55-72, the rust cells alone gave 41-56
 
 
 def tube_axis(a): return TUBE_PT + TUBE_DIR * (a - TUBE_PT @ TUBE_DIR)
 
 
+def sprop(v, model, origin, angles=(0, 0, 0)):
+    """static prop (no name: the 2009 engine's entity limit; prop_static for everything that does not move)"""
+    return E.add_prop(v, 'models/corehub_intro/%s.mdl' % model, origin, angles, cls='prop_static')
+
+
 def backdrop(c, rd):
-    """rust walls as a height field from the cloud (see offline/out/tw/tools/twsolve.py: backdrop)"""
+    """rust walls as a height field from the cloud (offline/out/tw/tools/twsolve.py: backdrop), one static model
+    (cells: front face + sides; tint levels from the points' median grey)"""
+    from lib.gen import Mesh, mat
     B = rd.raw['backdrop']; ys, zs = B['ystep'], B['zstep']
-    mats = [TM.bmat('%s_rust%d' % (PFX, i), (t, t, t), base='corehub_intro/%s_rust' % PFX) for i, t in enumerate(TINTS)]
-    su = TM.PANEL_W * TM.TEX_PANELS[0] / TM.TEX
+    names = []
+    for i, t in enumerate(TINTS):
+        names.append(mat('%s_rustm%d' % (PFX, i), (t, t, t), base='corehub_intro/%s_rust' % PFX))
+    m = Mesh()
     for y0, z0, x, g in B['cells']:
-        t = (g / 85.0) ** 0.6; i = int(np.argmin([abs(math.log(max(t, 0.05) / q)) for q in TINTS]))
-        c.box((x, y0, z0), (x + 60.0, y0 + ys, z0 + zs), mats[i], su=su, sv=su)          # (deeper boxes to fill the gaps scored lower)
+        if y0 + ys <= -378.0 + 1e-6 and x < 1650.0: continue      # in front of the concrete pillar (it shows in the film)
+        t = (g / 85.0) ** 0.6
+        if z0 >= 900.0: t *= RISE_LIFT
+        else: t *= BASE_DIM
+        if z0 >= 900.0 and -10.0 <= y0 + ys / 2 <= 355.0: t *= GLASS_LIFT     # seen through the tower's glass: lighter
+        i = int(np.argmin([abs(math.log(max(t, 0.05) / q)) for q in TINTS]))
+        m.box((x, y0, z0), (x + 60.0, y0 + ys, z0 + zs), names[i], mats={'+x': None})
+    m.uv_box(scale=512.0)
+    save(m, PFX + '_backdrop')
+    sprop(c.v, PFX + '_backdrop', np.asarray(ORIGIN))
 
 
-# the glass tower (rising part, z > 600): axis, poles and bands from the film's images at the camera of that time
-# (poles at 195 / 395 px, band A at the horizon 1844-1856 = camera z 2160, band B 22.6 deg above it at 1856, band
-# spans 330 px at 1820); band heights fitted to the film's dark-row traces with the front edge at x 1500 (A 2055 /
-# 2189, B 2568 / 2610 rising / sinking; a band at the horizon at 1812-1820 -> 1650); the bands the camera passes
-# close by while sinking (1886-1890, 1912-1917) reach close to its path (COLMAP's sinking path drifts ~450 away
-# from the tower relative to the rising one), shown only while it sinks
-TOWER = dict(x=1800.0, y=200.0, pole_r=254.0, pole_w=60.0, pole_z0=900.0, pole_z1=3400.0,
-             band_ri=270.0, band_t=70.0, bands=[(1650.0, 330.0), (2120.0, 330.0), (2590.0, 330.0), (3060.0, 330.0), (1800.0, 630.0), (1180.0, 820.0)],
-             col_r=150.0, col_z0=900.0, col_z1=3400.0, col_tint=0.75, disc_r0=0.0, disc_r1=310.0, disc_t=30.0, disc_z=330.0)
-BASE = dict(x=2060.0, y=230.0)            # the tower's base (1664-1730: column x ~1984, platform rim z ~300 at x ~2170)
-
-
+# the glass tower (rising part, z > 900): axis, poles and bands from the film's images at the camera of that time
+# (poles at 195 / 395 px, band spans 330 px at 1820); band heights fitted to the film's dark-row traces with the
+# front edge at x 1500 (A 2055 / 2189, B 2568 / 2610 rising / sinking; a band at the horizon at 1812-1820 -> 1650);
+# the bands the camera passes close by while sinking (1886-1890, 1912-1917) reach close to its path (COLMAP's
+# sinking path drifts ~450 away from the tower relative to the rising one) and show only while it sinks
+TOWER = dict(x=1550.0, y=172.0, poles=[(1450.0, 355.0, 100.0), (1450.0, -10.0, 65.0)], pole_descent=[(1450.0, 355.0), (1450.0, -10.0)],    # (moved nearer while sinking: scored lower)
+             # the poles follow the film (dark run centres at row 200, 1760-1916, on the plane x 1450)
+             pole_keys=[[(1760, 337.0), (1780, 346.0), (1800, 370.0), (1830, 361.0), (1845, 384.0), (1860, 387.0), (1870, 366.0), (1880, 410.0),
+                         (1895, 380.0), (1904, 377.0), (1910, 313.0), (1916, 263.0)],
+                        [(1760, 11.0), (1780, 6.0), (1800, 6.0), (1820, -8.0), (1840, -20.0), (1860, -29.0), (1870, -27.0), (1880, -65.0),
+                         (1895, -33.0), (1904, -42.0), (1916, -54.0)]],
+             pole_z0=900.0, pole_z1=3400.0, column=False,
+             key_dz=0.0,               # (moving them -100 / +50 scored the same or lower)
+             band_ri=200.0, band_t=70.0, bands=[(1707.0, 330.0), (2102.0, 330.0), (2504.0, 330.0), (2900.0, 330.0), (1800.0, 630.0), (1180.0, 820.0)],
+             # bands A, B, C follow the film's dark-row traces (heights for a front edge at x 1220 from each frame's
+             # camera: COLMAP's rise is too fast for one static height, A would drift 1716 -> 2184 -> 1967)
+             keyed={1: [(1800, 1716), (1808, 1831), (1816, 1918), (1824, 1989), (1832, 2063), (1840, 2105), (1848, 2160), (1856, 2184), (1864, 2175), (1872, 2155), (1880, 2098), (1888, 1967)],
+                    2: [(1824, 2313), (1832, 2387), (1840, 2426), (1848, 2462), (1856, 2489), (1864, 2470), (1872, 2432)],
+                    0: [(1812, 1694), (1816, 1714), (1820, 1766)]},
+             col_r=150.0, col_z0=900.0, col_z1=3400.0, col_tint=0.52, disc_r0=0.0, disc_r1=310.0, disc_t=30.0, disc_z=330.0)
+BASE = dict(x=2060.0, y=230.0, r=150.0)            # the tower's base (1664-1730: column x ~1984, platform rim z ~300 at x ~2170)
+LWALL_OFF = 63.0           # the film's left side turns dark after the near band (1888)
 DESCENT_T = 62.15          # frame 1863: the camera has turned from rising to sinking
 
 
@@ -186,27 +220,101 @@ def tower(c, tracks):
     T = TOWER; M = TM.brush_materials(); o = np.asarray(ORIGIN)
     TM.save_tower(T)
     ax = np.array([T['x'], T['y'], 0.0])
-    E.add_prop(c.v, 'models/corehub_intro/%s_column.mdl' % PFX, o + ax, (0, 0, 0), name=PFX + '_column')
+    if T.get('column', True): sprop(c.v, PFX + '_column', o + ax)
     for k, (z, ro) in enumerate(T['bands']):
         name = '%s_band%d' % (PFX, k)
+        if k in T.get('keyed', {}):
+            ks = [(ft(n), o + ax + (0, 0, zz + T.get('key_dz', 0.0)), None) for n, zz in T['keyed'][k]]
+            E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), ks[0][1], (0, 22.5, 0), name=name)
+            tracks.append(dict(name=name, keys=ks, t_on=54.0, t_off=70.0)); continue
+        if ro <= 600: sprop(c.v, name, o + ax + (0, 0, z), (0, 22.5, 0)); continue
         E.add_prop(c.v, 'models/corehub_intro/%s_band%d.mdl' % (PFX, k), o + ax + (0, 0, z), (0, 22.5, 0), name=name)
         if ro > 600:          # the bands the sinking camera passes close by (1884-1917): only while it sinks
             tracks.append(dict(name=name, keys=[(62.0, o + ax + (0, 0, z), None)], t_on=DESCENT_T, t_off=70.0))
-    w = T['pole_w'] / 2
-    for dy in (T['pole_r'], -T['pole_r']):
-        c.box((T['x'] - w, T['y'] + dy - w, T['pole_z0']), (T['x'] + w, T['y'] + dy + w, T['pole_z1']), M['black'])
+    # the poles are models: while the camera sinks (1856-1885) they come ~250 nearer (film 1898: poles at 120-220 /
+    # 520-570 px, 1.7 times wider apart than while rising; COLMAP's sinking path drifts away from the tower)
+    from lib.gen import Mesh
+    for k, ((px, py, pw), (dx, dy)) in enumerate(zip(T['poles'], T['pole_descent'])):
+        m = Mesh(); w = pw / 2; m.box((-w, -w, 0.0), (w, w, T['pole_z1'] - T['pole_z0']), PFX + '_pole')
+        save(m, '%s_pole%d' % (PFX, k))
+        nm = '%s_pole%d' % (PFX, k); a = o + (px, py, T['pole_z0']); b = o + (dx, dy, T['pole_z0'])
+        E.add_prop(c.v, 'models/corehub_intro/%s.mdl' % nm, a, (0, 0, 0), name=nm)
+        ks = [(ft(n), o + (px, yy, T['pole_z0']), None) for n, yy in T['pole_keys'][k]]
+        tracks.append(dict(name=nm, keys=ks, t_on=54.0, t_off=70.0))
     # the base (seen 1655-1760 from the tube): platform disc, column, two poles (1664: 250 / 352 px -> y 418 / -28)
-    E.add_prop(c.v, 'models/corehub_intro/%s_disc.mdl' % PFX, o + (2100.0, 150.0, T['disc_z']), (0, 0, 0), name=PFX + '_disc')
-    E.add_prop(c.v, 'models/corehub_intro/%s_column.mdl' % PFX, o + (BASE['x'], BASE['y'], 330.0 - T['col_z0']), (0, 0, 0), name=PFX + '_column_base')
+    sprop(c.v, PFX + '_disc', o + (2100.0, 150.0, T['disc_z']))
+    TM.save_column(BASE['r'], T['col_z0'], T['col_z1'], PFX + '_column_base')
+    sprop(c.v, PFX + '_column_base', o + (BASE['x'], BASE['y'], 330.0 - T['col_z0']))
     for y in (418.0, -28.0):
         c.box((1990.0, y - 30.0, 330.0), (2050.0, y + 30.0, 905.0), M['black'])
+    TM.save_hangers()
+    sprop(c.v, PFX + '_hangers', o + (2100.0, 150.0, T['disc_z'] - T['disc_t']))
+    # the light grey ledge behind the platform (1664: rows 105-145, x 155-415 px on the plane x 2150; film 94)
+    c.box((2150.0, -321.0, 230.0), (2190.0, 904.0, 414.0), M['ledge'])
     # horizontal pipes across the view (1664: rows 222 / 245 px), with the flanges' darker rings left out
     for z in (-89.0, -163.0):
-        E.add_prop(c.v, 'models/corehub_intro/%s_pipe.mdl' % PFX, o + (1500.0, 0.0, z), (0, 90, 0), name='%s_pipe%d' % (PFX, int(-z)))
+        sprop(c.v, PFX + '_pipe', o + (1500.0, 0.0, z), (0, 90, 0))
     TM.save_pipe(2600.0, 7.0)
 
 
-def room(c, rd):
+# inside the glass tower: positions of the film's objects on the plane x 1700 (film pixels of the frame named, ray
+# from that frame's camera; out/tw/tools/blobs.py): white discs 1790 (232,102) / (337,197), 1850 (250,140),
+# 1848 (371,99), 1760-1776 (334,30-100); red beams 1760 (252,0-84), 1790 (315,165)-(370,400), 1904 (290,0)-(330,320)
+# and (360,0)-(374,319); turrets / arms 1850 (190,190), (210,250), (400,250); diagonal tubes 1800 (560,40)-(640,300)
+# right, 1850 (0,50)-(200,170) left
+INT_K = 0.68                              # objects on the plane x 1350 instead of ~1700: sizes scaled by depth
+DISCS = [(1350.0, 269.0, 1472.0), (1350.0, 105.0, 1317.0), (1350.0, 251.0, 2476.0), (1350.0, 32.0, 2544.0), (1350.0, 100.0, 1087.0)]
+BEAMS = [((1350.0, 238.0, 1080.0), (1350.0, 236.0, 900.0)), ((1350.0, 138.0, 1368.0), (1350.0, 61.0, 1018.0)),
+         ((1350.0, 207.0, 1733.0), (1350.0, 162.0, 1323.0)), ((1350.0, 115.0, 1734.0), (1350.0, 109.0, 1323.0))]
+TURRETS = [(1350.0, 352.0, 2385.0), (1350.0, -5.0, 2276.0), (1350.0, 275.0, 2272.0), (1350.0, 121.0, 2326.0), (1350.0, 83.0, 2421.0),
+           # white objects of frames 1806 / 1840 / 1866 (bright blobs, plane x 1350)
+           (1350.0, 100.0, 2000.0), (1350.0, 245.0, 1700.0), (1350.0, 40.0, 2500.0), (1350.0, 245.0, 2465.0), (1350.0, 95.0, 2250.0)]
+ARMS = [(1350.0, 283.0, 2254.0), (1350.0, 44.0, 2373.0), (1350.0, 245.0, 2380.0), (1350.0, 100.0, 1900.0)]          # frame 1830: arms (220,65)-(230,145), (370,25)-(368,80)
+CUBES = [(1350.0, 182.0, 2200.0)]                                 # frame 1830: the black cube at (290,175)
+DIAGS = [((1150.0, 536.0, 2245.0), (1150.0, 323.0, 2021.0), 1.0), ((1680.0, -244.0, 2351.0), (1680.0, -416.0, 1928.0), 1.0),
+         ((1350.0, 99.0, 2200.0), (1350.0, -59.0, 1841.0), INT_K)]     # frame 1830: left / right tubes, the disc's tube
+
+
+GLASS = dict(x=1330.0, y0=27.0, y1=333.0, z0=900.0, z1=3400.0)   # between the poles as seen from the rising camera
+
+
+def interior(c, rd, tracks):
+    o = np.asarray(ORIGIN)
+    # the glass front: the film's tower interior is lighter than its walls (55-72 against 41-56 here, 59-63 s)
+    TM.save_glass(GLASS['y1'] - GLASS['y0'], GLASS['z1'] - GLASS['z0'])
+    # sprop(c.v, PFX + '_glassfront', o + (GLASS['x'], GLASS['y0'], GLASS['z0']))   # tried: edges and ssim lower
+    BT = rd.raw.get('beams', [])
+    lens = [float(np.median([np.linalg.norm(np.subtract(b, a)) for n, a, b in tr])) for tr in BT]
+    TM.save_interior(lens, INT_K)
+    # the white discs follow their film tracks (offline/out/tw/tools/dtrack.py: the discs' segments grouped and
+    # linked over frames, put on the plane x 1350 from each frame's camera)
+    for k, tr in enumerate(rd.raw.get('discs', [])):
+        nm = '%s_disc%d' % (PFX, k); ks = [(ft(n), o + (x, y, z), None) for n, x, y, z in tr]
+        E.add_prop(c.v, 'models/corehub_intro/%s_wdisc.mdl' % PFX, ks[0][1], (0, 0, 0), name=nm)
+        tracks.append(dict(name=nm, keys=ks, t_on=ks[0][0] - 0.035, t_off=ks[-1][0] + 0.035))
+    # red beams (and the turret each hangs from) follow their film tracks (offline/out/tw/tools/ltrack.py)
+    for k, tr in enumerate(BT):
+        ks = []; kt = []; prev = None
+        for n, a, b in tr:
+            ang = np.array(tube.axis_angles(np.subtract(b, a)))
+            if prev is not None: ang = prev + (ang - prev + 180.0) % 360.0 - 180.0
+            prev = ang; ks.append((ft(n), o + a, tuple(ang))); kt.append((ft(n), o + a + (0, 0, 14.0), None))
+        nm = '%s_beam%d' % (PFX, k)
+        E.add_prop(c.v, 'models/corehub_intro/%s_laser%d.mdl' % (PFX, k), ks[0][1], ks[0][2], name=nm)
+        tracks.append(dict(name=nm, keys=ks, t_on=ks[0][0] - 0.035, t_off=ks[-1][0] + 0.035))
+        nm = '%s_bturret%d' % (PFX, k)
+        E.add_prop(c.v, 'models/corehub_intro/%s_turret.mdl' % PFX, kt[0][1], (0, 0, 0), name=nm)
+        tracks.append(dict(name=nm, keys=kt, t_on=kt[0][0] - 0.035, t_off=kt[-1][0] + 0.035))
+    for p in TURRETS: sprop(c.v, PFX + '_turret', o + p)
+    for p in CUBES: sprop(c.v, PFX + '_cube', o + p, (10, 30, 20))
+    for p in ARMS: sprop(c.v, PFX + '_arm', o + p)
+    for a, b, kk in DIAGS:
+        a = np.asarray(a); b = np.asarray(b); dv = (a - b) / np.linalg.norm(a - b)
+        L = np.cross(dv, [1.0, 0, 0]); L /= np.linalg.norm(L)
+        ctr = (a + b) / 2; sprop(c.v, PFX + ('_diag' if kk != 1.0 else '_diag1'), o + ctr - dv * 900.0 * kk, tube.frame_angles(dv, L))
+
+
+def room(c, rd, lw_tracks):
     """the big surfaces seen from the tube (1664: film edges -> rays from the camera, depths from the cloud)"""
     M = TM.brush_materials()
     # right concrete pillar: front face x 1650 (cloud), left edge at 453 px in 1664 -> y -378
@@ -221,8 +329,64 @@ def room(c, rd):
     # floor
     c.box((-400.0, -1200.0, -760.0), (2400.0, 1400.0, -700.0), M['floor'])
     # the left wall beside the tower, seen during the rise (1790: light grey 87 above, dark panels 30 below eye level)
-    c.box((1300.0, 380.0, 1250.0), (1340.0, 1400.0, 3400.0), M['grey_dim'])
-    c.box((1300.0, 380.0, 1000.0), (1340.0, 1400.0, 1250.0), M['wall_dim'], su=1.0)
+    # (a model, hidden while the camera sinks: the film's left side is dark then, 16-29)
+    from lib.gen import Mesh
+    m = Mesh(); m.box((0.0, 0.0, 0.0), (40.0, 1020.0, 2400.0), PFX + '_lwall'); save(m, PFX + '_lwall')
+    E.add_prop(c.v, 'models/corehub_intro/%s_lwall.mdl' % PFX, np.asarray(ORIGIN) + (1300.0, 380.0, 1000.0), (0, 0, 0), name=PFX + '_lwall')
+    lw_tracks.append(dict(name=PFX + '_lwall', keys=[(54.0, np.asarray(ORIGIN) + (1300.0, 380.0, 1000.0), None)], t_on=54.0, t_off=LWALL_OFF))
+
+
+# ------------------------------------------------------------------------------------------------ the tube 1702-1795
+# COLMAP's camera rises from ~1700 (its scene points fit that), but the film keeps showing the tube around the camera:
+# the rails converge on a vanishing point that moves down steadily (x ~297 px; angle below the view axis, film rails:
+# 8.9 deg at 1700 .. 25.6 at 1742 .. 53.5 at 1790, cubic fit rms 0.5 deg) and the second collar stays centred on it,
+# approached at 6.1 slowing to 5.4 units per frame (its light band's outer edge: f/r 5.70 at 1700 .. 2.22 at 1736,
+# quadratic fit) and passed at 1763. Neither fits a static tube in COLMAP's world, so this tube is carried with the camera: rails and
+# collar placed per moment from these film measurements.
+TUBE_LEAVE = 1702.0
+CT_POLY = (-2.4e-05, 2.316e-03, 0.521349, 24.577738)       # angle below the view axis (deg) of the rails, n - 1740
+CT_VPX = 297.0
+CT_FR = (2.59e-04, -0.106884, 5.722989)                       # collar f/r (outer band edge) against n - 1700 (rms 0.02,
+                                                             # 1700-1736; a cubic through 1749 / 1757 as well scored lower)
+CT_PASS = 1763.2
+CT_HIDE = 1755.5           # the collars are hidden from here (their wide light band at 1757 scored lower than nothing)
+CT_DK = 1.0                # (distance factor on the fitted collar distances: 1.0 scored best of 0.85 / 1.0 / 1.2)
+CT_END = 1795.0
+
+
+def cam_tube(v, rd, tracks):
+    from models.tubekit import rail_sweep
+    L0, L1 = -120.0, 1100.0
+    P = np.array([[L0, 0, 0], [L1, 0, 0]], float); U = np.array([[0, 0, 1.0]] * 2); W = np.array([[0, 1.0, 0]] * 2)
+    save(rail_sweep(P, U, W, 34.0, 1.8, material=PFX + '_rail'), PFX + '_camtube')
+    keys_r = []; keys_c = []; prev_r = None; prev_c = None
+    F = 461.88
+    for t, n, mo, p, f, u in rd.moments:
+        fn = n + (0.5 if mo == 'L' else 0.0)
+        if fn < TUBE_LEAVE - 1 or fn > CT_END + 1: continue
+        th = math.radians(np.polyval(CT_POLY, fn - 1740.0))
+        r = np.cross(f, u)
+        dvec = f + r * (CT_VPX - 319.5) / F - u * math.tan(th); dvec /= np.linalg.norm(dvec)
+        left = np.cross(u, dvec); left /= np.linalg.norm(left)
+        ang = np.array(tube.frame_angles(dvec, left))
+        if prev_r is not None: ang = prev_r + (ang - prev_r + 180.0) % 360.0 - 180.0
+        prev_r = ang
+        keys_r.append((t, np.asarray(p), tuple(ang)))
+        dist = CT_DK * 61.06 * max(float(np.polyval(CT_FR, fn - 1700.0)), 0.0) if fn < CT_PASS else 0.0
+        ca = np.array(tube.axis_angles(dvec))
+        if prev_c is not None: ca = prev_c + (ca - prev_c + 180.0) % 360.0 - 180.0
+        prev_c = ca
+        keys_c.append((t, np.asarray(p) + dvec * dist, tuple(ca)))
+    E.add_prop(v, 'models/corehub_intro/%s_camtube.mdl' % PFX, keys_r[0][1], keys_r[0][2], name=PFX + '_camtube')
+    # carried until the collar passes (1763), then left where it is: the camera rises out of it (1764-1795: the
+    # film's rails only below the camera, on the right and bottom left)
+    tracks.append(dict(name=PFX + '_camtube', keys=[k for k in keys_r if k[0] <= ft(CT_PASS) + 0.01], t_on=ft(TUBE_LEAVE), t_off=ft(CT_END)))
+    t_pass = ft(CT_HIDE)
+    for j, extra in enumerate((0.0, 370.0, 740.0)):           # the collar and the next two beyond it (inner rings)
+        ks = [(t, pc + (pc - keys_r[i][1]) / max(np.linalg.norm(pc - keys_r[i][1]), 1e-6) * extra, a) for i, (t, pc, a) in enumerate(keys_c)]
+        nm = '%s_camcollar%d' % (PFX, j)
+        E.add_prop(v, 'models/corehub_intro/%s_collar.mdl' % PFX, ks[0][1], ks[0][2], name=nm)
+        tracks.append(dict(name=nm, keys=[k for k in ks if k[0] <= t_pass + 0.02], t_on=ft(TUBE_LEAVE), t_off=t_pass))
 
 
 def apply(v, d):
@@ -237,20 +401,18 @@ def apply(v, d):
     # the tube: straight from the iris plane along its axis
     a0 = float((rd.pos(IRIS_FRAME) - o) @ TUBE_DIR)
     P = np.array([o + tube_axis(a) for a in np.linspace(a0, TUBE_END_AX, 40)])
-    rails_along(v, P, PFX + '_rails')
+    org = rails_along(v, P, PFX + '_rails', dynamic=True)
+    t_leave = ft(TUBE_LEAVE)
+    tracks.append(dict(name=PFX + '_rails', keys=[(54.0, org, None)], t_on=54.0, t_off=t_leave))
     for k, a in enumerate(COLLARS_AX):
-        E.add_prop(v, 'models/corehub_intro/%s_collar.mdl' % PFX, o + tube_axis(a), tube.axis_angles(TUBE_DIR), name='%s_collar%d' % (PFX, k))
-    # the tube the camera rises in: bends up from the first tube at ~1700 (the film's rails converge below the
-    # frame 1736-1800: the vertical tube's rails under the camera), a collar passed at ~1752
-    fr = np.arange(1696.0, 1857.0, 1.0)
-    Pr = np.array([rd.pos(n) for n in fr])
-    Pr = np.vstack([o + tube_axis(float((Pr[0] - o) @ TUBE_DIR) - 300.0), Pr])
-    # rails_along(v, Pr, PFX + '_rails_up', up0=(-1.0, 0.0, 0.0))   # tried: scores lower (orientation unmeasured)
-    for k, n in enumerate(()):          # (a collar passed at 1757 did not score better)
-        E.add_prop(v, 'models/corehub_intro/%s_collar.mdl' % PFX, rd.pos(n), (0, 0, 0), name='%s_collar_up%d' % (PFX, k))
+        nm = '%s_collar%d' % (PFX, k)
+        E.add_prop(v, 'models/corehub_intro/%s_collar.mdl' % PFX, o + tube_axis(a), tube.axis_angles(TUBE_DIR), name=nm)
+        tracks.append(dict(name=nm, keys=[(54.0, o + tube_axis(a), tube.axis_angles(TUBE_DIR))], t_on=54.0, t_off=t_leave))
+    cam_tube(v, rd, tracks)
     backdrop(c, rd)
-    room(c, rd)
+    room(c, rd, tracks)
     tower(c, tracks)
+    interior(c, rd, tracks)
     d.append(tracks_code(tracks))
     d.hook('Tw_Update(t);')
     # the base director's old fades in this range (iris, collar passes) are replaced by geometry: no screen black
